@@ -1,0 +1,168 @@
+"use client";
+
+import Link from "next/link";
+import { type SubmitEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2Icon, StethoscopeIcon } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+
+type LoginFormProps = {
+  callbackURL: string;
+};
+
+export function LoginForm({ callbackURL }: LoginFormProps) {
+  const router = useRouter();
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isEmailPending, setIsEmailPending] = useState(false);
+  const [isGooglePending, setIsGooglePending] = useState(false);
+
+  useEffect(() => {
+    if (session) {
+      router.replace(callbackURL);
+    }
+  }, [callbackURL, router, session]);
+
+  async function handleEmailLogin(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setIsEmailPending(true);
+
+    try {
+      const result = await authClient.signIn.email({
+        callbackURL,
+        email,
+        password,
+      });
+
+      if (result.error) {
+        setError(result.error.message ?? "No se pudo iniciar sesion.");
+        return;
+      }
+
+      toast.success("Sesion iniciada correctamente.");
+      router.replace(callbackURL);
+    } finally {
+      setIsEmailPending(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setError("");
+    setIsGooglePending(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        callbackURL,
+        provider: "google",
+      });
+
+      if (result.error) {
+        setError(result.error.message ?? "No se pudo iniciar sesion con Google.");
+        setIsGooglePending(false);
+      }
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? loginError.message
+          : "No se pudo iniciar sesion con Google.",
+      );
+      setIsGooglePending(false);
+    }
+  }
+
+  const registerHref = `/register?next=${encodeURIComponent(callbackURL)}`;
+
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Iniciar sesion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-col gap-6" onSubmit={handleEmailLogin}>
+            <FieldGroup>
+              <Field data-invalid={Boolean(error)}>
+                <FieldLabel htmlFor="email">Correo electronico</FieldLabel>
+                <Input
+                  autoComplete="email"
+                  id="email"
+                  name="email"
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                  type="email"
+                  value={email}
+                />
+              </Field>
+              <Field data-invalid={Boolean(error)}>
+                <FieldLabel htmlFor="password">Contrasena</FieldLabel>
+                <Input
+                  autoComplete="current-password"
+                  id="password"
+                  name="password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  type="password"
+                  value={password}
+                />
+                <FieldError>{error}</FieldError>
+              </Field>
+            </FieldGroup>
+
+            <Button
+              disabled={isEmailPending || isSessionPending}
+              type="submit"
+            >
+              {isEmailPending ? <Loader2Icon data-icon="inline-start" /> : null}
+              Entrar
+            </Button>
+          </form>
+
+          <FieldSeparator className="my-6">O</FieldSeparator>
+
+          <Button
+            className="w-full"
+            disabled={isGooglePending || isSessionPending}
+            onClick={handleGoogleLogin}
+            type="button"
+            variant="outline"
+          >
+            {isGooglePending ? <Loader2Icon data-icon="inline-start" /> : null}
+            Continuar con Google
+          </Button>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            No tienes cuenta?{" "}
+            <Link
+              className="font-medium text-foreground underline"
+              href={registerHref}
+            >
+              Crea una
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

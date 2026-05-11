@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
   CreateAnamnesisSchema,
@@ -272,6 +273,15 @@ export async function createAnamnesis(
 ): Promise<CreateAnamnesisActionState> {
   void _previousState;
 
+  const userId = await getAuthenticatedUserId();
+
+  if (!userId) {
+    return {
+      message: "Debes iniciar sesion para guardar la anamnesis.",
+      ok: false,
+    };
+  }
+
   const parsed = CreateAnamnesisSchema.safeParse(getPayload(formData));
 
   if (!parsed.success) {
@@ -287,9 +297,14 @@ export async function createAnamnesis(
   const historiaId = getDocumentId(pacienteId);
   const historia: Historia = {
     type: "historia",
+    created_by: userId,
     pacienteId,
     ...(viajeId ? { viajeId } : {}),
-    anamnesis: anamnesisData as Anamnesis,
+    anamnesis: {
+      ...(anamnesisData as Anamnesis),
+      created_by: userId,
+      updated_by: userId,
+    },
   };
 
   try {

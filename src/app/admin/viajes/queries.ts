@@ -115,3 +115,20 @@ export async function listViajes(
     .filter((viaje) => matchesDateRange(viaje, filters))
     .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
 }
+
+export async function getViajeByDocId(id: string): Promise<ViajeListItem | null> {
+  try {
+    const doc = (await db.get(id)) as ViajeDocument;
+
+    if (!isViaje(doc)) {
+      return null;
+    }
+
+    return {
+      ...doc,
+      docId: doc._id ?? doc.id,
+    };
+  } catch {
+    return null;
+  }
+}

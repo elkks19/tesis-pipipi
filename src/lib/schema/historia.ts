@@ -8,17 +8,31 @@ import type { ExamenFisicoSegmentario } from "./examenFisicoSegmentario";
 import type { Receta } from "./farmacia";
 import type { Laboratorios } from "./laboratorios";
 
+export type AuditFields = {
+	created_by: string;
+	updated_by: string;
+};
+
+export type ExamenesComplementariosSolicitados = {
+	ecografia: boolean;
+	laboratorios: boolean;
+	espirometria: boolean;
+	electrocardiograma: boolean;
+};
+
 export type Historia = {
 	type: "historia";
 
+	created_by?: string;
 	pacienteId: string;
 	viajeId?: string;
-	anamnesis?: Anamnesis;
-	examenFisicoGeneral?: ExamenFisicoGeneral;
-	examenFisicoSegmentario?: ExamenFisicoSegmentario;
-	electrocardiograma?: Electrocardiograma;
+	examenesComplementariosSolicitados?: ExamenesComplementariosSolicitados;
+	anamnesis?: Anamnesis & Partial<AuditFields>;
+	examenFisicoGeneral?: ExamenFisicoGeneral & Partial<AuditFields>;
+	examenFisicoSegmentario?: ExamenFisicoSegmentario & Partial<AuditFields>;
+	electrocardiograma?: Electrocardiograma & Partial<AuditFields>;
 	espirometria?: Espirometria;
-	ecografia?: Ecografia;
+	ecografia?: Ecografia & Partial<AuditFields>;
 	laboratorios?: Laboratorios;
 	diagnostico?: Diagnostico;
 	receta?: Receta;

@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { type SubmitEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2Icon, StethoscopeIcon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -28,21 +27,35 @@ type LoginFormProps = {
   callbackURL: string;
 };
 
+function subscribeToHydration() {
+  return () => {};
+}
+
 export function LoginForm({ callbackURL }: LoginFormProps) {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
+  const hasMounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isEmailPending, setIsEmailPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
+  const isCheckingSession = hasMounted && isSessionPending;
 
   useEffect(() => {
+    if (!hasMounted) {
+      return;
+    }
+
     if (session) {
       router.replace(callbackURL);
     }
-  }, [callbackURL, router, session]);
+  }, [callbackURL, hasMounted, router, session]);
 
   async function handleEmailLogin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,7 +144,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
             </FieldGroup>
 
             <Button
-              disabled={isEmailPending || isSessionPending}
+              disabled={isEmailPending || isCheckingSession}
               type="submit"
             >
               {isEmailPending ? <Loader2Icon data-icon="inline-start" /> : null}
@@ -143,7 +156,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
 
           <Button
             className="w-full"
-            disabled={isGooglePending || isSessionPending}
+            disabled={isGooglePending || isCheckingSession}
             onClick={handleGoogleLogin}
             type="button"
             variant="outline"

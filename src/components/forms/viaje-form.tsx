@@ -14,7 +14,7 @@ import {
   UsersRoundIcon,
 } from "lucide-react";
 
-import { DateField, Field, SelectField, TextField } from "@/components/forms/fields";
+import { DateRangeField, Field, SelectField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
   Combobox,
@@ -60,7 +60,7 @@ type EstacionForm = {
   estudiantes: string[];
 };
 
-type ViajeFormValue = {
+export type ViajeFormValue = {
   servicio: string;
   fechaEntrada: string;
   fechaSalida: string;
@@ -85,6 +85,8 @@ type ViajeFormAction = (
 
 type ViajeFormProps = {
   action?: ViajeFormAction;
+  defaultValue?: ViajeFormValue;
+  submitLabel?: string;
   users: ViajeUserOption[];
 };
 
@@ -201,10 +203,19 @@ function hasRole(role: AuthRole | null, roles: readonly AuthRole[]) {
   return role !== null && roles.includes(role);
 }
 
-export function ViajeForm({ action, users }: ViajeFormProps) {
-  const [form, setForm] = useState<ViajeFormValue>(baseFormValue);
+export function ViajeForm({
+  action,
+  defaultValue,
+  submitLabel = "Guardar viaje",
+  users,
+}: ViajeFormProps) {
+  const initialFormValue = useMemo(
+    () => defaultValue ?? baseFormValue,
+    [defaultValue],
+  );
+  const [form, setForm] = useState<ViajeFormValue>(initialFormValue);
   const [activeStationId, setActiveStationId] = useState(
-    baseFormValue.estaciones[0].id,
+    initialFormValue.estaciones[0].id,
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
@@ -309,25 +320,23 @@ export function ViajeForm({ action, users }: ViajeFormProps) {
             required
             value={form.servicio}
           />
-          <DateField
-            error={visibleErrors.fechaEntrada}
-            label="Fecha de entrada"
-            name="fechaEntrada"
+          <DateRangeField
+            endName="fechaSalida"
+            error={visibleErrors.fechaEntrada ?? visibleErrors.fechaSalida}
+            label="Rango de fechas"
             onChange={(value) =>
-              setForm((current) => ({ ...current, fechaEntrada: value }))
+              setForm((current) => ({
+                ...current,
+                fechaEntrada: value.from,
+                fechaSalida: value.to,
+              }))
             }
             required
-            value={form.fechaEntrada}
-          />
-          <DateField
-            error={visibleErrors.fechaSalida}
-            label="Fecha de salida"
-            name="fechaSalida"
-            onChange={(value) =>
-              setForm((current) => ({ ...current, fechaSalida: value }))
-            }
-            required
-            value={form.fechaSalida}
+            startName="fechaEntrada"
+            value={{
+              from: form.fechaEntrada,
+              to: form.fechaSalida,
+            }}
           />
         </FieldGrid>
       </FormSection>
@@ -509,7 +518,7 @@ export function ViajeForm({ action, users }: ViajeFormProps) {
         </p>
         <Button disabled={isPending} type="submit">
           <SaveIcon data-icon="inline-start" />
-          {isPending ? "Guardando..." : "Guardar viaje"}
+          {isPending ? "Guardando..." : submitLabel}
         </Button>
       </footer>
     </form>

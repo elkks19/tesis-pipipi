@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { type SubmitEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2Icon, StethoscopeIcon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,6 +19,7 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
@@ -28,22 +28,37 @@ type RegisterFormProps = {
   callbackURL: string;
 };
 
+function subscribeToHydration() {
+  return () => {};
+}
+
 export function RegisterForm({ callbackURL }: RegisterFormProps) {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
+  const hasMounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [isGooglePending, setIsGooglePending] = useState(false);
+  const isCheckingSession = hasMounted && isSessionPending;
 
   useEffect(() => {
+    if (!hasMounted) {
+      return;
+    }
+
     if (session) {
       router.replace(callbackURL);
     }
-  }, [callbackURL, router, session]);
+  }, [callbackURL, hasMounted, router, session]);
 
   async function handleRegister(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,6 +88,30 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
       router.replace(callbackURL);
     } finally {
       setIsPending(false);
+    }
+  }
+
+  async function handleGoogleRegister() {
+    setError("");
+    setIsGooglePending(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        callbackURL,
+        provider: "google",
+      });
+
+      if (result.error) {
+        setError(result.error.message ?? "No se pudo continuar con Google.");
+        setIsGooglePending(false);
+      }
+    } catch (registerError) {
+      setError(
+        registerError instanceof Error
+          ? registerError.message
+          : "No se pudo continuar con Google.",
+      );
+      setIsGooglePending(false);
     }
   }
 
@@ -144,11 +183,24 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
               </Field>
             </FieldGroup>
 
-            <Button disabled={isPending || isSessionPending} type="submit">
+            <Button disabled={isPending || isCheckingSession} type="submit">
               {isPending ? <Loader2Icon data-icon="inline-start" /> : null}
               Crear cuenta
             </Button>
           </form>
+
+          <FieldSeparator className="my-6">O</FieldSeparator>
+
+          <Button
+            className="w-full"
+            disabled={isGooglePending || isCheckingSession}
+            onClick={handleGoogleRegister}
+            type="button"
+            variant="outline"
+          >
+            {isGooglePending ? <Loader2Icon data-icon="inline-start" /> : null}
+            Continuar con Google
+          </Button>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Ya tienes cuenta?{" "}

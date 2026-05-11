@@ -19,6 +19,14 @@ export const tiposEcogenicidad = [
 ] as const;
 
 export type Ecografia = {
+	imagen?: {
+		key: string;
+		nombre: string;
+		tipo: string;
+		tamano: number;
+		url?: string;
+		data?: string;
+	};
 	higado: {
 		dimensiones: number;
 		hepatomegalia: boolean;
@@ -49,6 +57,14 @@ export type Ecografia = {
 
 export const CreateEcografiaSchema = z.object({
 	historiaId: z.string(),
+	imagen: z.object({
+		key: z.string(),
+		nombre: z.string(),
+		tipo: z.string(),
+		tamano: z.number(),
+		url: z.string().optional(),
+		data: z.string().optional(),
+	}).optional(),
 	higado: z.object({
 		dimensiones: z.number(),
 		hepatomegalia: z.coerce.boolean<boolean>(),

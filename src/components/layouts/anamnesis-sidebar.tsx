@@ -32,6 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 
@@ -51,11 +52,18 @@ const navItems = [
 export function AnamnesisSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const { data: session, isPending } = authClient.useSession();
   const userName = session?.user.name ?? "Usuario";
   const userEmail = session?.user.email ?? "Sin sesion activa";
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
+
+  function closeMobileSidebar() {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -94,7 +102,7 @@ export function AnamnesisSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link href={item.href}>
+                      <Link href={item.href} onClick={closeMobileSidebar}>
                         <Icon />
                         <span>{item.label}</span>
                       </Link>

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CalendarDaysIcon, MapPinIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { CalendarDaysIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -12,8 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { listAuthUsers } from "@/lib/auth-users";
 
 import { listViajes } from "./queries";
+import { ViajeActions } from "./viaje-actions";
+import { ViajesFilters } from "./viajes-filters";
 
 export const metadata: Metadata = {
   title: "Viajes",
@@ -22,6 +24,7 @@ export const metadata: Metadata = {
 type ViajesPageProps = {
   searchParams: Promise<{
     desde?: string | string[];
+    fecha?: string | string[];
     hasta?: string | string[];
     lugar?: string | string[];
   }>;
@@ -45,14 +48,24 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function getTodayValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function canEditViaje(fechaEntrada: string) {
+  return fechaEntrada > getTodayValue();
+}
+
 export default async function ViajesPage({ searchParams }: ViajesPageProps) {
   const params = await searchParams;
   const filters = {
-    fechaDesde: getParam(params.desde),
-    fechaHasta: getParam(params.hasta),
+    fechaDesde: getParam(params.desde) || getParam(params.fecha),
+    fechaHasta: getParam(params.hasta) || getParam(params.fecha),
     lugar: getParam(params.lugar),
   };
   const viajes = await listViajes(filters);
+  const users = listAuthUsers();
+  const userById = Object.fromEntries(users.map((user) => [user.id, user]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,56 +85,7 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
       </div>
 
       <div className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-        <form className="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto_auto]" method="get">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium" htmlFor="lugar">
-              Lugar o establecimiento
-            </label>
-            <div className="relative">
-              <MapPinIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                defaultValue={filters.lugar}
-                id="lugar"
-                name="lugar"
-                placeholder="Municipio, establecimiento o servicio"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium" htmlFor="desde">
-              Desde
-            </label>
-            <Input
-              defaultValue={filters.fechaDesde}
-              id="desde"
-              name="desde"
-              type="date"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium" htmlFor="hasta">
-              Hasta
-            </label>
-            <Input
-              defaultValue={filters.fechaHasta}
-              id="hasta"
-              name="hasta"
-              type="date"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button className="w-full" type="submit">
-              <SearchIcon data-icon="inline-start" />
-              Filtrar
-            </Button>
-          </div>
-          <div className="flex items-end">
-            <Button asChild className="w-full" variant="outline">
-              <Link href="/admin/viajes">Limpiar</Link>
-            </Button>
-          </div>
-        </form>
+        <ViajesFilters filters={filters} />
 
         <div className="overflow-hidden rounded-3xl border">
           <Table>
@@ -132,6 +96,7 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
                 <TableHead>Fechas</TableHead>
                 <TableHead>Estaciones</TableHead>
                 <TableHead>Equipo</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -170,6 +135,13 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
                         {estudiantes.size} estudiantes /{" "}
                         {viaje.estaciones.length} docentes
                       </TableCell>
+                      <TableCell>
+                        <ViajeActions
+                          canEdit={canEditViaje(viaje.fechaEntrada)}
+                          userById={userById}
+                          viaje={viaje}
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -177,7 +149,7 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
                 <TableRow>
                   <TableCell
                     className="h-28 text-center text-muted-foreground"
-                    colSpan={5}
+                    colSpan={6}
                   >
                     No hay viajes que coincidan con los filtros.
                   </TableCell>

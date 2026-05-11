@@ -19,7 +19,9 @@ const pageLabels: Record<string, string> = {
 
 export function AdminBreadcrumbs() {
   const pathname = usePathname();
-  const currentLabel = pageLabels[pathname] ?? "Administracion";
+  const currentLabel = pathname.endsWith("/edit")
+    ? "Editar viaje"
+    : pageLabels[pathname] ?? "Administracion";
   const isHome = pathname === "/admin";
 
   return (

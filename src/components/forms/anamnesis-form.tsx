@@ -18,6 +18,8 @@ import {
 
 import {
   DateField,
+  IcdCodePicker,
+  type IcdCodeValue,
   SelectField,
   TextareaField,
   TextField,
@@ -37,11 +39,7 @@ import {
 
 type Emptyable<T extends string> = T | "";
 
-type EnfermedadForm = {
-  iNo: string;
-  code: string;
-  title: string;
-};
+type EnfermedadForm = IcdCodeValue;
 
 type AntecedentePersonalForm = {
   enfermedad: EnfermedadForm;
@@ -570,7 +568,8 @@ export function AnamnesisForm({
                 baseName={`antecedentesPatologicos.personales.${index}.enfermedad`}
                 errorBase={`antecedentesPatologicos.personales.${index}.enfermedad`}
                 errors={visibleErrors}
-                onChange={(field, value) =>
+                label="Enfermedad"
+                onChange={(enfermedad) =>
                   setForm((current) => ({
                     ...current,
                     antecedentesPatologicos: {
@@ -581,10 +580,7 @@ export function AnamnesisForm({
                             personalIndex === index
                               ? {
                                   ...personal,
-                                  enfermedad: {
-                                    ...personal.enfermedad,
-                                    [field]: value,
-                                  },
+                                  enfermedad,
                                 }
                               : personal,
                         ),
@@ -750,14 +746,8 @@ export function AnamnesisForm({
                   baseName={`antecedentesPatologicos.familiares.${index}.enfermedad`}
                   errorBase={`antecedentesPatologicos.familiares.${index}.enfermedad`}
                   errors={visibleErrors}
-                  onChange={(field, value) =>
-                    updateFamiliar(index, {
-                      enfermedad: {
-                        ...item.enfermedad,
-                        [field]: value,
-                      },
-                    })
-                  }
+                  label="Enfermedad familiar"
+                  onChange={(enfermedad) => updateFamiliar(index, { enfermedad })}
                   value={item.enfermedad}
                 />
               </FieldGrid>
@@ -852,42 +842,30 @@ function DiseaseFields({
   baseName,
   errorBase,
   errors,
+  label,
   onChange,
   value,
 }: {
   baseName: string;
   errorBase: string;
   errors: Record<string, string>;
-  onChange: (field: keyof EnfermedadForm, value: string) => void;
+  label: string;
+  onChange: (value: EnfermedadForm) => void;
   value: EnfermedadForm;
 }) {
   return (
-    <>
-      <TextField
-        error={errors[`${errorBase}.code`]}
-        label="Codigo CIE"
-        name={`${baseName}.code`}
-        onChange={(nextValue) => onChange("code", nextValue)}
-        required
-        value={value.code}
-      />
-      <TextField
-        error={errors[`${errorBase}.title`]}
-        label="Enfermedad"
-        name={`${baseName}.title`}
-        onChange={(nextValue) => onChange("title", nextValue)}
-        required
-        value={value.title}
-      />
-      <TextField
-        error={errors[`${errorBase}.iNo`]}
-        label="Identificador"
-        name={`${baseName}.iNo`}
-        onChange={(nextValue) => onChange("iNo", nextValue)}
-        required
-        value={value.iNo}
-      />
-    </>
+    <IcdCodePicker
+      baseName={baseName}
+      error={
+        errors[`${errorBase}.code`] ??
+        errors[`${errorBase}.title`] ??
+        errors[`${errorBase}.iNo`] ??
+        errors[errorBase]
+      }
+      label={label}
+      onChange={onChange}
+      value={value}
+    />
   );
 }
 

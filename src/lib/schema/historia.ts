@@ -31,9 +31,9 @@ export type Historia = {
 	examenFisicoGeneral?: ExamenFisicoGeneral & Partial<AuditFields>;
 	examenFisicoSegmentario?: ExamenFisicoSegmentario & Partial<AuditFields>;
 	electrocardiograma?: Electrocardiograma & Partial<AuditFields>;
-	espirometria?: Espirometria;
+	espirometria?: Espirometria & Partial<AuditFields>;
 	ecografia?: Ecografia & Partial<AuditFields>;
-	laboratorios?: Laboratorios;
-	diagnostico?: Diagnostico;
+	laboratorios?: Laboratorios & Partial<AuditFields>;
+	diagnostico?: Diagnostico & Partial<AuditFields>;
 	receta?: Receta;
 }

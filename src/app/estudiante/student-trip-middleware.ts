@@ -1,19 +1,13 @@
 import type { User } from "better-auth";
 
-export type StudentTripResolution = {
-  redirectTo?: string;
-};
+import { resolveStudentTripRoute as resolveStudentTripRouteByUserId } from "@/lib/student-trip-resolution";
 
-export async function resolveStudentTripRoute(
-  user: User | undefined,
-): Promise<StudentTripResolution> {
-  void user;
+export type {
+  ActiveStudentTrip,
+  FutureStudentTrip,
+  StudentTripResolution,
+} from "@/lib/student-trip-resolution";
 
-  // TODO: validar viajes activos/futuros cuando exista la pantalla de viajes.
-  // El flujo esperado:
-  // 1. Buscar documentos type="viaje" donde el usuario este en una estacion.
-  // 2. Verificar fechaEntrada y fechaSalida.
-  // 3. Si hoy esta dentro del rango, redirigir a la estacion asignada.
-  // 4. Si el viaje es futuro, mostrar estado de preparacion.
-  return {};
+export async function resolveStudentTripRoute(user: User | undefined) {
+  return resolveStudentTripRouteByUserId(user?.id);
 }

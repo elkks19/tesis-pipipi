@@ -18,7 +18,7 @@ function getParam(value: string | string[] | undefined) {
 
 function getSafeNextPath(next: string) {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return "/estudiante/anamnesis/create-historia";
+    return "/estudiante";
   }
 
   return next;

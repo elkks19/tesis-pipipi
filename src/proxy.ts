@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 
-const defaultAuthenticatedPath = "/estudiante/anamnesis/create-historia";
+const defaultAuthenticatedPath = "/estudiante";
 
 function getLoginUrl(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
@@ -31,7 +31,9 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === "/login" || pathname === "/register") {
     if (session) {
-      return NextResponse.redirect(new URL(getSafeNextPath(request), request.url));
+      return NextResponse.redirect(
+        new URL(getSafeNextPath(request), request.url),
+      );
     }
 
     return NextResponse.next();
@@ -45,5 +47,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/estudiante/:path*", "/login", "/register"],
+  matcher: [
+    "/admin/:path*",
+    "/docente",
+    "/docente/:path*",
+    "/estudiante",
+    "/estudiante/:path*",
+    "/login",
+    "/register",
+  ],
 };

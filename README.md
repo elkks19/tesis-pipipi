@@ -1,4 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tesis
+
+## Notas temporales de autenticacion
+
+El `proxy` de Next.js esta desactivado temporalmente para no bloquear el flujo de desarrollo mientras se prueban pantallas y seeders.
+
+Tambien esta desactivado el modal global que obligaba a completar ambos metodos de acceso. Por ahora esta regla queda documentada y se debe validar manualmente:
+
+- Los usuarios que entren con Google institucional deben configurar una contrasena local.
+- Los usuarios que entren con correo y contrasena deben vincular su cuenta institucional de Google.
+- Cuando se reactive el bloqueo, volver a montar `PasswordSetupGate` en `src/app/layout.tsx` y restaurar `src/proxy.ts` para proteger rutas por sesion, rol y viaje activo.
+
+Esto importa porque en el viaje se necesitara acceso local por correo/contrasena y, en nube, vinculacion con la cuenta institucional.
 
 ## Getting Started
 

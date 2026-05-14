@@ -1,14 +1,18 @@
 # Tesis
 
-## Notas temporales de autenticacion
+## Notas de autenticacion
 
-El `proxy` de Next.js esta desactivado temporalmente para no bloquear el flujo de desarrollo mientras se prueban pantallas y seeders.
+El `proxy` de Next.js esta activo solo para redirecciones de entrada:
 
-Tambien esta desactivado el modal global que obligaba a completar ambos metodos de acceso. Por ahora esta regla queda documentada y se debe validar manualmente:
+- `/` redirige al inicio que corresponde por rol.
+- `/estudiante` y `/docente` redirigen a la estacion asignada cuando el usuario tiene un viaje activo.
+- `/login` y `/register` redirigen al inicio correspondiente si ya existe una sesion.
+
+El modal global que obligaba a completar ambos metodos de acceso sigue desactivado temporalmente. Por ahora esta regla queda documentada y se debe validar manualmente:
 
 - Los usuarios que entren con Google institucional deben configurar una contrasena local.
 - Los usuarios que entren con correo y contrasena deben vincular su cuenta institucional de Google.
-- Cuando se reactive el bloqueo, volver a montar `PasswordSetupGate` en `src/app/layout.tsx` y restaurar `src/proxy.ts` para proteger rutas por sesion, rol y viaje activo.
+- Cuando se reactive el bloqueo de cuentas, volver a montar `PasswordSetupGate` en `src/app/layout.tsx`.
 
 Esto importa porque en el viaje se necesitara acceso local por correo/contrasena y, en nube, vinculacion con la cuenta institucional.
 

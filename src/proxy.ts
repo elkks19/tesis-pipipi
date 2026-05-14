@@ -1,7 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-
-const defaultAuthenticatedPath = "/estudiante";
+import {
+  resolveDocenteTripRoute,
+  resolveStudentTripRoute,
+  type StudentTripResolution,
+} from "@/lib/student-trip-resolution";
+import {
+  canAccessAdmin,
+  canAccessDocente,
+  canAccessEstudiante,
+  getRoleHomePath,
+  getSessionUserRole,
+} from "@/lib/role-redirect";
 
 function getLoginUrl(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
@@ -13,11 +23,11 @@ function getLoginUrl(request: NextRequest) {
   return loginUrl;
 }
 
-function getSafeNextPath(request: NextRequest) {
+function getSafeNextPath(request: NextRequest, fallbackPath: string) {
   const next = request.nextUrl.searchParams.get("next");
 
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return defaultAuthenticatedPath;
+    return fallbackPath;
   }
 
   return next;
@@ -31,8 +41,10 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === "/login" || pathname === "/register") {
     if (session) {
+      const roleHomePath = getRoleHomePath(getSessionUserRole(session.user));
+
       return NextResponse.redirect(
-        new URL(getSafeNextPath(request), request.url),
+        new URL(getSafeNextPath(request, roleHomePath), request.url),
       );
     }
 
@@ -43,11 +55,65 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(getLoginUrl(request));
   }
 
+  const role = getSessionUserRole(session.user);
+  const roleHomePath = getRoleHomePath(role);
+
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL(roleHomePath, request.url));
+  }
+
+  if (pathname.startsWith("/admin") && !canAccessAdmin(role)) {
+    return NextResponse.redirect(new URL(roleHomePath, request.url));
+  }
+
+  if (pathname.startsWith("/docente") && !canAccessDocente(role)) {
+    return NextResponse.redirect(new URL(roleHomePath, request.url));
+  }
+
+  if (pathname.startsWith("/estudiante") && !canAccessEstudiante(role)) {
+    return NextResponse.redirect(new URL(roleHomePath, request.url));
+  }
+
+  if (pathname.startsWith("/estudiante/")) {
+    const resolution = await resolveStudentTripRoute(session.user.id).catch(
+      (): StudentTripResolution => ({}),
+    );
+    const basePath = resolution.activeTrip?.basePath;
+
+    if (!basePath) {
+      return NextResponse.redirect(new URL("/estudiante", request.url));
+    }
+
+    if (pathname !== basePath && !pathname.startsWith(`${basePath}/`)) {
+      return NextResponse.redirect(
+        new URL(resolution.redirectTo ?? "/estudiante", request.url),
+      );
+    }
+  }
+
+  if (pathname.startsWith("/docente/")) {
+    const resolution = await resolveDocenteTripRoute(session.user.id).catch(
+      (): StudentTripResolution => ({}),
+    );
+    const basePath = resolution.activeTrip?.basePath;
+
+    if (!basePath) {
+      return NextResponse.redirect(new URL("/docente", request.url));
+    }
+
+    if (pathname !== basePath && !pathname.startsWith(`${basePath}/`)) {
+      return NextResponse.redirect(
+        new URL(resolution.redirectTo ?? "/docente", request.url),
+      );
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    "/",
     "/admin/:path*",
     "/docente",
     "/docente/:path*",

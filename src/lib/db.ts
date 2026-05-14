@@ -4,11 +4,11 @@ import "./pouchdb-server-shim";
 import PouchDB from "pouchdb/dist/pouchdb";
 import PouchDBFind from "pouchdb-find";
 
-import type { Historia, Paciente, Viaje } from "$lib/schema";
+import type { Actividad, Historia, Paciente, Viaje } from "$lib/schema";
 
 PouchDB.plugin(PouchDBFind);
 
-export type TesisDocument = Viaje | Historia | Paciente;
+export type TesisDocument = Actividad | Viaje | Historia | Paciente;
 
 const couchDbUrl = process.env.COUCHDB_URL;
 

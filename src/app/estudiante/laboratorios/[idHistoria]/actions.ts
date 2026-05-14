@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -139,14 +140,24 @@ export async function saveLaboratorios(
       };
     }
 
-    await db.put({
+    const laboratorios = {
+      ...(parsed.data as Laboratorios),
+      created_by: historia.laboratorios?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      laboratorios: {
-        ...(parsed.data as Laboratorios),
-        created_by: historia.laboratorios?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      laboratorios,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: laboratorios,
+      before: historia.laboratorios,
+      historia,
+      stationKey: "laboratorios",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/laboratorios/${idHistoria}`);
     revalidatePath("/estudiante/laboratorios");

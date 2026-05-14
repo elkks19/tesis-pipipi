@@ -35,7 +35,11 @@ export default async function CreateViajePage() {
         </div>
       ) : null}
 
-      <ViajeForm action={createViaje} users={users} />
+      <ViajeForm
+        action={createViaje}
+        successRedirectHref="/admin/viajes"
+        users={users}
+      />
     </div>
   );
 }

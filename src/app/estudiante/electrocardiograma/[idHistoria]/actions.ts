@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -164,14 +165,24 @@ export async function saveElectrocardiograma(
       };
     }
 
-    await db.put({
+    const electrocardiograma = {
+      ...(parsed.data as Electrocardiograma),
+      created_by: historia.electrocardiograma?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      electrocardiograma: {
-        ...(parsed.data as Electrocardiograma),
-        created_by: historia.electrocardiograma?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      electrocardiograma,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: electrocardiograma,
+      before: historia.electrocardiograma,
+      historia,
+      stationKey: "electrocardiograma",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/electrocardiograma/${idHistoria}`);
     revalidatePath("/estudiante/electrocardiograma");

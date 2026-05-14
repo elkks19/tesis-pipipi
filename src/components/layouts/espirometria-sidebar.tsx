@@ -83,9 +83,6 @@ export function EspirometriaSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="Espirometria">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-                <WindIcon />
-              </div>
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-semibold">Espirometria</span>
                 <span className="truncate text-xs text-muted-foreground">

@@ -36,6 +36,11 @@ import { authClient } from "@/lib/auth-client";
 
 const navItems = [
   {
+    href: "/admin",
+    icon: ShieldIcon,
+    label: "Dashboard",
+  },
+  {
     href: "/admin/viajes",
     icon: BriefcaseMedicalIcon,
     label: "Viajes",
@@ -57,9 +62,6 @@ export function AdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="Administracion">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-                <ShieldIcon />
-              </div>
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-semibold">Administracion</span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -79,7 +81,8 @@ export function AdminSidebar() {
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+                  (item.href !== "/admin" &&
+                    pathname.startsWith(`${item.href}/`));
 
                 return (
                   <SidebarMenuItem key={item.href}>

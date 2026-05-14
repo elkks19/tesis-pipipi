@@ -69,6 +69,7 @@ export default async function EditViajePage({
       <ViajeForm
         action={action}
         defaultValue={getDefaultValue(viaje)}
+        successRedirectHref="/admin/viajes"
         submitLabel="Actualizar viaje"
         users={users}
       />

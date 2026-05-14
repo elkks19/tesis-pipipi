@@ -34,7 +34,7 @@ export const consumosAlcohol = [
 	"Consumo de bajo riesgo (hasta 1 botella de cerveza)",
 	"Consumo de riesgo (mas de 2 botellas de cerveza)",
 	"Consumo excesivo episodico (3 o mas botellas de cerveza en una ocasión)",
-	"Consumo perjudicial (consumoa que causa daño a la salud)",
+	"Consumo perjudicial (consumo que causa daño a la salud)",
 	"Dependencia alcohólica",
 	"Consumo compulsivo con perdida de control",
 ] as const;

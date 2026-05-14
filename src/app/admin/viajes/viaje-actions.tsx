@@ -5,8 +5,8 @@ import Link from "next/link";
 import {
   CalendarDaysIcon,
   DownloadIcon,
-  FileTextIcon,
   PencilIcon,
+  ScrollTextIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,24 +24,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { AuthRole } from "@/lib/auth-role-values";
-import type { Viaje } from "@/lib/schema/viajes";
+import type { AuthUserListItem } from "@/lib/auth-users";
 
-type UserListItem = {
-  email: string;
-  id: string;
-  name: string;
-  role: AuthRole | null;
-};
-
-type ViajeActionItem = Viaje & {
-  docId: string;
-};
+import type { ViajeListItem } from "./queries";
 
 type ViajeActionsProps = {
   canEdit: boolean;
-  userById: Record<string, UserListItem>;
-  viaje: ViajeActionItem;
+  viaje: ViajeListItem;
 };
 
 function formatDate(value: string) {
@@ -62,28 +51,30 @@ function formatOptional(value: string | undefined) {
   return value?.trim() ? value : "Sin registrar";
 }
 
-function getPdfHref(viaje: ViajeActionItem) {
+function getPdfHref(viaje: ViajeListItem) {
   return `/admin/viajes/${encodeURIComponent(viaje.docId)}/pdf`;
 }
 
-function getEditHref(viaje: ViajeActionItem) {
+function getEditHref(viaje: ViajeListItem) {
   return `/admin/viajes/${encodeURIComponent(viaje.docId)}/edit`;
 }
 
-function getUserLabel(userId: string, userById: Record<string, UserListItem>) {
-  const user = userById[userId];
+function getReportHref(viaje: ViajeListItem) {
+  return `/admin/viajes/${encodeURIComponent(viaje.docId)}/reporte`;
+}
 
+function getUserLabel(user: AuthUserListItem | undefined, fallbackId: string) {
   if (!user) {
-    return userId;
+    return fallbackId;
   }
 
   return `${user.name} (${user.email})`;
 }
 
-export function ViajeActions({ canEdit, userById, viaje }: ViajeActionsProps) {
+export function ViajeActions({ canEdit, viaje }: ViajeActionsProps) {
   return (
     <div className="flex justify-end gap-2">
-      <ViajeDetailsDialog canEdit={canEdit} userById={userById} viaje={viaje} />
+      <ViajeDetailsDialog canEdit={canEdit} viaje={viaje} />
       {canEdit ? (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -111,19 +102,19 @@ export function ViajeActions({ canEdit, userById, viaje }: ViajeActionsProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button asChild size="icon-sm" variant="outline">
-            <Link href="#">
-              <FileTextIcon />
-              <span className="sr-only">Ver historias</span>
+            <Link href={getReportHref(viaje)} target="_blank">
+              <ScrollTextIcon />
+              <span className="sr-only">Ver reporte</span>
             </Link>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Ver historias</TooltipContent>
+        <TooltipContent>Ver reporte</TooltipContent>
       </Tooltip>
     </div>
   );
 }
 
-function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
+function ViajeDetailsDialog({ canEdit, viaje }: ViajeActionsProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -142,15 +133,15 @@ function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
         </TooltipTrigger>
         <TooltipContent>Ver detalle</TooltipContent>
       </Tooltip>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="grid max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden p-4 sm:max-w-2xl sm:p-6">
+        <DialogHeader className="pr-10">
           <DialogTitle>{viaje.servicio}</DialogTitle>
           <DialogDescription>
             Detalle completo del viaje y sus estaciones configuradas.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-5">
+        <div className="grid min-h-0 gap-5 overflow-y-auto pr-1">
           <div className="grid gap-3 rounded-3xl border bg-muted/20 p-4 sm:grid-cols-2">
             <DetailItem label="Fecha de entrada">
               {formatDate(viaje.fechaEntrada)}
@@ -171,7 +162,7 @@ function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
 
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-medium">Estaciones</h3>
-            <div className="max-h-72 overflow-y-auto rounded-3xl border">
+            <div className="rounded-3xl border">
               {viaje.estaciones.map((estacion, index) => (
                 <div className="flex flex-col gap-3 p-4" key={estacion.tipo}>
                   {index > 0 ? <Separator /> : null}
@@ -183,15 +174,21 @@ function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
                     </span>
                   </div>
                   <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    <span>
+                    <span className="min-w-0">
                       Docente:{" "}
-                      {getUserLabel(estacion.docenteEncargadoId, userById)}
+                      {getUserLabel(
+                        estacion.docenteEncargado,
+                        estacion.docenteEncargadoId,
+                      )}
                     </span>
-                    <span>
+                    <span className="min-w-0">
                       Estudiantes:{" "}
-                      {estacion.estudiantesIds
-                        .map((studentId) => getUserLabel(studentId, userById))
-                        .join(", ")}
+                      {[
+                        ...estacion.estudiantes.map((student) =>
+                          getUserLabel(student, student.id),
+                        ),
+                        ...estacion.estudiantesNoEncontrados,
+                      ].join(", ") || "Sin asignar"}
                     </span>
                   </div>
                 </div>
@@ -200,7 +197,7 @@ function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t pt-3 sm:pt-4 [&_a]:w-full sm:[&_a]:w-auto">
           {canEdit ? (
             <Button asChild variant="outline">
               <Link href={getEditHref(viaje)}>
@@ -216,9 +213,9 @@ function ViajeDetailsDialog({ canEdit, userById, viaje }: ViajeActionsProps) {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="#">
-              <FileTextIcon data-icon="inline-start" />
-              Ver historias
+            <Link href={getReportHref(viaje)} target="_blank">
+              <ScrollTextIcon data-icon="inline-start" />
+              Ver reporte
             </Link>
           </Button>
         </DialogFooter>

@@ -1,10 +1,23 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { getAuthUsersByIds, type AuthUserListItem } from "@/lib/auth-users";
 import type { Viaje } from "@/lib/schema/viajes";
 
-export type ViajeListItem = Viaje & {
+export type ViajeStationListItem = Viaje["estaciones"][number] & {
+  docenteEncargado?: AuthUserListItem;
+  estudiantes: AuthUserListItem[];
+  estudiantesNoEncontrados: string[];
+};
+
+export type ViajeListItem = Omit<Viaje, "estaciones"> & {
   docId: string;
+  estaciones: ViajeStationListItem[];
+  resumenEquipo: {
+    docentesAsignados: number;
+    estudiantesAsignados: number;
+    usuariosNoEncontrados: string[];
+  };
 };
 
 type ViajeDocument = Viaje & {
@@ -89,13 +102,71 @@ function matchesDateRange(viaje: Viaje, filters: ViajeFilters) {
   return true;
 }
 
+function getAssignedUserIds(viajes: Viaje[]) {
+  return viajes.flatMap((viaje) =>
+    viaje.estaciones.flatMap((estacion) => [
+      estacion.docenteEncargadoId,
+      ...estacion.estudiantesIds,
+    ]),
+  );
+}
+
+function hydrateViajesUsers(viajes: (Viaje & { docId: string })[]) {
+  const usersById = getAuthUsersByIds(getAssignedUserIds(viajes));
+
+  return viajes.map((viaje): ViajeListItem => {
+    const estaciones = viaje.estaciones.map((estacion) => {
+      const docenteEncargado = usersById.get(estacion.docenteEncargadoId);
+      const estudiantes = estacion.estudiantesIds
+        .map((studentId) => usersById.get(studentId))
+        .filter((student): student is AuthUserListItem => Boolean(student));
+      const estudiantesNoEncontrados = estacion.estudiantesIds.filter(
+        (studentId) => !usersById.has(studentId),
+      );
+
+      return {
+        ...estacion,
+        docenteEncargado,
+        estudiantes,
+        estudiantesNoEncontrados,
+      };
+    });
+    const usuariosNoEncontrados = [
+      ...new Set(
+        estaciones.flatMap((estacion) => [
+          ...(estacion.docenteEncargado ? [] : [estacion.docenteEncargadoId]),
+          ...estacion.estudiantesNoEncontrados,
+        ]),
+      ),
+    ];
+
+    return {
+      ...viaje,
+      estaciones,
+      resumenEquipo: {
+        docentesAsignados: new Set(
+          estaciones
+            .map((estacion) => estacion.docenteEncargado?.id)
+            .filter(Boolean),
+        ).size,
+        estudiantesAsignados: new Set(
+          estaciones.flatMap((estacion) =>
+            estacion.estudiantes.map((student) => student.id),
+          ),
+        ).size,
+        usuariosNoEncontrados,
+      },
+    };
+  });
+}
+
 export async function listViajes(
   filters: ViajeFilters,
 ): Promise<ViajeListItem[]> {
   const result = await db.allDocs({
     include_docs: true,
   });
-  const viajes: ViajeListItem[] = [];
+  const viajes: (Viaje & { docId: string })[] = [];
 
   for (const row of result.rows) {
     const doc = row.doc as ViajeDocument | undefined;
@@ -110,10 +181,12 @@ export async function listViajes(
     });
   }
 
-  return viajes
+  const filteredViajes = viajes
     .filter((viaje) => matchesLugar(viaje, filters.lugar))
     .filter((viaje) => matchesDateRange(viaje, filters))
     .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
+
+  return hydrateViajesUsers(filteredViajes);
 }
 
 export async function getViajeByDocId(id: string): Promise<ViajeListItem | null> {
@@ -124,10 +197,14 @@ export async function getViajeByDocId(id: string): Promise<ViajeListItem | null>
       return null;
     }
 
-    return {
-      ...doc,
-      docId: doc._id ?? doc.id,
-    };
+    const [viaje] = hydrateViajesUsers([
+      {
+        ...doc,
+        docId: doc._id ?? doc.id,
+      },
+    ]);
+
+    return viaje;
   } catch {
     return null;
   }

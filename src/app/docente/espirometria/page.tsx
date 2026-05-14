@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { WindIcon } from "lucide-react";
 
-import { listPendingComplementaryExamHistories } from "@/app/estudiante/_lib/station-history-queries";
-
 import { DocentePendingStationPage } from "../_components/docente-pending-station-page";
 
 export const metadata: Metadata = {
@@ -21,17 +19,11 @@ export default function DocenteEspirometriaPage({
   return (
     <DocentePendingStationPage
       basePath="/docente/espirometria"
-      description="Selecciona una historia con espirometria solicitada y registra sus resultados."
-      emptyMessage="No hay historias con espirometria solicitada pendientes de registro que coincidan con la busqueda."
+      description="Revisa y edita las espirometrias producidas en tu estacion."
+      emptyMessage="No hay espirometrias registradas en tu estacion que coincidan con la busqueda."
       filterId="docente-espirometria-search"
-      getPage={({ cursor, query }) =>
-        listPendingComplementaryExamHistories({
-          cursor,
-          examKey: "espirometria",
-          query,
-        })
-      }
       searchParams={searchParams}
+      stationKey="espirometria"
       statusIcon={<WindIcon />}
       title="Espirometria"
     />

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -142,14 +143,24 @@ export async function saveEspirometria(
       };
     }
 
-    await db.put({
+    const espirometria = {
+      ...(parsed.data as Espirometria),
+      created_by: historia.espirometria?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      espirometria: {
-        ...(parsed.data as Espirometria),
-        created_by: historia.espirometria?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      espirometria,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: espirometria,
+      before: historia.espirometria,
+      historia,
+      stationKey: "espirometria",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/espirometria/${idHistoria}`);
     revalidatePath("/estudiante/espirometria");

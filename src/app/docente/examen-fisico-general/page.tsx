@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { ClipboardPenLineIcon } from "lucide-react";
 
-import { listHistoriasForExamenFisicoGeneral } from "@/app/estudiante/examen-fisico-general/queries";
-
 import { DocentePendingStationPage } from "../_components/docente-pending-station-page";
 
 export const metadata: Metadata = {
@@ -21,21 +19,11 @@ export default function DocenteExamenFisicoGeneralPage({
   return (
     <DocentePendingStationPage
       basePath="/docente/examen-fisico-general"
-      description="Selecciona una historia pendiente y registra sus signos vitales, presion arterial y mediciones antropometricas."
-      emptyMessage="No hay historias pendientes de examen fisico general que coincidan con la busqueda."
+      description="Revisa y edita los examenes fisicos generales producidos en tu estacion."
+      emptyMessage="No hay examenes fisicos generales registrados en tu estacion que coincidan con la busqueda."
       filterId="docente-examen-fisico-general-search"
-      getPage={async ({ cursor, query }) => {
-        const page = await listHistoriasForExamenFisicoGeneral({
-          cursor,
-          query,
-        });
-
-        return {
-          ...page,
-          rows: page.rows.filter((row) => !row.examenFisicoGeneralCompleto),
-        };
-      }}
       searchParams={searchParams}
+      stationKey="examenFisicoGeneral"
       statusIcon={<ClipboardPenLineIcon />}
       title="Examen fisico general"
     />

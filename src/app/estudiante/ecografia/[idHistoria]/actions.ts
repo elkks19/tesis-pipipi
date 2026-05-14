@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { putFile } from "@/lib/file-storage";
@@ -218,15 +219,25 @@ export async function saveEcografia(
       };
     }
 
-    await db.put({
+    const ecografia = {
+      ...(ecografiaData as Ecografia),
+      imagen: ecografiaData.imagen ?? historia.ecografia?.imagen,
+      created_by: historia.ecografia?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      ecografia: {
-        ...(ecografiaData as Ecografia),
-        imagen: ecografiaData.imagen ?? historia.ecografia?.imagen,
-        created_by: historia.ecografia?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      ecografia,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: ecografia,
+      before: historia.ecografia,
+      historia,
+      stationKey: "ecografia",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/ecografia/${idHistoria}`);
     revalidatePath("/estudiante/ecografia");

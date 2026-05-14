@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { enqueueReporteHistoria } from "@/lib/queues/reportes";
@@ -139,14 +140,24 @@ export async function saveDiagnostico(
       };
     }
 
-    await db.put({
+    const diagnostico = {
+      ...(parsed.data as Diagnostico),
+      created_by: historia.diagnostico?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      diagnostico: {
-        ...(parsed.data as Diagnostico),
-        created_by: historia.diagnostico?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      diagnostico,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: diagnostico,
+      before: historia.diagnostico,
+      historia,
+      stationKey: "diagnostico",
+    }).catch(() => undefined);
 
     try {
       await enqueueReporteHistoria({

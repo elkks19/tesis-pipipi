@@ -28,9 +28,11 @@ type PendingHistoriesTableProps = {
   cursors: string[];
   emptyMessage: string;
   filterId: string;
+  mode?: "docente" | "estudiante";
   page: StationHistoryPageResult;
   query: string;
   statusIcon: ReactNode;
+  statusLabel?: string;
 };
 
 function getPacienteName(paciente: PacienteSearchResult) {
@@ -104,9 +106,11 @@ export function PendingHistoriesTable({
   cursors,
   emptyMessage,
   filterId,
+  mode = "estudiante",
   page,
   query,
   statusIcon,
+  statusLabel = mode === "docente" ? "Registrado" : "Pendiente",
 }: PendingHistoriesTableProps) {
   const previousCursors = cursors.slice(0, -1);
   const previousCursor = previousCursors.at(-1);
@@ -168,7 +172,7 @@ export function PendingHistoriesTable({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {statusIcon}
-                        <span>Pendiente</span>
+                        <span>{statusLabel}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -180,7 +184,7 @@ export function PendingHistoriesTable({
                             )}`}
                           >
                             <ClipboardPenLineIcon data-icon="inline-start" />
-                            Registrar
+                            {mode === "docente" ? "Editar" : "Registrar"}
                           </Link>
                         </Button>
                       </div>

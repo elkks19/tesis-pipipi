@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -140,16 +141,26 @@ export async function saveExamenFisicoSegmentario(
       };
     }
 
-    await db.put({
+    const examenFisicoSegmentario = {
+      ...(parsed.data as ExamenFisicoSegmentario),
+      created_by: historia.examenFisicoSegmentario?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
       examenesComplementariosSolicitados:
         getExamenesComplementariosSolicitados(formData),
-      examenFisicoSegmentario: {
-        ...(parsed.data as ExamenFisicoSegmentario),
-        created_by: historia.examenFisicoSegmentario?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      examenFisicoSegmentario,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: examenFisicoSegmentario,
+      before: historia.examenFisicoSegmentario,
+      historia,
+      stationKey: "examenFisicoSegmentario",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/examen-fisico-segmentario/${idHistoria}`);
     revalidatePath("/estudiante/examen-fisico-segmentario");

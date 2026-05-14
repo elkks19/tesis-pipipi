@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { ImagePlusIcon } from "lucide-react";
 
-import { listPendingComplementaryExamHistories } from "@/app/estudiante/_lib/station-history-queries";
-
 import { DocentePendingStationPage } from "../_components/docente-pending-station-page";
 
 export const metadata: Metadata = {
@@ -21,17 +19,11 @@ export default function DocenteEcografiaPage({
   return (
     <DocentePendingStationPage
       basePath="/docente/ecografia"
-      description="Selecciona una historia con ecografia solicitada y registra sus hallazgos junto a la fotografia del estudio."
-      emptyMessage="No hay historias con ecografia solicitada pendientes de registro que coincidan con la busqueda."
+      description="Revisa y edita las ecografias producidas en tu estacion."
+      emptyMessage="No hay ecografias registradas en tu estacion que coincidan con la busqueda."
       filterId="docente-ecografia-search"
-      getPage={({ cursor, query }) =>
-        listPendingComplementaryExamHistories({
-          cursor,
-          examKey: "ecografia",
-          query,
-        })
-      }
       searchParams={searchParams}
+      stationKey="ecografia"
       statusIcon={<ImagePlusIcon />}
       title="Ecografia"
     />

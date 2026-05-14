@@ -11,6 +11,10 @@ export type AuthUserListItem = {
   role: AuthRole | null;
 };
 
+export type AuthUserWithAccounts = AuthUserListItem & {
+  providers: string[];
+};
+
 type AuthUserRow = {
   email: string;
   id: string;
@@ -74,6 +78,39 @@ export function getAuthUsersByIds(ids: string[]) {
     }
 
     return users;
+  } finally {
+    database.close();
+  }
+}
+
+export function listAuthUsersWithAccounts(): AuthUserWithAccounts[] {
+  const database = new Database(databasePath, {
+    readonly: true,
+  });
+
+  try {
+    const rows = database
+      .prepare(
+        `SELECT
+          "user".id,
+          "user".name,
+          "user".email,
+          "user".role,
+          GROUP_CONCAT(account.providerId) AS providers
+        FROM "user"
+        LEFT JOIN account ON account.userId = "user".id
+        GROUP BY "user".id
+        ORDER BY "user".name COLLATE NOCASE ASC`,
+      )
+      .all() as (AuthUserRow & { providers: string | null })[];
+
+    return rows.map((row) => ({
+      email: row.email,
+      id: row.id,
+      name: row.name,
+      providers: row.providers?.split(",").filter(Boolean) ?? [],
+      role: row.role as AuthRole | null,
+    }));
   } finally {
     database.close();
   }

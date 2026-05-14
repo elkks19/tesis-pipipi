@@ -31,11 +31,16 @@ export type Viaje = {
 	}[];
 };
 
+function getTodayDateValue() {
+	return new Date().toISOString().slice(0, 10);
+}
+
 // TODO: MEJORAR ESTE ESUQEMA PORQUE ESTA HECHO BIEN DE LA PATADA
 export const CreateViajeSchema = z.object({
 	servicio: z.string().trim().min(1),
-	fechaEntrada: z.coerce.date<string>()
-		.min(new Date(), "La fecha de entrada debe ser en el futuro"),
+	fechaEntrada: z.coerce.date<string>().refine((date) => {
+		return date.toISOString().slice(0, 10) >= getTodayDateValue();
+	}, "La fecha de entrada debe ser hoy o en el futuro"),
 	fechaSalida: z.coerce.date<string>(),
 	establecimiento: z.object({
 		nombre: z.string().trim().min(1),

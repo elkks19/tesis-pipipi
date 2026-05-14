@@ -18,61 +18,131 @@ const authRoles = {
   estudiante: emptyRole,
 };
 
+const password = "tesis123";
+const stationSeeds = [
+  {
+    docenteEmail: "docente-anamnesis@tesis.com",
+    docenteName: "Docente Anamnesis",
+    label: "Anamnesis",
+    slug: "anamnesis",
+    students: [
+      "Ana Anamnesis",
+      "Luis Anamnesis",
+      "Sofia Anamnesis",
+      "Diego Anamnesis",
+    ],
+  },
+  {
+    docenteEmail: "docente-efg@tesis.com",
+    docenteName: "Docente EFG",
+    label: "Examen Fisico General",
+    slug: "efg",
+    students: ["Ana EFG", "Luis EFG", "Sofia EFG", "Diego EFG"],
+  },
+  {
+    docenteEmail: "docente-efs@tesis.com",
+    docenteName: "Docente EFS",
+    label: "Examen Fisico Segmentario",
+    slug: "efs",
+    students: ["Ana EFS", "Luis EFS", "Sofia EFS", "Diego EFS"],
+  },
+  {
+    docenteEmail: "docente-ecografia@tesis.com",
+    docenteName: "Docente Ecografia",
+    label: "Ecografia",
+    slug: "ecografia",
+    students: [
+      "Ana Ecografia",
+      "Luis Ecografia",
+      "Sofia Ecografia",
+      "Diego Ecografia",
+    ],
+  },
+  {
+    docenteEmail: "docente-electrocardiograma@tesis.com",
+    docenteName: "Docente Electrocardiograma",
+    label: "Electrocardiograma",
+    slug: "electrocardiograma",
+    students: [
+      "Ana Electrocardiograma",
+      "Luis Electrocardiograma",
+      "Sofia Electrocardiograma",
+      "Diego Electrocardiograma",
+    ],
+  },
+  {
+    docenteEmail: "docente-espirometria@tesis.com",
+    docenteName: "Docente Espirometria",
+    label: "Espirometria",
+    slug: "espirometria",
+    students: [
+      "Ana Espirometria",
+      "Luis Espirometria",
+      "Sofia Espirometria",
+      "Diego Espirometria",
+    ],
+  },
+  {
+    docenteEmail: "docente-laboratorios@tesis.com",
+    docenteName: "Docente Laboratorios",
+    label: "Laboratorios",
+    slug: "laboratorios",
+    students: [
+      "Ana Laboratorios",
+      "Luis Laboratorios",
+      "Sofia Laboratorios",
+      "Diego Laboratorios",
+    ],
+  },
+  {
+    docenteEmail: "docente-diagnostico@tesis.com",
+    docenteName: "Docente Diagnostico",
+    label: "Diagnostico",
+    slug: "diagnostico",
+    students: [
+      "Ana Diagnostico",
+      "Luis Diagnostico",
+      "Sofia Diagnostico",
+      "Diego Diagnostico",
+    ],
+  },
+];
+
+const stationUsers = stationSeeds.flatMap((station) => [
+  {
+    email: station.docenteEmail,
+    name: station.docenteName,
+    password,
+    role: "docente",
+  },
+  ...station.students.map((name, index) => ({
+    email: `estudiante-${station.slug}-${index + 1}@tesis.com`,
+    name,
+    password,
+    role: "estudiante",
+  })),
+]);
+
 const seedUsers = [
   {
-    email: "admin.coordinacion@tesis.local",
-    name: "Coordinacion Medica",
-    password: "Password123!",
+    email: "rafafabiani1909@gmail.com",
+    name: "Rafael Fabiani",
+    password: "rafa1909",
     role: "admin",
   },
   {
-    email: "docente.anamnesis@tesis.local",
-    name: "Dra. Ana Mendez",
-    password: "Password123!",
-    role: "docente",
+    email: "admin@tesis.com",
+    name: "Coordinacion Medica",
+    password,
+    role: "admin",
   },
   {
-    email: "docente.medicina@tesis.local",
-    name: "Dr. Marco Rojas",
-    password: "Password123!",
+    email: "docente-organizador@tesis.com",
+    name: "Docente Organizador",
+    password,
     role: "docente-organizador",
   },
-  {
-    email: "docente.clinica@tesis.local",
-    name: "Dra. Carla Vargas",
-    password: "Password123!",
-    role: "docente",
-  },
-  {
-    email: "estudiante.sofia@tesis.local",
-    name: "Sofia Gutierrez",
-    password: "Password123!",
-    role: "estudiante",
-  },
-  {
-    email: "estudiante.luis@tesis.local",
-    name: "Luis Fernandez",
-    password: "Password123!",
-    role: "estudiante",
-  },
-  {
-    email: "estudiante.valeria@tesis.local",
-    name: "Valeria Quiroga",
-    password: "Password123!",
-    role: "estudiante",
-  },
-  {
-    email: "estudiante.diego@tesis.local",
-    name: "Diego Camacho",
-    password: "Password123!",
-    role: "estudiante",
-  },
-  {
-    email: "estudiante.maria@tesis.local",
-    name: "Maria Salazar",
-    password: "Password123!",
-    role: "estudiante",
-  },
+  ...stationUsers,
 ];
 
 function loadEnvFile(filePath) {
@@ -125,7 +195,33 @@ const auth = betterAuth({
 });
 
 let created = 0;
-let skipped = 0;
+
+function tableExists(tableName) {
+  const row = database
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+    )
+    .get(tableName);
+
+  return Boolean(row);
+}
+
+function deleteTableRows(tableName) {
+  if (!tableExists(tableName)) {
+    return;
+  }
+
+  database.prepare(`DELETE FROM "${tableName}"`).run();
+}
+
+database.transaction(() => {
+  database.pragma("foreign_keys = OFF");
+  deleteTableRows("session");
+  deleteTableRows("account");
+  deleteTableRows("verification");
+  deleteTableRows("user");
+  database.pragma("foreign_keys = ON");
+})();
 
 for (const user of seedUsers) {
   const { role, ...credentials } = user;
@@ -142,8 +238,7 @@ for (const user of seedUsers) {
     created += 1;
     console.log(`created ${user.email}`);
   } catch (error) {
-    skipped += 1;
-    console.log(`skipped ${user.email}`);
+    console.log(`failed ${user.email}`);
 
     if (
       error instanceof Error &&
@@ -160,4 +255,4 @@ for (const user of seedUsers) {
   }
 }
 
-console.log(`seed complete: ${created} created, ${skipped} skipped`);
+console.log(`seed complete: ${created} created`);

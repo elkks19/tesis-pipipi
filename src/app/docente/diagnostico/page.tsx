@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { FileCheck2Icon } from "lucide-react";
 
-import { listHistoriasForDiagnostico } from "@/app/estudiante/diagnostico/queries";
-
 import { DocentePendingStationPage } from "../_components/docente-pending-station-page";
 
 export const metadata: Metadata = {
@@ -21,11 +19,11 @@ export default function DocenteDiagnosticoPage({
   return (
     <DocentePendingStationPage
       basePath="/docente/diagnostico"
-      description="Selecciona una historia pendiente de cierre y registra el diagnostico codificado CIE-11."
-      emptyMessage="No hay historias pendientes de diagnostico que coincidan con la busqueda."
+      description="Revisa y edita los diagnosticos producidos en tu estacion."
+      emptyMessage="No hay diagnosticos registrados en tu estacion que coincidan con la busqueda."
       filterId="docente-diagnostico-search"
-      getPage={listHistoriasForDiagnostico}
       searchParams={searchParams}
+      stationKey="diagnostico"
       statusIcon={<FileCheck2Icon />}
       title="Diagnostico"
     />

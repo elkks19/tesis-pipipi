@@ -1,5 +1,6 @@
 import carboneSdk from "carbone-sdk";
 
+import { getAuthUsersByIds } from "@/lib/auth-users";
 import { getViajeByDocId } from "../../queries";
 
 export const runtime = "nodejs";
@@ -29,6 +30,51 @@ function getFileName(value: string) {
     .replace(/[^a-zA-Z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
+}
+
+function getReportData(viaje: NonNullable<Awaited<ReturnType<typeof getViajeByDocId>>>) {
+  const userIds = viaje.estaciones.flatMap((estacion) => [
+    estacion.docenteEncargadoId,
+    ...estacion.estudiantesIds,
+  ]);
+  const usersById = getAuthUsersByIds(userIds);
+  const estaciones = viaje.estaciones.map((estacion) => {
+    const docente = usersById.get(estacion.docenteEncargadoId);
+    const estudiantes = estacion.estudiantesIds.map((studentId) => {
+      const student = usersById.get(studentId);
+
+      return {
+        email: student?.email ?? "",
+        id: studentId,
+        nombre: student?.name ?? studentId,
+      };
+    });
+
+    return {
+      ...estacion,
+      docenteEncargado: {
+        email: docente?.email ?? "",
+        id: estacion.docenteEncargadoId,
+        nombre: docente?.name ?? estacion.docenteEncargadoId,
+      },
+      estudiantes,
+      resumen: {
+        estudiantes: estudiantes.length,
+      },
+    };
+  });
+
+  return {
+    ...viaje,
+    estaciones,
+    resumen: {
+      docentes: new Set(viaje.estaciones.map((estacion) => estacion.docenteEncargadoId)).size,
+      estaciones: viaje.estaciones.length,
+      estudiantes: new Set(
+        viaje.estaciones.flatMap((estacion) => estacion.estudiantesIds),
+      ).size,
+    },
+  };
 }
 
 export async function GET(
@@ -62,11 +108,12 @@ export async function GET(
   }
 
   try {
+    const reportData = getReportData(viaje);
     const result = await carbone.renderPromise(getCarboneTemplate(), {
       convertTo: "pdf",
       data: {
         generadoEn: new Date().toISOString(),
-        viaje,
+        viaje: reportData,
       },
     });
     const fileName = `viaje-${getFileName(viaje.servicio || viaje.id)}.pdf`;

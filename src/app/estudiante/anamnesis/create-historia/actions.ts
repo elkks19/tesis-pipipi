@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity, resolveActiveViajeForUser } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -293,18 +294,28 @@ export async function createAnamnesis(
   }
 
   const { pacienteId, ...anamnesisData } = parsed.data;
-  const viajeId = optionalString(formData, "viajeId");
+  const activeTrip = await resolveActiveViajeForUser(userId);
+  const viajeId = activeTrip?.viajeId ?? optionalString(formData, "viajeId");
+
+  if (!viajeId) {
+    return {
+      message: "No tienes un viaje activo para crear historias.",
+      ok: false,
+    };
+  }
+
   const historiaId = getDocumentId(pacienteId);
+  const anamnesis = {
+    ...(anamnesisData as Anamnesis),
+    created_by: userId,
+    updated_by: userId,
+  };
   const historia: Historia = {
     type: "historia",
     created_by: userId,
     pacienteId,
-    ...(viajeId ? { viajeId } : {}),
-    anamnesis: {
-      ...(anamnesisData as Anamnesis),
-      created_by: userId,
-      updated_by: userId,
-    },
+    viajeId,
+    anamnesis,
   };
 
   try {
@@ -324,6 +335,16 @@ export async function createAnamnesis(
       _id: historiaId,
       ...historia,
     });
+    await logStationActivity({
+      actorId: userId,
+      after: anamnesis,
+      before: undefined,
+      historia: {
+        _id: historiaId,
+        ...historia,
+      },
+      stationKey: "anamnesis",
+    }).catch(() => undefined);
 
     revalidatePath("/estudiante/anamnesis/create-historia");
     revalidatePath("/estudiante/anamnesis");

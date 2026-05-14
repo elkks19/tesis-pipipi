@@ -1,4 +1,5 @@
 export * from './anamnesis'
+export * from './actividad'
 export * from './diagnostico'
 export * from './ecografia'
 export * from './electrocardiograma'

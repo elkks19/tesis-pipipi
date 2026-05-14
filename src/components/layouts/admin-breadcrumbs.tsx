@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const pageLabels: Record<string, string> = {
+  "/admin": "Dashboard",
   "/admin/viajes": "Viajes",
   "/admin/viajes/create": "Crear viaje",
 };
@@ -32,7 +33,7 @@ export function AdminBreadcrumbs() {
             <BreadcrumbPage>Administracion</BreadcrumbPage>
           ) : (
             <BreadcrumbLink asChild>
-              <Link href="/admin/viajes">Administracion</Link>
+              <Link href="/admin">Administracion</Link>
             </BreadcrumbLink>
           )}
         </BreadcrumbItem>

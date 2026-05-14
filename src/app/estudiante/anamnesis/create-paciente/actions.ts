@@ -1,5 +1,7 @@
 "use server";
 
+import { getAuthenticatedUserId } from "@/lib/auth-session";
+import { logPacienteActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { CreatePacienteSchema, type Paciente } from "@/lib/schema/pacientes";
 
@@ -129,6 +131,14 @@ export async function createPaciente(
   formData: FormData,
 ): Promise<CreatePacienteActionState> {
   void _prevState;
+  const userId = await getAuthenticatedUserId();
+
+  if (!userId) {
+    return {
+      message: "Debes iniciar sesion para guardar el paciente.",
+      ok: false,
+    };
+  }
 
   const parsed = CreatePacienteSchema.safeParse(getPacientePayload(formData));
 
@@ -146,10 +156,17 @@ export async function createPaciente(
   };
 
   try {
+    const pacienteId = getDocumentId(paciente);
+
     await db.put({
-      _id: getDocumentId(paciente),
+      _id: pacienteId,
       ...paciente,
     });
+    await logPacienteActivity({
+      actorId: userId,
+      after: paciente,
+      pacienteId,
+    }).catch(() => undefined);
 
     return {
       message: "Paciente creado correctamente.",

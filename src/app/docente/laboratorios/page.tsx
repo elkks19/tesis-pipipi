@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { FlaskConicalIcon } from "lucide-react";
 
-import { listPendingComplementaryExamHistories } from "@/app/estudiante/_lib/station-history-queries";
-
 import { DocentePendingStationPage } from "../_components/docente-pending-station-page";
 
 export const metadata: Metadata = {
@@ -21,17 +19,11 @@ export default function DocenteLaboratoriosPage({
   return (
     <DocentePendingStationPage
       basePath="/docente/laboratorios"
-      description="Selecciona una historia con laboratorios solicitados y registra sus resultados."
-      emptyMessage="No hay historias con laboratorios solicitados pendientes de registro que coincidan con la busqueda."
+      description="Revisa y edita los laboratorios producidos en tu estacion."
+      emptyMessage="No hay laboratorios registrados en tu estacion que coincidan con la busqueda."
       filterId="docente-laboratorios-search"
-      getPage={({ cursor, query }) =>
-        listPendingComplementaryExamHistories({
-          cursor,
-          examKey: "laboratorios",
-          query,
-        })
-      }
       searchParams={searchParams}
+      stationKey="laboratorios"
       statusIcon={<FlaskConicalIcon />}
       title="Laboratorios"
     />

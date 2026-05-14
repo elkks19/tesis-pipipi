@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 
 import { PendingHistoriesTable } from "@/app/estudiante/_components/pending-histories-table";
-import type { StationHistoryPageResult } from "@/app/estudiante/_lib/station-history-queries";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
+import {
+  listStationHistories,
+  type StationKey,
+} from "@/lib/station-histories";
 
 type SearchParams = Promise<{
   cursor?: string | string[];
@@ -14,11 +18,8 @@ type DocentePendingStationPageProps = {
   description: string;
   emptyMessage: string;
   filterId: string;
-  getPage: (input: {
-    cursor?: string;
-    query: string;
-  }) => Promise<StationHistoryPageResult>;
   searchParams: SearchParams;
+  stationKey: StationKey;
   statusIcon: ReactNode;
   title: string;
 };
@@ -32,8 +33,8 @@ export async function DocentePendingStationPage({
   description,
   emptyMessage,
   filterId,
-  getPage,
   searchParams,
+  stationKey,
   statusIcon,
   title,
 }: DocentePendingStationPageProps) {
@@ -44,9 +45,13 @@ export async function DocentePendingStationPage({
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const page = await getPage({
+  const userId = await getAuthenticatedUserId();
+  const page = await listStationHistories({
     cursor,
+    mode: "docente",
     query,
+    stationKey,
+    userId: userId ?? undefined,
   });
 
   return (
@@ -64,6 +69,7 @@ export async function DocentePendingStationPage({
         cursors={cursors}
         emptyMessage={emptyMessage}
         filterId={filterId}
+        mode="docente"
         page={page}
         query={query}
         statusIcon={statusIcon}

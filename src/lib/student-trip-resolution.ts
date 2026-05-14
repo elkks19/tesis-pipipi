@@ -1,6 +1,7 @@
 import type { Viaje } from "@/lib/schema/viajes";
 
 export type ActiveStudentTrip = {
+  basePath?: string;
   estacionTipo: string;
   establecimiento: string;
   fechaEntrada: string;
@@ -11,6 +12,7 @@ export type ActiveStudentTrip = {
 };
 
 export type FutureStudentTrip = {
+  estacionTipo?: string;
   establecimiento: string;
   fechaEntrada: string;
   fechaSalida: string;
@@ -21,6 +23,7 @@ export type FutureStudentTrip = {
 export type StudentTripResolution = {
   activeTrip?: ActiveStudentTrip;
   futureTrip?: FutureStudentTrip;
+  futureTrips?: FutureStudentTrip[];
   redirectTo?: string;
 };
 
@@ -43,6 +46,39 @@ const stationRoutes: Record<string, string> = {
   Espirometría: "/estudiante/espirometria",
   Laboratorios: "/estudiante/laboratorios",
   Diagnóstico: "/estudiante/diagnostico",
+};
+
+const docenteStationRoutes: Record<string, string> = {
+  Anamnesis: "/docente/anamnesis/create-historia",
+  "Examen Físico General": "/docente/examen-fisico-general",
+  "Examen Físico Segmentario": "/docente/examen-fisico-segmentario",
+  Ecografía: "/docente/ecografia",
+  Electrocardiograma: "/docente/electrocardiograma",
+  Espirometría: "/docente/espirometria",
+  Laboratorios: "/docente/laboratorios",
+  Diagnóstico: "/docente/diagnostico",
+};
+
+const stationBasePaths: Record<string, string> = {
+  Anamnesis: "/estudiante/anamnesis",
+  "Examen Físico General": "/estudiante/examen-fisico-general",
+  "Examen Físico Segmentario": "/estudiante/examen-fisico-segmentario",
+  Ecografía: "/estudiante/ecografia",
+  Electrocardiograma: "/estudiante/electrocardiograma",
+  Espirometría: "/estudiante/espirometria",
+  Laboratorios: "/estudiante/laboratorios",
+  Diagnóstico: "/estudiante/diagnostico",
+};
+
+const docenteStationBasePaths: Record<string, string> = {
+  Anamnesis: "/docente/anamnesis",
+  "Examen Físico General": "/docente/examen-fisico-general",
+  "Examen Físico Segmentario": "/docente/examen-fisico-segmentario",
+  Ecografía: "/docente/ecografia",
+  Electrocardiograma: "/docente/electrocardiograma",
+  Espirometría: "/docente/espirometria",
+  Laboratorios: "/docente/laboratorios",
+  Diagnóstico: "/docente/diagnostico",
 };
 
 function getCouchAllDocsUrl() {
@@ -112,6 +148,12 @@ function getStudentStation(viaje: ViajeDocument, userId: string) {
   );
 }
 
+function getDocenteStation(viaje: ViajeDocument, userId: string) {
+  return viaje.estaciones.find(
+    (estacion) => estacion.docenteEncargadoId === userId,
+  );
+}
+
 async function listViajes() {
   const { headers, url } = getCouchAllDocsUrl();
   const response = await fetch(url, {
@@ -131,8 +173,12 @@ async function listViajes() {
     .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
 }
 
-function toFutureTrip(viaje: ViajeDocument): FutureStudentTrip {
+function toFutureTrip(
+  viaje: ViajeDocument,
+  estacionTipo?: string,
+): FutureStudentTrip {
   return {
+    estacionTipo,
     establecimiento: viaje.establecimiento.nombre,
     fechaEntrada: viaje.fechaEntrada,
     fechaSalida: viaje.fechaSalida,
@@ -144,30 +190,41 @@ function toFutureTrip(viaje: ViajeDocument): FutureStudentTrip {
 function toActiveTrip(
   viaje: ViajeDocument,
   estacionTipo: string,
+  mode: "docente" | "estudiante" = "estudiante",
 ): ActiveStudentTrip {
+  const routes = mode === "docente" ? docenteStationRoutes : stationRoutes;
+  const basePaths =
+    mode === "docente" ? docenteStationBasePaths : stationBasePaths;
+
   return {
+    basePath: basePaths[estacionTipo],
     estacionTipo,
     establecimiento: viaje.establecimiento.nombre,
     fechaEntrada: viaje.fechaEntrada,
     fechaSalida: viaje.fechaSalida,
-    redirectTo: stationRoutes[estacionTipo],
+    redirectTo: routes[estacionTipo],
     servicio: viaje.servicio,
     viajeId: viaje._id ?? viaje.id,
   };
 }
 
-export async function resolveStudentTripRoute(
-  userId: string | undefined,
-): Promise<StudentTripResolution> {
+async function resolveTripRoute({
+  mode,
+  userId,
+}: {
+  mode: "docente" | "estudiante";
+  userId: string | undefined;
+}): Promise<StudentTripResolution> {
   if (!userId) {
     return {};
   }
 
   const today = getTodayValue();
   const viajes = await listViajes();
+  const getStation = mode === "docente" ? getDocenteStation : getStudentStation;
   const assignedTrips = viajes
     .map((viaje) => ({
-      estacion: getStudentStation(viaje, userId),
+      estacion: getStation(viaje, userId),
       viaje,
     }))
     .filter((item) => Boolean(item.estacion));
@@ -179,6 +236,7 @@ export async function resolveStudentTripRoute(
     const activeTrip = toActiveTrip(
       activeAssignment.viaje,
       activeAssignment.estacion.tipo,
+      mode,
     );
 
     return {
@@ -187,13 +245,25 @@ export async function resolveStudentTripRoute(
     };
   }
 
-  const futureAssignment = assignedTrips.find((item) =>
+  const futureAssignments = assignedTrips.filter((item) =>
     isFuture(item.viaje, today),
+  );
+  const futureTrips = futureAssignments.map((item) =>
+    toFutureTrip(item.viaje, item.estacion?.tipo),
   );
 
   return {
-    futureTrip: futureAssignment
-      ? toFutureTrip(futureAssignment.viaje)
-      : undefined,
+    futureTrip: futureTrips[0],
+    futureTrips,
   };
+}
+
+export async function resolveStudentTripRoute(
+  userId: string | undefined,
+): Promise<StudentTripResolution> {
+  return resolveTripRoute({ mode: "estudiante", userId });
+}
+
+export async function resolveDocenteTripRoute(userId: string | undefined) {
+  return resolveTripRoute({ mode: "docente", userId });
 }

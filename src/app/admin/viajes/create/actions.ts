@@ -62,10 +62,17 @@ function hasRole(role: AuthRole | null, roles: readonly AuthRole[]) {
 }
 
 function getEstaciones(formData: FormData) {
-  const estaciones = [];
+  const stationIndexes = new Set<number>();
 
-  for (let index = 0; formData.has(`estaciones.${index}.tipo`); index += 1) {
-    estaciones.push({
+  for (const key of formData.keys()) {
+    const match = key.match(/^estaciones\.(\d+)\./);
+
+    if (match) {
+      stationIndexes.add(Number(match[1]));
+    }
+  }
+
+  return [...stationIndexes].sort((a, b) => a - b).map((index) => ({
       tipo: getString(formData, `estaciones.${index}.tipo`),
       docenteEncargado: getString(
         formData,
@@ -74,10 +81,7 @@ function getEstaciones(formData: FormData) {
       estudiantes: formData
         .getAll(`estaciones.${index}.estudiantes`)
         .filter((value): value is string => typeof value === "string"),
-    });
-  }
-
-  return estaciones;
+  }));
 }
 
 function getPayload(formData: FormData) {
@@ -92,6 +96,53 @@ function getPayload(formData: FormData) {
     },
     estaciones: getEstaciones(formData),
   };
+}
+
+function getDuplicateAssignmentErrors(
+  estaciones: {
+    docenteEncargado: string;
+    estudiantes: string[];
+  }[],
+) {
+  const errors: Record<string, string> = {};
+  const assignedUsers = new Map<string, string>();
+
+  estaciones.forEach((estacion, index) => {
+    const stationLabel = `estacion ${index + 1}`;
+    const assignments = [
+      {
+        field: `estaciones.${index}.docenteEncargado`,
+        userId: estacion.docenteEncargado,
+      },
+      ...estacion.estudiantes.map((userId) => ({
+        field: `estaciones.${index}.estudiantes`,
+        userId,
+      })),
+    ].filter((assignment) => assignment.userId);
+
+    const currentStationUsers = new Set<string>();
+
+    assignments.forEach((assignment) => {
+      if (currentStationUsers.has(assignment.userId)) {
+        errors[assignment.field] =
+          "Este usuario ya esta asignado en esta estacion.";
+        return;
+      }
+
+      currentStationUsers.add(assignment.userId);
+      const previousStation = assignedUsers.get(assignment.userId);
+
+      if (previousStation) {
+        errors[assignment.field] =
+          `Este usuario ya fue asignado en ${previousStation}.`;
+        return;
+      }
+
+      assignedUsers.set(assignment.userId, stationLabel);
+    });
+  });
+
+  return errors;
 }
 
 export async function createViaje(
@@ -115,7 +166,7 @@ export async function createViaje(
     ...estacion.estudiantes,
   ]);
   const usersById = getAuthUsersByIds(selectedUserIds);
-  const roleErrors: Record<string, string> = {};
+  const roleErrors = getDuplicateAssignmentErrors(parsed.data.estaciones);
 
   parsed.data.estaciones.forEach((estacion, index) => {
     const docente = usersById.get(estacion.docenteEncargado);

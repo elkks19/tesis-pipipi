@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
@@ -134,14 +135,24 @@ export async function saveExamenFisicoGeneral(
       };
     }
 
-    await db.put({
+    const examenFisicoGeneral = {
+      ...(parsed.data as ExamenFisicoGeneral),
+      created_by: historia.examenFisicoGeneral?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
       ...historia,
-      examenFisicoGeneral: {
-        ...(parsed.data as ExamenFisicoGeneral),
-        created_by: historia.examenFisicoGeneral?.created_by ?? userId,
-        updated_by: userId,
-      },
-    });
+      examenFisicoGeneral,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: examenFisicoGeneral,
+      before: historia.examenFisicoGeneral,
+      historia,
+      stationKey: "examenFisicoGeneral",
+    }).catch(() => undefined);
 
     revalidatePath(`/estudiante/examen-fisico-general/${idHistoria}`);
     revalidatePath("/estudiante/examen-fisico-general");

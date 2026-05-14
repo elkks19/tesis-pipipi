@@ -1,12 +1,15 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   type FormEvent,
   type ReactNode,
   useActionState,
+  useEffect,
   useMemo,
   useState,
 } from "react";
+import { toast } from "sonner";
 import {
   PlusIcon,
   SaveIcon,
@@ -21,6 +24,7 @@ import {
   ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
+  ComboboxCollection,
   ComboboxContent,
   ComboboxEmpty,
   ComboboxGroup,
@@ -86,6 +90,7 @@ type ViajeFormAction = (
 type ViajeFormProps = {
   action?: ViajeFormAction;
   defaultValue?: ViajeFormValue;
+  successRedirectHref?: string;
   submitLabel?: string;
   users: ViajeUserOption[];
 };
@@ -98,28 +103,44 @@ type UserComboboxOption = {
   value: string;
 };
 
-const baseFormValue: ViajeFormValue = {
-  servicio: "",
-  fechaEntrada: "",
-  fechaSalida: "",
-  establecimiento: {
-    nombre: "",
-    direccion: "",
-    contacto: "",
-  },
-  estaciones: [createEstacion()],
-};
-
 async function noopAction(): Promise<ViajeFormActionState> {
   return { ok: false };
 }
 
-function createEstacion(): EstacionForm {
+function createEstacion(id = "estacion-0"): EstacionForm {
   return {
-    id: crypto.randomUUID(),
+    id,
     tipo: "",
     docenteEncargado: "",
     estudiantes: [],
+  };
+}
+
+function createBaseFormValue(): ViajeFormValue {
+  return {
+    servicio: "",
+    fechaEntrada: "",
+    fechaSalida: "",
+    establecimiento: {
+      nombre: "",
+      direccion: "",
+      contacto: "",
+    },
+    estaciones: [createEstacion()],
+  };
+}
+
+function normalizeFormValue(value?: ViajeFormValue): ViajeFormValue {
+  const formValue = value ?? createBaseFormValue();
+  const estaciones =
+    formValue.estaciones.length > 0 ? formValue.estaciones : [createEstacion()];
+
+  return {
+    ...formValue,
+    estaciones: estaciones.map((estacion, index) => ({
+      ...estacion,
+      id: estacion.id || `estacion-${index}`,
+    })),
   };
 }
 
@@ -199,6 +220,42 @@ function getAvailableStationTypes(
   return tiposEstacion.filter((type) => !selectedTypes.has(type));
 }
 
+function getAssignedUserIds(stations: EstacionForm[], currentIndex: number) {
+  return new Set(
+    stations
+      .filter((_, index) => index !== currentIndex)
+      .flatMap((station) => [
+        station.docenteEncargado,
+        ...station.estudiantes,
+      ])
+      .filter(Boolean),
+  );
+}
+
+function getAvailableUsers({
+  currentValues,
+  options,
+  stations,
+  currentIndex,
+  blockedInCurrentStation = [],
+}: {
+  blockedInCurrentStation?: string[];
+  currentIndex: number;
+  currentValues: string[];
+  options: UserComboboxOption[];
+  stations: EstacionForm[];
+}) {
+  const assignedUserIds = getAssignedUserIds(stations, currentIndex);
+  const currentValueIds = new Set(currentValues);
+  const blockedCurrentIds = new Set(blockedInCurrentStation.filter(Boolean));
+
+  return options.filter(
+    (option) =>
+      currentValueIds.has(option.value) ||
+      (!assignedUserIds.has(option.value) && !blockedCurrentIds.has(option.value)),
+  );
+}
+
 function hasRole(role: AuthRole | null, roles: readonly AuthRole[]) {
   return role !== null && roles.includes(role);
 }
@@ -206,11 +263,13 @@ function hasRole(role: AuthRole | null, roles: readonly AuthRole[]) {
 export function ViajeForm({
   action,
   defaultValue,
+  successRedirectHref,
   submitLabel = "Guardar viaje",
   users,
 }: ViajeFormProps) {
+  const router = useRouter();
   const initialFormValue = useMemo(
-    () => defaultValue ?? baseFormValue,
+    () => normalizeFormValue(defaultValue),
     [defaultValue],
   );
   const [form, setForm] = useState<ViajeFormValue>(initialFormValue);
@@ -226,6 +285,25 @@ export function ViajeForm({
     ...actionState.errors,
     ...errors,
   };
+
+  useEffect(() => {
+    if (!actionState.message) {
+      return;
+    }
+
+    if (actionState.ok) {
+      toast.success(actionState.message);
+      if (successRedirectHref) {
+        router.push(successRedirectHref);
+      }
+      return;
+    }
+
+    if (!actionState.errors) {
+      toast.error(actionState.message);
+    }
+  }, [actionState, router, successRedirectHref]);
+
   const userOptions = useMemo(
     () => users.map((user) => getUserComboboxOption(user)),
     [users],
@@ -265,7 +343,7 @@ export function ViajeForm({
       return;
     }
 
-    const station = createEstacion();
+    const station = createEstacion(crypto.randomUUID());
     setForm((current) => ({
       ...current,
       estaciones: [...current.estaciones, station],
@@ -412,6 +490,34 @@ export function ViajeForm({
         title="Estaciones"
       >
         <Tabs value={activeStationId} onValueChange={setActiveStationId}>
+          <div hidden>
+            {form.estaciones.map((station, index) => (
+              <div key={station.id}>
+                <input
+                  name={`estaciones.${index}.tipo`}
+                  readOnly
+                  type="hidden"
+                  value={station.tipo}
+                />
+                <input
+                  name={`estaciones.${index}.docenteEncargado`}
+                  readOnly
+                  type="hidden"
+                  value={station.docenteEncargado}
+                />
+                {station.estudiantes.map((studentId) => (
+                  <input
+                    key={studentId}
+                    name={`estaciones.${index}.estudiantes`}
+                    readOnly
+                    type="hidden"
+                    value={studentId}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             <TabsList className="w-max">
               {form.estaciones.map((station, index) => (
@@ -434,19 +540,6 @@ export function ViajeForm({
 
           {form.estaciones.map((station, index) => (
             <TabsContent className="mt-4" key={station.id} value={station.id}>
-              <input
-                name={`estaciones.${index}.docenteEncargado`}
-                type="hidden"
-                value={station.docenteEncargado}
-              />
-              {station.estudiantes.map((studentId) => (
-                <input
-                  key={studentId}
-                  name={`estaciones.${index}.estudiantes`}
-                  type="hidden"
-                  value={studentId}
-                />
-              ))}
               <div className="flex flex-col gap-5 rounded-3xl border bg-muted/20 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
@@ -487,7 +580,15 @@ export function ViajeForm({
                     onChange={(value) =>
                       updateStation(index, { docenteEncargado: value })
                     }
-                    options={docenteOptions}
+                    options={getAvailableUsers({
+                      blockedInCurrentStation: station.estudiantes,
+                      currentIndex: index,
+                      currentValues: station.docenteEncargado
+                        ? [station.docenteEncargado]
+                        : [],
+                      options: docenteOptions,
+                      stations: form.estaciones,
+                    })}
                     placeholder="Buscar docente"
                     value={userById.get(station.docenteEncargado) ?? null}
                   />
@@ -499,7 +600,15 @@ export function ViajeForm({
                   onChange={(values) =>
                     updateStation(index, { estudiantes: values })
                   }
-                  options={estudianteOptions}
+                  options={getAvailableUsers({
+                    blockedInCurrentStation: station.docenteEncargado
+                      ? [station.docenteEncargado]
+                      : [],
+                    currentIndex: index,
+                    currentValues: station.estudiantes,
+                    options: estudianteOptions,
+                    stations: form.estaciones,
+                  })}
                   value={station.estudiantes
                     .map((studentId) => userById.get(studentId))
                     .filter((user): user is UserComboboxOption =>
@@ -576,6 +685,8 @@ function UserComboboxField({
       <Label>{label}</Label>
       <Combobox<UserComboboxOption>
         autoHighlight
+        itemToStringLabel={(option) => option.label}
+        items={options}
         isItemEqualToValue={(item, selectedValue) =>
           item.value === selectedValue.value
         }
@@ -592,11 +703,13 @@ function UserComboboxField({
           <ComboboxList>
             <ComboboxGroup>
               <ComboboxLabel>Usuarios</ComboboxLabel>
-              {options.map((option) => (
-                <ComboboxItem key={option.value} value={option}>
-                  <UserOptionLabel option={option} />
-                </ComboboxItem>
-              ))}
+              <ComboboxCollection>
+                {(option: UserComboboxOption) => (
+                  <ComboboxItem key={option.value} value={option}>
+                    <UserOptionLabel option={option} />
+                  </ComboboxItem>
+                )}
+              </ComboboxCollection>
             </ComboboxGroup>
           </ComboboxList>
         </ComboboxContent>
@@ -628,6 +741,8 @@ function UsersComboboxField({
       </div>
       <Combobox<UserComboboxOption, true>
         autoHighlight
+        itemToStringLabel={(option) => option.label}
+        items={options}
         isItemEqualToValue={(item, selectedValue) =>
           item.value === selectedValue.value
         }
@@ -655,11 +770,13 @@ function UsersComboboxField({
           <ComboboxList>
             <ComboboxGroup>
               <ComboboxLabel>Usuarios</ComboboxLabel>
-              {options.map((option) => (
-                <ComboboxItem key={option.value} value={option}>
-                  <UserOptionLabel option={option} />
-                </ComboboxItem>
-              ))}
+              <ComboboxCollection>
+                {(option: UserComboboxOption) => (
+                  <ComboboxItem key={option.value} value={option}>
+                    <UserOptionLabel option={option} />
+                  </ComboboxItem>
+                )}
+              </ComboboxCollection>
             </ComboboxGroup>
           </ComboboxList>
         </ComboboxContent>

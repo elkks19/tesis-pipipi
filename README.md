@@ -2,10 +2,15 @@
 
 ## Notas de autenticacion
 
-El `proxy` de Next.js esta activo solo para redirecciones de entrada:
+El `proxy` de Next.js mantiene a cada usuario dentro del arbol de rutas de su rol:
 
 - `/` redirige al inicio que corresponde por rol.
-- `/estudiante` y `/docente` redirigen a la estacion asignada cuando el usuario tiene un viaje activo.
+- Un estudiante que entre a `/docente` o `/admin` vuelve a su inicio de estudiante.
+- Un docente que entre a `/estudiante` o `/admin` vuelve a su inicio de docente.
+- Un admin que entre a `/estudiante` o `/docente` vuelve a `/admin`.
+- `/estudiante` y `/docente` redirigen a la estacion asignada cuando el usuario tiene un viaje activo dentro de sus fechas.
+- Si un estudiante o docente entra a una subruta de estacion y no tiene viaje activo, vuelve a `/estudiante` o `/docente`.
+- Si tiene viaje activo pero intenta entrar a una estacion distinta, vuelve a la estacion que le toca.
 - `/login` y `/register` redirigen al inicio correspondiente si ya existe una sesion.
 
 El modal global que obligaba a completar ambos metodos de acceso sigue desactivado temporalmente. Por ahora esta regla queda documentada y se debe validar manualmente:

@@ -2,9 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import {
-  canAccessAdmin,
-  canAccessDocente,
-  canAccessEstudiante,
   getRoleHomePath,
   getSessionUserRole,
 } from "@/lib/role-redirect";
@@ -54,6 +51,26 @@ async function getRoleStartPath(userId: string, roleHomePath: string) {
   return roleHomePath;
 }
 
+function isInsideBasePath(pathname: string, basePath: string) {
+  return pathname === basePath || pathname.startsWith(`${basePath}/`);
+}
+
+async function getStudentResolution(userId: string) {
+  return resolveStudentTripRoute(userId).catch(
+    (): StudentTripResolution => ({}),
+  );
+}
+
+async function getDocenteResolution(userId: string) {
+  return resolveDocenteTripRoute(userId).catch(
+    (): StudentTripResolution => ({}),
+  );
+}
+
+function redirectTo(path: string, request: NextRequest) {
+  return NextResponse.redirect(new URL(path, request.url));
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const session = await auth.api.getSession({
@@ -82,31 +99,86 @@ export async function proxy(request: NextRequest) {
   const startPath = await getRoleStartPath(session.user.id, roleHomePath);
 
   if (pathname === "/") {
-    return NextResponse.redirect(new URL(startPath, request.url));
+    return redirectTo(startPath, request);
   }
 
-  if (pathname === "/admin" && !canAccessAdmin(role)) {
-    return NextResponse.redirect(new URL(startPath, request.url));
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (roleHomePath !== "/admin") {
+      return redirectTo(startPath, request);
+    }
+
+    return NextResponse.next();
   }
 
-  if (pathname === "/docente" && !canAccessDocente(role)) {
-    return NextResponse.redirect(new URL(startPath, request.url));
+  if (pathname === "/estudiante" || pathname.startsWith("/estudiante/")) {
+    if (roleHomePath !== "/estudiante") {
+      return redirectTo(startPath, request);
+    }
+
+    const resolution = await getStudentResolution(session.user.id);
+    const activeTrip = resolution.activeTrip;
+
+    if (!activeTrip) {
+      return pathname === "/estudiante"
+        ? NextResponse.next()
+        : redirectTo("/estudiante", request);
+    }
+
+    if (pathname === "/estudiante") {
+      return redirectTo(resolution.redirectTo ?? "/estudiante", request);
+    }
+
+    if (
+      activeTrip.basePath &&
+      isInsideBasePath(pathname, activeTrip.basePath)
+    ) {
+      return NextResponse.next();
+    }
+
+    return redirectTo(resolution.redirectTo ?? "/estudiante", request);
   }
 
-  if (pathname === "/estudiante" && !canAccessEstudiante(role)) {
-    return NextResponse.redirect(new URL(startPath, request.url));
-  }
+  if (pathname === "/docente" || pathname.startsWith("/docente/")) {
+    if (roleHomePath !== "/docente") {
+      return redirectTo(startPath, request);
+    }
 
-  if (
-    (pathname === "/docente" || pathname === "/estudiante") &&
-    startPath !== pathname
-  ) {
-    return NextResponse.redirect(new URL(startPath, request.url));
+    const resolution = await getDocenteResolution(session.user.id);
+    const activeTrip = resolution.activeTrip;
+
+    if (!activeTrip) {
+      return pathname === "/docente"
+        ? NextResponse.next()
+        : redirectTo("/docente", request);
+    }
+
+    if (pathname === "/docente") {
+      return redirectTo(resolution.redirectTo ?? "/docente", request);
+    }
+
+    if (
+      activeTrip.basePath &&
+      isInsideBasePath(pathname, activeTrip.basePath)
+    ) {
+      return NextResponse.next();
+    }
+
+    return redirectTo(resolution.redirectTo ?? "/docente", request);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/admin", "/docente", "/estudiante", "/login", "/register"],
+  matcher: [
+    "/",
+    "/admin",
+    "/admin/:path*",
+    "/docente",
+    "/docente/:path*",
+    "/estudiante",
+    "/estudiante/:path*",
+    "/login",
+    "/register",
+  ],
 };

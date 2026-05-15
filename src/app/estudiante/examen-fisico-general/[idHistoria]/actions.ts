@@ -156,6 +156,8 @@ export async function saveExamenFisicoGeneral(
 
     revalidatePath(`/estudiante/examen-fisico-general/${idHistoria}`);
     revalidatePath("/estudiante/examen-fisico-general");
+    revalidatePath(`/docente/examen-fisico-general/${idHistoria}`);
+    revalidatePath("/docente/examen-fisico-general");
 
     return {
       message: "Examen fisico general guardado correctamente.",

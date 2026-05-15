@@ -1,14 +1,13 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia, Paciente } from "@/lib/schema";
 import type { Viaje } from "@/lib/schema/viajes";
 
 const PAGE_SIZE = 10;
-const SCAN_BATCH_SIZE = 100;
-const HISTORIA_ID_PREFIX = "historia:";
-const HISTORIA_ID_END = "historia:\ufff0";
 
 export const stationConfigs = {
   anamnesis: {
@@ -53,17 +52,11 @@ export type StationKey = keyof typeof stationConfigs;
 
 type HistoriaField = (typeof stationConfigs)[StationKey]["field"];
 
-type HistoriaDocument = Historia & {
-  _id?: string;
-};
+type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
 
-type PacienteDocument = Paciente & {
-  _id?: string;
-};
+type PacienteDocument = PouchDB.Core.ExistingDocument<Paciente>;
 
-type ViajeDocument = Viaje & {
-  _id?: string;
-};
+type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 export type StationHistoryRow = {
   historiaId: string;
@@ -188,6 +181,50 @@ async function getViaje(viajeId: string, cache: Map<string, ViajeDocument | null
   }
 }
 
+export async function getAssignedViajeIds({
+  mode,
+  stationKey,
+  userId,
+}: {
+  mode: "docente" | "estudiante";
+  stationKey: StationKey;
+  userId?: string;
+}) {
+  if (!userId) {
+    return [];
+  }
+
+  const stationSelector =
+    mode === "docente"
+      ? {
+          docenteEncargadoId: userId,
+          tipo: stationConfigs[stationKey].viajeTipo,
+        }
+      : {
+          estudiantesIds: {
+            $elemMatch: {
+              $eq: userId,
+            },
+          },
+          tipo: stationConfigs[stationKey].viajeTipo,
+        };
+
+  const result = await findTesisDocs({
+    limit: 500,
+    selector: {
+      estaciones: {
+        $elemMatch: stationSelector,
+      },
+      type: "viaje",
+    },
+  });
+
+  return result.docs
+    .filter(isViajeDocument)
+    .map((viaje) => viaje._id ?? viaje.id)
+    .filter(Boolean);
+}
+
 function hasStationValue(doc: HistoriaDocument, field: HistoriaField) {
   return Boolean(doc[field]);
 }
@@ -300,32 +337,63 @@ export async function listStationHistories({
   stationKey: StationKey;
   userId?: string;
 }): Promise<StationHistoryPageResult> {
+  await ensureTesisIndexes();
+
   const normalizedQuery = normalize(query);
   const rows: StationHistoryRow[] = [];
   const viajes = new Map<string, ViajeDocument | null>();
-  let nextScanStartKey = cursor || HISTORIA_ID_PREFIX;
-  let shouldSkipCursor = Boolean(cursor);
+  const assignedViajeIds = await getAssignedViajeIds({
+    mode,
+    stationKey,
+    userId,
+  });
+
+  if (assignedViajeIds.length === 0) {
+    return {
+      hasNextPage: false,
+      pageSize: PAGE_SIZE,
+      rows: [],
+    };
+  }
+
+  const config = stationConfigs[stationKey];
+  const selector: Record<string, unknown> = {
+    type: "historia",
+    viajeId: {
+      $in: assignedViajeIds,
+    },
+  };
+
+  if (mode === "estudiante") {
+    selector.diagnostico = { $exists: false };
+    selector[config.field] = { $exists: false };
+
+    if ("complementaryKey" in config) {
+      selector[`examenesComplementariosSolicitados.${config.complementaryKey}`] =
+        true;
+    }
+  } else {
+    selector[config.field] = { $exists: true };
+  }
+
   let reachedEnd = false;
+  let bookmark = cursor || undefined;
 
   while (rows.length <= PAGE_SIZE && !reachedEnd) {
-    const result = await db.allDocs({
-      endkey: HISTORIA_ID_END,
-      include_docs: true,
-      limit: SCAN_BATCH_SIZE,
-      skip: shouldSkipCursor ? 1 : 0,
-      startkey: nextScanStartKey,
+    const result = await findTesisDocs({
+      bookmark,
+      limit: PAGE_SIZE * 4,
+      selector,
     });
 
-    if (result.rows.length === 0) {
+    if (result.docs.length === 0) {
       reachedEnd = true;
       break;
     }
 
-    shouldSkipCursor = true;
-    nextScanStartKey = result.rows[result.rows.length - 1].id;
+    bookmark = result.bookmark;
 
-    for (const resultRow of result.rows) {
-      const doc = resultRow.doc;
+    for (const doc of result.docs) {
 
       if (!isHistoriaDocument(doc)) {
         continue;
@@ -348,20 +416,16 @@ export async function listStationHistories({
       }
     }
 
-    if (result.rows.length < SCAN_BATCH_SIZE) {
+    if (result.docs.length < PAGE_SIZE * 4 || !result.bookmark) {
       reachedEnd = true;
     }
   }
 
   const visibleRows = rows.slice(0, PAGE_SIZE);
-  const lastVisibleRow = visibleRows.at(-1);
 
   return {
     hasNextPage: rows.length > PAGE_SIZE,
-    nextCursor:
-      rows.length > PAGE_SIZE && lastVisibleRow
-        ? lastVisibleRow.historiaId
-        : undefined,
+    nextCursor: rows.length > PAGE_SIZE ? bookmark : undefined,
     pageSize: PAGE_SIZE,
     rows: visibleRows,
   };

@@ -5,6 +5,7 @@ import {
   LaboratoriosForm,
   type LaboratoriosFormValue,
 } from "@/components/forms/laboratorios-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import type { Laboratorios } from "@/lib/schema/laboratorios";
 import { saveLaboratorios } from "@/app/estudiante/laboratorios/[idHistoria]/actions";
 import { getHistoria } from "../../_lib/historia-page";
@@ -50,6 +51,8 @@ export default async function DocenteLaboratoriosCreatePage({
           Registra resultados basales y estudios adicionales solicitados.
         </p>
       </div>
+
+      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
 
       <LaboratoriosForm
         action={action}

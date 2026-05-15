@@ -1,6 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { db } from "@/lib/db";
+import { hasAuthPermission } from "@/lib/auth-permissions";
 import {
   docenteRoles,
   estudianteRoles,
@@ -150,6 +153,20 @@ export async function createViaje(
   formData: FormData,
 ): Promise<CreateViajeActionState> {
   void _previousState;
+
+  const canCreateViaje = await hasAuthPermission({
+    headers: await headers(),
+    permission: {
+      viaje: ["create"],
+    },
+  });
+
+  if (!canCreateViaje) {
+    return {
+      message: "No tienes permisos para crear viajes.",
+      ok: false,
+    };
+  }
 
   const parsed = CreateViajeSchema.safeParse(getPayload(formData));
 

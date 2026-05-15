@@ -5,6 +5,7 @@ import {
   ExamenFisicoGeneralForm,
   type ExamenFisicoGeneralFormValue,
 } from "@/components/forms/examen-fisico-general-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import { db } from "@/lib/db";
 import type { ExamenFisicoGeneral } from "@/lib/schema/examenFisicoGeneral";
 import type { Historia } from "@/lib/schema/historia";
@@ -107,9 +108,15 @@ export default async function ExamenFisicoGeneralPage({
         </p>
       </div>
 
+      <HistoriaClinicalSummary
+        historia={historia}
+        scope="examenFisicoGeneral"
+      />
+
       <ExamenFisicoGeneralForm
         action={action}
         defaultValue={getDefaultValue(historia.examenFisicoGeneral)}
+        successRedirectHref="/estudiante/examen-fisico-general"
       />
     </div>
   );

@@ -49,7 +49,7 @@ export const porcionesFrutasVerduras = [
 export type Anamnesis = {
 	estadoCivil: (typeof estadosCiviles)[number];
 	nivelEducativo: (typeof nivelesEducativos)[number];
-	anosCursados?: number;
+	añosCursados?: number;
 	situacionLaboral?: string;
 	motivoConsulta: string;
 	historiaEnfermedadActual: string;
@@ -110,7 +110,7 @@ export const CreateAnamnesisSchema = z.object({
 	pacienteId: z.string(),
 	estadoCivil: z.enum(estadosCiviles),
 	nivelEducativo: z.enum(nivelesEducativos),
-	anosCursados: z.number().optional(),
+	añosCursados: z.number().optional(),
 	situacionLaboral: z.string().optional(),
 	motivoConsulta: z.string(),
 	historiaEnfermedadActual: z.string(),

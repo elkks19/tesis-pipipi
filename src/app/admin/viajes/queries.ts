@@ -1,6 +1,8 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import { getAuthUsersByIds, type AuthUserListItem } from "@/lib/auth-users";
 import type { Viaje } from "@/lib/schema/viajes";
 
@@ -20,9 +22,7 @@ export type ViajeListItem = Omit<Viaje, "estaciones"> & {
   };
 };
 
-type ViajeDocument = Viaje & {
-  _id?: string;
-};
+type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 type ViajeFilters = {
   fechaDesde?: string;
@@ -163,23 +163,30 @@ function hydrateViajesUsers(viajes: (Viaje & { docId: string })[]) {
 export async function listViajes(
   filters: ViajeFilters,
 ): Promise<ViajeListItem[]> {
-  const result = await db.allDocs({
-    include_docs: true,
+  await ensureTesisIndexes();
+
+  const selector: Record<string, unknown> = {
+    type: "viaje",
+  };
+  const filterStart = filters.fechaDesde?.trim();
+  const filterEnd = filters.fechaHasta?.trim();
+
+  if (filterStart) {
+    selector.fechaSalida = { $gte: filterStart };
+  }
+
+  if (filterEnd) {
+    selector.fechaEntrada = { $lte: filterEnd };
+  }
+
+  const result = await findTesisDocs({
+    limit: 500,
+    selector,
   });
-  const viajes: (Viaje & { docId: string })[] = [];
-
-  for (const row of result.rows) {
-    const doc = row.doc as ViajeDocument | undefined;
-
-    if (!isViaje(doc)) {
-      continue;
-    }
-
-    viajes.push({
+  const viajes: (Viaje & { docId: string })[] = result.docs.filter(isViaje).map((doc) => ({
       ...doc,
       docId: doc._id ?? doc.id,
-    });
-  }
+    }));
 
   const filteredViajes = viajes
     .filter((viaje) => matchesLugar(viaje, filters.lugar))

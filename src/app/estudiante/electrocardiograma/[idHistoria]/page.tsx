@@ -5,6 +5,7 @@ import {
   ElectrocardiogramaForm,
   type ElectrocardiogramaFormValue,
 } from "@/components/forms/electrocardiograma-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import { db } from "@/lib/db";
 import type { Electrocardiograma } from "@/lib/schema/electrocardiograma";
 import type { Historia } from "@/lib/schema/historia";
@@ -111,6 +112,8 @@ export default async function ElectrocardiogramaCreatePage({
           cardiaca.
         </p>
       </div>
+
+      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
 
       <ElectrocardiogramaForm
         action={action}

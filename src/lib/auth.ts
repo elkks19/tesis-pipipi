@@ -3,7 +3,12 @@ import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
 import Database from "better-sqlite3";
 
-import { adminRoles, authRoles, defaultAuthRole } from "@/lib/auth-roles";
+import {
+  adminRoles,
+  authAccessControl,
+  authRoles,
+  defaultAuthRole,
+} from "@/lib/auth-roles";
 
 const databasePath = process.env.BETTER_AUTH_SQLITE_PATH ?? "auth.sqlite";
 const trustedOrigins = [
@@ -29,6 +34,7 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({
+      ac: authAccessControl,
       adminRoles,
       defaultRole: defaultAuthRole,
       roles: authRoles,

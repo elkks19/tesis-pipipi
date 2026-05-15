@@ -2,26 +2,24 @@ import "server-only";
 
 import { getAuthUsersByIds } from "@/lib/auth-users";
 import { db } from "@/lib/db";
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { Actividad } from "@/lib/schema/actividad";
 import type { Paciente } from "@/lib/schema/pacientes";
 import type { Viaje } from "@/lib/schema/viajes";
-import { stationConfigs, type StationKey } from "@/lib/station-histories";
+import {
+  getAssignedViajeIds,
+  stationConfigs,
+  type StationKey,
+} from "@/lib/station-histories";
 
 const PAGE_SIZE = 15;
-const ACTIVITY_ID_PREFIX = "actividad:";
-const ACTIVITY_ID_END = "actividad:\ufff0";
 
-type ActivityDocument = Actividad & {
-  _id?: string;
-};
+type ActivityDocument = PouchDB.Core.ExistingDocument<Actividad>;
 
-type PacienteDocument = Paciente & {
-  _id?: string;
-};
+type PacienteDocument = PouchDB.Core.ExistingDocument<Paciente>;
 
-type ViajeDocument = Viaje & {
-  _id?: string;
-};
+type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 export type ActivityListItem = {
   action: Actividad["action"];
@@ -169,55 +167,45 @@ export async function listActivity({
   stationKey: StationKey;
   userId: string;
 }): Promise<ActivityPageResult> {
-  const rows: ActivityDocument[] = [];
-  const viajes = new Map<string, ViajeDocument | null>();
-  let nextStartKey = cursor || ACTIVITY_ID_END;
-  let shouldSkipCursor = Boolean(cursor);
-  let reachedEnd = false;
+  await ensureTesisIndexes();
 
-  while (rows.length <= PAGE_SIZE && !reachedEnd) {
-    const result = await db.allDocs({
-      descending: true,
-      endkey: ACTIVITY_ID_PREFIX,
-      include_docs: true,
-      limit: 100,
-      skip: shouldSkipCursor ? 1 : 0,
-      startkey: nextStartKey,
+  const rows: ActivityDocument[] = [];
+  const selector: Record<string, unknown> = {
+    stationKey,
+    type: "actividad",
+  };
+
+  if (mode === "estudiante") {
+    selector.actorId = userId;
+  } else {
+    const viajeIds = await getAssignedViajeIds({
+      mode,
+      stationKey,
+      userId,
     });
 
-    if (result.rows.length === 0) {
-      reachedEnd = true;
-      break;
+    if (viajeIds.length === 0) {
+      return {
+        hasNextPage: false,
+        pageSize: PAGE_SIZE,
+        rows: [],
+      };
     }
 
-    shouldSkipCursor = true;
-    nextStartKey = result.rows[result.rows.length - 1].id;
+    selector.viajeId = {
+      $in: viajeIds,
+    };
+  }
 
-    for (const resultRow of result.rows) {
-      const doc = resultRow.doc;
+  const result = await findTesisDocs({
+    bookmark: cursor || undefined,
+    limit: PAGE_SIZE + 1,
+    selector,
+  });
 
-      if (!isActivityDocument(doc) || doc.stationKey !== stationKey) {
-        continue;
-      }
-
-      if (
-        await canSeeActivity({
-          activity: doc,
-          mode,
-          userId,
-          viajes,
-        })
-      ) {
-        rows.push(doc);
-      }
-
-      if (rows.length > PAGE_SIZE) {
-        break;
-      }
-    }
-
-    if (result.rows.length < 100) {
-      reachedEnd = true;
+  for (const doc of result.docs) {
+    if (isActivityDocument(doc)) {
+      rows.push(doc);
     }
   }
 
@@ -251,8 +239,7 @@ export async function listActivity({
 
   return {
     hasNextPage: rows.length > PAGE_SIZE,
-    nextCursor:
-      rows.length > PAGE_SIZE && lastVisibleRow ? lastVisibleRow._id : undefined,
+    nextCursor: rows.length > PAGE_SIZE ? result.bookmark : undefined,
     pageSize: PAGE_SIZE,
     rows: hydratedRows,
   };

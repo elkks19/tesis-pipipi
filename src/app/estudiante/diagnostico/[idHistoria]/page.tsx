@@ -5,6 +5,7 @@ import {
   DiagnosticoForm,
   type DiagnosticoFormValue,
 } from "@/components/forms/diagnostico-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import { db } from "@/lib/db";
 import type { Diagnostico } from "@/lib/schema/diagnostico";
 import type { Historia } from "@/lib/schema/historia";
@@ -82,6 +83,8 @@ export default async function DiagnosticoCreatePage({
           trabajo para cerrar la historia.
         </p>
       </div>
+
+      <HistoriaClinicalSummary historia={historia} scope="diagnostico" />
 
       <DiagnosticoForm
         action={action}

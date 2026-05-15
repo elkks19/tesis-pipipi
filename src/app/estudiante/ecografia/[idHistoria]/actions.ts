@@ -129,21 +129,21 @@ async function getPayload(idHistoria: string, formData: FormData) {
       calculos: requiredBoolean(formData, "vesiculaBiliar.calculos"),
       diagnostico: getString(formData, "vesiculaBiliar.diagnostico"),
     },
-    riniones: {
+    riñones: {
       derecho: {
-        longitud: requiredNumber(formData, "riniones.derecho.longitud"),
-        parenquima: requiredNumber(formData, "riniones.derecho.parenquima"),
+        longitud: requiredNumber(formData, "riñones.derecho.longitud"),
+        parenquima: requiredNumber(formData, "riñones.derecho.parenquima"),
       },
       izquierdo: {
-        longitud: requiredNumber(formData, "riniones.izquierdo.longitud"),
-        parenquima: requiredNumber(formData, "riniones.izquierdo.parenquima"),
+        longitud: requiredNumber(formData, "riñones.izquierdo.longitud"),
+        parenquima: requiredNumber(formData, "riñones.izquierdo.parenquima"),
       },
-      ecogenicidad: getString(formData, "riniones.ecogenicidad"),
+      ecogenicidad: getString(formData, "riñones.ecogenicidad"),
       relacionCorticoMedular: getString(
         formData,
-        "riniones.relacionCorticoMedular",
+        "riñones.relacionCorticoMedular",
       ),
-      diagnostico: getString(formData, "riniones.diagnostico"),
+      diagnostico: getString(formData, "riñones.diagnostico"),
     },
   };
 }
@@ -206,7 +206,7 @@ export async function saveEcografia(
     imagen: parsed.data.imagen,
     higado: parsed.data.higado,
     vesiculaBiliar: parsed.data.vesiculaBiliar,
-    riniones: parsed.data.riniones,
+    riñones: parsed.data.riñones,
   };
 
   try {

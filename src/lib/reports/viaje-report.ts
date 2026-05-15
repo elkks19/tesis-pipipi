@@ -2,26 +2,18 @@ import "server-only";
 
 import { getAuthUsersByIds, type AuthUserListItem } from "@/lib/auth-users";
 import { db } from "@/lib/db";
-import type { Actividad, Historia, Paciente, Viaje } from "@/lib/schema";
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
+import type { Actividad, Historia, Paciente } from "@/lib/schema";
 import { stationConfigs, type StationKey } from "@/lib/station-histories";
 
 import { getViajeByDocId } from "@/app/admin/viajes/queries";
 
-type HistoriaDocument = Historia & {
-  _id?: string;
-};
+type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
 
-type PacienteDocument = Paciente & {
-  _id?: string;
-};
+type PacienteDocument = PouchDB.Core.ExistingDocument<Paciente>;
 
-type ActividadDocument = Actividad & {
-  _id?: string;
-};
-
-type TesisDoc = (ActividadDocument | HistoriaDocument | PacienteDocument | Viaje) & {
-  _id?: string;
-};
+type ActividadDocument = PouchDB.Core.ExistingDocument<Actividad>;
 
 export type ViajeReportData = Awaited<ReturnType<typeof buildViajeReportData>>;
 
@@ -166,30 +158,50 @@ function getActorIds(histories: HistoriaDocument[], activities: ActividadDocumen
 }
 
 export async function buildViajeReportData(viajeId: string) {
+  await ensureTesisIndexes();
+
   const viaje = await getViajeByDocId(viajeId);
 
   if (!viaje) {
     return null;
   }
 
-  const allDocs = await db.allDocs({
-    include_docs: true,
-  });
-  const docs = allDocs.rows
-    .map((row) => row.doc as TesisDoc | undefined)
-    .filter((doc): doc is TesisDoc => Boolean(doc));
-  const histories = docs
-    .filter(isHistoria)
-    .filter((historia) => historia.viajeId === viaje.docId);
-  const activities = docs
+  const [historiesResult, activitiesResult] = await Promise.all([
+    findTesisDocs({
+      limit: 10_000,
+      selector: {
+        type: "historia",
+        viajeId: viaje.docId,
+      },
+    }),
+    findTesisDocs({
+      limit: 10_000,
+      selector: {
+        type: "actividad",
+        viajeId: viaje.docId,
+      },
+    }),
+  ]);
+  const histories = historiesResult.docs.filter(isHistoria);
+  const activities = activitiesResult.docs
     .filter(isActividad)
-    .filter((activity) => activity.viajeId === viaje.docId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const patientIds = [...new Set(histories.map((historia) => historia.pacienteId))];
+  const patientDocs = await Promise.all(
+    patientIds.map(async (pacienteId) => {
+      try {
+        const paciente = await db.get(pacienteId);
+
+        return isPaciente(paciente) ? paciente : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
   const patientsById = new Map(
-    docs
-      .filter(isPaciente)
-      .map((paciente) => [paciente._id ?? "", paciente] as const)
-      .filter(([id]) => id),
+    patientDocs
+      .filter((paciente): paciente is PacienteDocument => Boolean(paciente))
+      .map((paciente) => [paciente._id, paciente] as const),
   );
   const viajeUserIds = viaje.estaciones.flatMap((estacion) => [
     estacion.docenteEncargadoId,

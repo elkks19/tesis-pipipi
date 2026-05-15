@@ -226,7 +226,7 @@ function getPayload(formData: FormData) {
     pacienteId: getString(formData, "pacienteId"),
     estadoCivil: getString(formData, "estadoCivil"),
     nivelEducativo: getString(formData, "nivelEducativo"),
-    anosCursados: optionalNumber(formData, "anosCursados"),
+    añosCursados: optionalNumber(formData, "añosCursados"),
     situacionLaboral: optionalString(formData, "situacionLaboral"),
     motivoConsulta: getString(formData, "motivoConsulta"),
     historiaEnfermedadActual: getString(formData, "historiaEnfermedadActual"),

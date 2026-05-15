@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   type FormEvent,
   type ReactNode,
@@ -59,6 +60,7 @@ type ExamenFisicoGeneralAction = (
 type ExamenFisicoGeneralFormProps = {
   action?: ExamenFisicoGeneralAction;
   defaultValue?: Partial<ExamenFisicoGeneralFormValue>;
+  successRedirectHref?: string;
 };
 
 const baseFormValue: ExamenFisicoGeneralFormValue = {
@@ -227,7 +229,9 @@ function createInitialValue(defaultValue?: Partial<ExamenFisicoGeneralFormValue>
 export function ExamenFisicoGeneralForm({
   action,
   defaultValue,
+  successRedirectHref,
 }: ExamenFisicoGeneralFormProps) {
+  const router = useRouter();
   const initialValue = useMemo(
     () => createInitialValue(defaultValue),
     [defaultValue],
@@ -251,13 +255,16 @@ export function ExamenFisicoGeneralForm({
 
     if (actionState.ok) {
       toast.success(actionState.message);
+      if (successRedirectHref) {
+        router.push(successRedirectHref);
+      }
       return;
     }
 
     if (!actionState.errors) {
       toast.error(actionState.message);
     }
-  }, [actionState]);
+  }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const nextForm = {

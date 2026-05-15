@@ -1,6 +1,8 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { Paciente } from "@/lib/schema";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
@@ -68,6 +70,10 @@ function pacienteMatchesQuery(paciente: PacienteSearchResult, query: string) {
   return searchable.includes(normalizedQuery);
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function searchPacientes(query: string) {
   const trimmedQuery = query.trim();
 
@@ -75,12 +81,24 @@ export async function searchPacientes(query: string) {
     return [];
   }
 
-  const result = await db.allDocs({
-    include_docs: true,
+  await ensureTesisIndexes();
+
+  const safeQuery = escapeRegex(trimmedQuery);
+  const result = await findTesisDocs({
+    limit: 50,
+    selector: {
+      $or: [
+        { "datosPersonales.numeroDocumentoIdentidad": { $regex: safeQuery } },
+        { "datosPersonales.nombres": { $regex: safeQuery } },
+        { "datosPersonales.apellidoPaterno": { $regex: safeQuery } },
+        { "datosPersonales.apellidoMaterno": { $regex: safeQuery } },
+      ],
+      type: "paciente",
+    },
   });
 
-  return result.rows
-    .map((row) => serializePaciente(row.doc as PacienteDocument))
+  return result.docs
+    .map((doc) => serializePaciente(doc as PacienteDocument))
     .filter((paciente): paciente is PacienteSearchResult => Boolean(paciente))
     .filter((paciente) => pacienteMatchesQuery(paciente, trimmedQuery))
     .slice(0, 25);

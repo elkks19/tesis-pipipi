@@ -68,6 +68,9 @@ importers:
       pouchdb-find:
         specifier: ^9.0.0
         version: 9.0.0
+      pouchdb-mapreduce:
+        specifier: ^9.0.0
+        version: 9.0.0
       radix-ui:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -4555,6 +4558,9 @@ packages:
 
   pouchdb-mapreduce-utils@9.0.0:
     resolution: {integrity: sha512-Bjh8W6QXqp1j7MKmHhYYp5cYlcQsm5drD8Jd/F+ZlfNt18uiD2SQXWzGM5797+tiW/LszFGb8ttw0uHWjxufCQ==}
+
+  pouchdb-mapreduce@9.0.0:
+    resolution: {integrity: sha512-ZD8PleQ9atzQAzT2LZWsvooUVEfsen5QGv/SDfci20IleCaFW2A2q7OERrqY0YWKDCCNRsWhPWPmsFvZC9K8DQ==}
 
   pouchdb-md5@9.0.0:
     resolution: {integrity: sha512-58xUYBvW3/s+aH0j4uOhhN8yCk0LQ254cxBzI/gbKA9PrfwHpe4zrr0L/ia5ml3A30oH1f8aTnuVMwWDkFcuww==}
@@ -10306,6 +10312,14 @@ snapshots:
   pouchdb-mapreduce-utils@9.0.0:
     dependencies:
       pouchdb-utils: 9.0.0
+
+  pouchdb-mapreduce@9.0.0:
+    dependencies:
+      pouchdb-abstract-mapreduce: 9.0.0
+      pouchdb-mapreduce-utils: 9.0.0
+      pouchdb-utils: 9.0.0
+    transitivePeerDependencies:
+      - encoding
 
   pouchdb-md5@9.0.0:
     dependencies:

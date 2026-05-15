@@ -52,6 +52,7 @@ export default async function DocenteCreateHistoriaPage({
       </section>
 
       <PacienteSearchResults
+        createHistoriaRoute="/docente/anamnesis/create-historia"
         newPacienteRoute="/docente/anamnesis/create-paciente"
         pacientes={pacientes}
         query={query}

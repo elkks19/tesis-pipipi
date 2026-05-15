@@ -5,6 +5,7 @@ import {
   EspirometriaForm,
   type EspirometriaFormValue,
 } from "@/components/forms/espirometria-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import { db } from "@/lib/db";
 import type { Espirometria } from "@/lib/schema/espirometria";
 import type { Historia } from "@/lib/schema/historia";
@@ -96,6 +97,8 @@ export default async function EspirometriaCreatePage({
           Registra volumenes, flujos, calidad de maniobra y diagnostico.
         </p>
       </div>
+
+      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
 
       <EspirometriaForm
         action={action}

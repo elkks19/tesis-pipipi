@@ -5,6 +5,7 @@ import {
   EcografiaForm,
   type EcografiaFormValue,
 } from "@/components/forms/ecografia-form";
+import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
 import { getFileUrl } from "@/lib/file-storage";
 import type { Ecografia } from "@/lib/schema/ecografia";
 import { saveEcografia } from "@/app/estudiante/ecografia/[idHistoria]/actions";
@@ -37,18 +38,18 @@ function getDefaultValue(
       calculos: ecografia.vesiculaBiliar.calculos,
       diagnostico: ecografia.vesiculaBiliar.diagnostico,
     },
-    riniones: {
+    riñones: {
       derecho: {
-        longitud: numberToString(ecografia.riniones.derecho.longitud),
-        parenquima: numberToString(ecografia.riniones.derecho.parenquima),
+        longitud: numberToString(ecografia.riñones.derecho.longitud),
+        parenquima: numberToString(ecografia.riñones.derecho.parenquima),
       },
       izquierdo: {
-        longitud: numberToString(ecografia.riniones.izquierdo.longitud),
-        parenquima: numberToString(ecografia.riniones.izquierdo.parenquima),
+        longitud: numberToString(ecografia.riñones.izquierdo.longitud),
+        parenquima: numberToString(ecografia.riñones.izquierdo.parenquima),
       },
-      ecogenicidad: ecografia.riniones.ecogenicidad,
-      relacionCorticoMedular: ecografia.riniones.relacionCorticoMedular,
-      diagnostico: ecografia.riniones.diagnostico,
+      ecogenicidad: ecografia.riñones.ecogenicidad,
+      relacionCorticoMedular: ecografia.riñones.relacionCorticoMedular,
+      diagnostico: ecografia.riñones.diagnostico,
     },
   };
 }
@@ -93,6 +94,8 @@ export default async function DocenteEcografiaCreatePage({
           Registra hallazgos ecograficos y adjunta una fotografia del estudio.
         </p>
       </div>
+
+      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
 
       <EcografiaForm
         action={action}

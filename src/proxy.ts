@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
+import type { AuthRole } from "@/lib/auth-role-values";
 import {
   getRoleHomePath,
   getSessionUserRole,
@@ -69,6 +70,10 @@ async function getDocenteResolution(userId: string) {
 
 function redirectTo(path: string, request: NextRequest) {
   return NextResponse.redirect(new URL(path, request.url));
+}
+
+function canUseDocenteOrganizerRoutes(role: AuthRole) {
+  return role === "docente-organizador";
 }
 
 export async function proxy(request: NextRequest) {
@@ -141,6 +146,12 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/docente" || pathname.startsWith("/docente/")) {
     if (roleHomePath !== "/docente") {
       return redirectTo(startPath, request);
+    }
+
+    if (pathname.startsWith("/docente/viajes")) {
+      return canUseDocenteOrganizerRoutes(role)
+        ? NextResponse.next()
+        : redirectTo("/docente", request);
     }
 
     const resolution = await getDocenteResolution(session.user.id);

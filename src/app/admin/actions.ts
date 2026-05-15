@@ -4,11 +4,9 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import Database from "better-sqlite3";
 
-import { auth } from "@/lib/auth";
+import { hasAuthPermission } from "@/lib/auth-permissions";
 import {
-  adminRoles,
   authRoleNames,
-  defaultAuthRole,
   type AuthRole,
 } from "@/lib/auth-role-values";
 
@@ -17,15 +15,15 @@ function isAuthRole(value: string): value is AuthRole {
 }
 
 export async function updateUserRole(userId: string, role: AuthRole) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
+  const requestHeaders = await headers();
+  const canSetRole = await hasAuthPermission({
+    headers: requestHeaders,
+    permission: {
+      user: ["set-role"],
+    },
   });
-  const currentRole = session?.user.role ?? defaultAuthRole;
 
-  if (
-    !session ||
-    !(adminRoles as readonly AuthRole[]).includes(currentRole as AuthRole)
-  ) {
+  if (!canSetRole) {
     return {
       message: "No tienes permisos para cambiar roles.",
       ok: false,

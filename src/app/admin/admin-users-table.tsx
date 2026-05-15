@@ -40,6 +40,13 @@ const providerLabels: Record<string, string> = {
   google: "Google",
 };
 
+const rolePermissionSummary: Record<AuthRole, string> = {
+  admin: "Gestion completa",
+  docente: "Revision de estacion",
+  "docente-organizador": "Puede crear viajes",
+  estudiante: "Registro de estacion",
+};
+
 export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -65,6 +72,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
           <TableRow>
             <TableHead>Usuario</TableHead>
             <TableHead className="hidden md:table-cell">Accesos</TableHead>
+            <TableHead className="hidden lg:table-cell">Permiso clave</TableHead>
             <TableHead className="w-56">Rol</TableHead>
           </TableRow>
         </TableHeader>
@@ -87,6 +95,9 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                 </TableCell>
                 <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                   {formatProviders(user.providers)}
+                </TableCell>
+                <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                  {rolePermissionSummary[role]}
                 </TableCell>
                 <TableCell>
                   <Select

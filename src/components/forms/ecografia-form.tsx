@@ -54,7 +54,7 @@ export type EcografiaFormValue = {
     calculos: boolean;
     diagnostico: string;
   };
-  riniones: {
+  riñones: {
     derecho: {
       longitud: string;
       parenquima: string;
@@ -102,7 +102,7 @@ const baseFormValue: EcografiaFormValue = {
     calculos: false,
     diagnostico: "",
   },
-  riniones: {
+  riñones: {
     derecho: {
       longitud: "",
       parenquima: "",
@@ -141,18 +141,18 @@ function buildPayload(state: EcografiaFormValue) {
       calculos: state.vesiculaBiliar.calculos,
       diagnostico: state.vesiculaBiliar.diagnostico.trim(),
     },
-    riniones: {
+    riñones: {
       derecho: {
-        longitud: requiredNumber(state.riniones.derecho.longitud),
-        parenquima: requiredNumber(state.riniones.derecho.parenquima),
+        longitud: requiredNumber(state.riñones.derecho.longitud),
+        parenquima: requiredNumber(state.riñones.derecho.parenquima),
       },
       izquierdo: {
-        longitud: requiredNumber(state.riniones.izquierdo.longitud),
-        parenquima: requiredNumber(state.riniones.izquierdo.parenquima),
+        longitud: requiredNumber(state.riñones.izquierdo.longitud),
+        parenquima: requiredNumber(state.riñones.izquierdo.parenquima),
       },
-      ecogenicidad: state.riniones.ecogenicidad,
-      relacionCorticoMedular: state.riniones.relacionCorticoMedular,
-      diagnostico: state.riniones.diagnostico.trim(),
+      ecogenicidad: state.riñones.ecogenicidad,
+      relacionCorticoMedular: state.riñones.relacionCorticoMedular,
+      diagnostico: state.riñones.diagnostico.trim(),
     },
   };
 }
@@ -194,16 +194,16 @@ function createInitialValue(defaultValue?: Partial<EcografiaFormValue>) {
       ...baseFormValue.vesiculaBiliar,
       ...defaultValue?.vesiculaBiliar,
     },
-    riniones: {
-      ...baseFormValue.riniones,
-      ...defaultValue?.riniones,
+    riñones: {
+      ...baseFormValue.riñones,
+      ...defaultValue?.riñones,
       derecho: {
-        ...baseFormValue.riniones.derecho,
-        ...defaultValue?.riniones?.derecho,
+        ...baseFormValue.riñones.derecho,
+        ...defaultValue?.riñones?.derecho,
       },
       izquierdo: {
-        ...baseFormValue.riniones.izquierdo,
-        ...defaultValue?.riniones?.izquierdo,
+        ...baseFormValue.riñones.izquierdo,
+        ...defaultValue?.riñones?.izquierdo,
       },
     },
   };
@@ -462,59 +462,59 @@ export function EcografiaForm({
 
       <FormSection
         description="Mediciones renales y hallazgos ecograficos comparativos."
-        title="Riniones"
+        title="Riñones"
       >
         <FieldGrid>
           <TextField
-            error={visibleErrors["riniones.derecho.longitud"]}
-            label="Rinon derecho longitud"
+            error={visibleErrors["riñones.derecho.longitud"]}
+            label="Riñón derecho longitud"
             min={0}
-            name="riniones.derecho.longitud"
+            name="riñones.derecho.longitud"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: {
-                  ...current.riniones,
-                  derecho: { ...current.riniones.derecho, longitud: value },
+                riñones: {
+                  ...current.riñones,
+                  derecho: { ...current.riñones.derecho, longitud: value },
                 },
               }))
             }
             required
             step="0.1"
             type="number"
-            value={form.riniones.derecho.longitud}
+            value={form.riñones.derecho.longitud}
           />
           <TextField
-            error={visibleErrors["riniones.derecho.parenquima"]}
-            label="Rinon derecho parenquima"
+            error={visibleErrors["riñones.derecho.parenquima"]}
+            label="Riñón derecho parenquima"
             min={0}
-            name="riniones.derecho.parenquima"
+            name="riñones.derecho.parenquima"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: {
-                  ...current.riniones,
-                  derecho: { ...current.riniones.derecho, parenquima: value },
+                riñones: {
+                  ...current.riñones,
+                  derecho: { ...current.riñones.derecho, parenquima: value },
                 },
               }))
             }
             required
             step="0.1"
             type="number"
-            value={form.riniones.derecho.parenquima}
+            value={form.riñones.derecho.parenquima}
           />
           <TextField
-            error={visibleErrors["riniones.izquierdo.longitud"]}
-            label="Rinon izquierdo longitud"
+            error={visibleErrors["riñones.izquierdo.longitud"]}
+            label="Riñón izquierdo longitud"
             min={0}
-            name="riniones.izquierdo.longitud"
+            name="riñones.izquierdo.longitud"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: {
-                  ...current.riniones,
+                riñones: {
+                  ...current.riñones,
                   izquierdo: {
-                    ...current.riniones.izquierdo,
+                    ...current.riñones.izquierdo,
                     longitud: value,
                   },
                 },
@@ -523,20 +523,20 @@ export function EcografiaForm({
             required
             step="0.1"
             type="number"
-            value={form.riniones.izquierdo.longitud}
+            value={form.riñones.izquierdo.longitud}
           />
           <TextField
-            error={visibleErrors["riniones.izquierdo.parenquima"]}
-            label="Rinon izquierdo parenquima"
+            error={visibleErrors["riñones.izquierdo.parenquima"]}
+            label="Riñón izquierdo parenquima"
             min={0}
-            name="riniones.izquierdo.parenquima"
+            name="riñones.izquierdo.parenquima"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: {
-                  ...current.riniones,
+                riñones: {
+                  ...current.riñones,
                   izquierdo: {
-                    ...current.riniones.izquierdo,
+                    ...current.riñones.izquierdo,
                     parenquima: value,
                   },
                 },
@@ -545,52 +545,52 @@ export function EcografiaForm({
             required
             step="0.1"
             type="number"
-            value={form.riniones.izquierdo.parenquima}
+            value={form.riñones.izquierdo.parenquima}
           />
           <SelectField
-            error={visibleErrors["riniones.ecogenicidad"]}
+            error={visibleErrors["riñones.ecogenicidad"]}
             label="Ecogenicidad"
-            name="riniones.ecogenicidad"
+            name="riñones.ecogenicidad"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: { ...current.riniones, ecogenicidad: value },
+                riñones: { ...current.riñones, ecogenicidad: value },
               }))
             }
             options={tiposEcogenicidad}
             required
-            value={form.riniones.ecogenicidad}
+            value={form.riñones.ecogenicidad}
           />
           <SelectField
-            error={visibleErrors["riniones.relacionCorticoMedular"]}
+            error={visibleErrors["riñones.relacionCorticoMedular"]}
             label="Relacion cortico-medular"
-            name="riniones.relacionCorticoMedular"
+            name="riñones.relacionCorticoMedular"
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
-                riniones: {
-                  ...current.riniones,
+                riñones: {
+                  ...current.riñones,
                   relacionCorticoMedular: value,
                 },
               }))
             }
             options={tiposEcogenicidad}
             required
-            value={form.riniones.relacionCorticoMedular}
+            value={form.riñones.relacionCorticoMedular}
           />
         </FieldGrid>
         <TextareaField
-          error={visibleErrors["riniones.diagnostico"]}
+          error={visibleErrors["riñones.diagnostico"]}
           label="Diagnostico"
-          name="riniones.diagnostico"
+          name="riñones.diagnostico"
           onChange={(value) =>
             setForm((current) => ({
               ...current,
-              riniones: { ...current.riniones, diagnostico: value },
+              riñones: { ...current.riñones, diagnostico: value },
             }))
           }
           required
-          value={form.riniones.diagnostico}
+          value={form.riñones.diagnostico}
         />
       </FormSection>
 

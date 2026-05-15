@@ -40,7 +40,7 @@ export type Ecografia = {
 		calculos: boolean;
 		diagnostico: string;
 	};
-	riniones: {
+	riñones: {
 		derecho: {
 			longitud: number;
 			parenquima: number;
@@ -78,7 +78,7 @@ export const CreateEcografiaSchema = z.object({
 		calculos: z.coerce.boolean<boolean>(),
 		diagnostico: z.string(),
 	}),
-	riniones: z.object({
+	riñones: z.object({
 		derecho: z.object({
 			longitud: z.number(),
 			parenquima: z.number(),

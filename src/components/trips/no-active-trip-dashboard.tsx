@@ -5,8 +5,9 @@ import {
   CheckCircle2Icon,
   Clock3Icon,
   MapPinIcon,
-  PlaneIcon,
+  PlusIcon,
   RefreshCwIcon,
+  ShieldCheckIcon,
   XIcon,
 } from "lucide-react";
 
@@ -20,10 +21,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import type { FutureStudentTrip } from "@/lib/student-trip-resolution";
 
 type NoActiveTripDashboardProps = {
+  canCreateViaje?: boolean;
   mode: "docente" | "estudiante";
   refreshHref: string;
   trips?: FutureStudentTrip[];
@@ -78,7 +79,7 @@ function getDaysUntil(value: string) {
   );
 }
 
-function getFlightProgress(daysUntil: number | null) {
+function getRouteProgress(daysUntil: number | null) {
   if (daysUntil === null) {
     return 8;
   }
@@ -116,6 +117,7 @@ function getCopy(mode: NoActiveTripDashboardProps["mode"]) {
 }
 
 export function NoActiveTripDashboard({
+  canCreateViaje = false,
   mode,
   refreshHref,
   trips = [],
@@ -125,24 +127,40 @@ export function NoActiveTripDashboard({
   const nextTrips = trips.slice(0, 4);
   const tripCount = trips.length;
   const primaryTrip = nextTrips[0];
+  const daysUntil = primaryTrip ? getDaysUntil(primaryTrip.fechaEntrada) : null;
 
   return (
-    <main className="min-h-screen bg-muted/40 px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-        <FlightProgress trip={primaryTrip} />
+    <main className="min-h-screen bg-muted/30 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+        <section className="animate-in fade-in-0 slide-in-from-bottom-2 overflow-hidden rounded-3xl border bg-background shadow-sm duration-500">
+          <div className="grid min-h-[28rem] lg:grid-cols-[minmax(0,1fr)_25rem]">
+            <div className="flex flex-col justify-between gap-8 p-5 sm:p-7 lg:p-9">
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <span className="rounded-full border bg-muted/30 px-3 py-1">
+                    {copy.eyebrow}
+                  </span>
+                  <span className="rounded-full border bg-muted/30 px-3 py-1">
+                    {tripCount > 0 ? "Viaje programado" : "Sin asignacion"}
+                  </span>
+                </div>
 
-        <section className="animate-in fade-in-0 slide-in-from-bottom-2 rounded-4xl border bg-background p-4 shadow-sm duration-500 sm:p-5 lg:p-6">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center xl:grid-cols-[minmax(0,1fr)_30rem]">
-            <div className="flex min-w-0 flex-col gap-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                {copy.eyebrow}
-              </span>
-              <h1 className="max-w-3xl font-heading text-2xl font-semibold leading-tight sm:text-3xl">
-                {copy.title}
-              </h1>
-              <p className="max-w-3xl text-sm leading-6 text-muted-foreground lg:max-w-2xl xl:max-w-3xl">
-                {copy.description}
-              </p>
+                <div className="flex max-w-3xl flex-col gap-3">
+                  <h1 className="font-heading text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+                    {primaryTrip
+                      ? "Tu siguiente viaje ya esta programado"
+                      : copy.title}
+                  </h1>
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                    {primaryTrip
+                      ? "El acceso a la estacion se habilitara automaticamente cuando el viaje este dentro de sus fechas."
+                      : copy.description}
+                  </p>
+                </div>
+              </div>
+
+              <RouteStatus trip={primaryTrip} />
+
               <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span>Sesion:</span>
                 <span className="font-medium text-foreground/80">
@@ -154,163 +172,175 @@ export function NoActiveTripDashboard({
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <StatusMetric
-                icon={<CalendarClockIcon />}
-                label="Viajes"
-                value={String(tripCount)}
-              />
-              <StatusMetric
-                icon={<Clock3Icon />}
-                label="Inicio"
-                value={
-                  primaryTrip
-                    ? formatDate(primaryTrip.fechaEntrada)
-                    : "Sin fecha"
-                }
-              />
-              <StatusMetric
-                icon={<CheckCircle2Icon />}
-                label="Acceso"
-                value={tripCount > 0 ? "Programado" : "Pendiente"}
-              />
-            </div>
+            <aside className="border-t bg-muted/20 p-5 sm:p-7 lg:border-l lg:border-t-0">
+              <div className="flex h-full flex-col justify-between gap-6">
+                <div className="grid gap-3">
+                  <StatusMetric
+                    icon={<CalendarClockIcon />}
+                    label="Viajes asignados"
+                    value={String(tripCount)}
+                  />
+                  <StatusMetric
+                    icon={<Clock3Icon />}
+                    label="Inicio"
+                    value={
+                      primaryTrip
+                        ? formatDate(primaryTrip.fechaEntrada)
+                        : "Sin fecha"
+                    }
+                  />
+                  <StatusMetric
+                    icon={<CheckCircle2Icon />}
+                    label="Acceso"
+                    value={getAccessLabel(daysUntil, tripCount)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <AccessHelpDialog />
+                  {canCreateViaje ? (
+                    <Button asChild variant="outline">
+                      <Link href="/docente/viajes/create">
+                        <PlusIcon data-icon="inline-start" />
+                        Crear viaje
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <Button asChild>
+                    <Link href={refreshHref}>
+                      <RefreshCwIcon data-icon="inline-start" />
+                      Revisar nuevamente
+                    </Link>
+                  </Button>
+                  <LogoutButton />
+                </div>
+              </div>
+            </aside>
           </div>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
-          <section className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold">Siguientes viajes</h2>
-              <p className="text-sm text-muted-foreground">
-                Estos son los viajes donde ya figuras asignado y que todavia no
-                estan activos.
-              </p>
-            </div>
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Siguientes viajes</CardTitle>
+              <CardDescription>
+                Viajes donde figuras asignado y que todavia no estan activos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {nextTrips.length > 0 ? (
+                <div className="grid gap-2">
+                  {nextTrips.map((trip, index) => (
+                    <TripRow
+                      assignmentLabel={copy.assignmentLabel}
+                      index={index}
+                      key={trip.viajeId}
+                      trip={trip}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyTripState
+                  description={copy.emptyDescription}
+                  title={copy.emptyTitle}
+                />
+              )}
+            </CardContent>
+          </Card>
 
-            {nextTrips.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {nextTrips.map((trip, index) => (
-                  <TripRow
-                    assignmentLabel={copy.assignmentLabel}
-                    index={index}
-                    key={trip.viajeId}
-                    trip={trip}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card
-                className="animate-in fade-in-0 slide-in-from-bottom-2 shadow-sm duration-500"
-                size="sm"
-              >
-                <CardHeader>
-                  <CardTitle>{copy.emptyTitle}</CardTitle>
-                  <CardDescription>{copy.emptyDescription}</CardDescription>
-                </CardHeader>
-              </Card>
-            )}
-          </section>
-
-          <aside className="flex flex-col gap-2">
-            <div className="flex flex-col gap-2">
-              <AccessHelpDialog />
-              <Button asChild>
-                <Link href={refreshHref}>
-                  <RefreshCwIcon data-icon="inline-start" />
-                  Revisar nuevamente
-                </Link>
-              </Button>
-              <LogoutButton />
-            </div>
-          </aside>
-        </div>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Estado actual</CardTitle>
+              <CardDescription>
+                El sistema mantiene bloqueado el registro hasta que el viaje
+                asignado este activo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <StatusLine
+                active={tripCount > 0}
+                label={tripCount > 0 ? "Asignacion encontrada" : "Sin viaje asignado"}
+              />
+              <StatusLine
+                active={daysUntil === 0}
+                label={
+                  daysUntil === 0
+                    ? "Fechas activas"
+                    : "Fechas fuera del rango activo"
+                }
+              />
+              <StatusLine
+                active={false}
+                label="Acceso a estacion pendiente"
+              />
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </main>
   );
 }
 
-function FlightProgress({ trip }: { trip?: FutureStudentTrip }) {
+function getAccessLabel(daysUntil: number | null, tripCount: number) {
+  if (tripCount === 0) {
+    return "Pendiente";
+  }
+
+  if (daysUntil === 0) {
+    return "Disponible";
+  }
+
+  return "Programado";
+}
+
+function RouteStatus({ trip }: { trip?: FutureStudentTrip }) {
   const daysUntil = trip ? getDaysUntil(trip.fechaEntrada) : null;
-  const progress = trip ? getFlightProgress(daysUntil) : 8;
-  const curveProgress = trip ? progress : 50;
-  const normalizedProgress = Math.max(0, Math.min(1, (curveProgress - 8) / 84));
-  const planeLeft = 8 + normalizedProgress * 84;
-  const planeTop = 72 - Math.sin(normalizedProgress * Math.PI) * 42;
+  const progress = trip ? getRouteProgress(daysUntil) : 8;
   const statusText = trip
     ? daysUntil === 0
       ? "El viaje inicia hoy"
-      : `${daysUntil} dia${daysUntil === 1 ? "" : "s"} para despegar`
+      : `${daysUntil} dia${daysUntil === 1 ? "" : "s"} para iniciar`
     : "Sin destino asignado";
 
   return (
-    <section className="animate-in fade-in-0 slide-in-from-bottom-4 overflow-hidden rounded-4xl border bg-background shadow-sm duration-500">
-      <div className="flex flex-col gap-5 p-5 sm:p-7">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <span className="text-base font-semibold">
-              {trip ? "Vuelo hacia tu siguiente viaje" : "Sin vuelo asignado"}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {trip
-                ? `${trip.establecimiento} - ${formatDate(trip.fechaEntrada)}`
-                : "Tu cuenta todavia no aparece en ningun viaje programado."}
-            </span>
+    <div className="rounded-3xl border bg-muted/20 p-4 sm:p-5">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border bg-background">
+              {trip ? <ShieldCheckIcon /> : <XIcon />}
+            </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm font-semibold">
+                {trip ? "Ruta hacia tu siguiente viaje" : "Sin viaje asignado"}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {trip
+                  ? `${trip.establecimiento} - ${formatDate(trip.fechaEntrada)}`
+                  : "Tu cuenta todavia no aparece en ningun viaje programado."}
+              </span>
+            </div>
           </div>
-          <span className="rounded-2xl border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <span className="w-fit rounded-full border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
             {statusText}
           </span>
         </div>
 
-        <div className="relative h-56 overflow-hidden rounded-4xl border bg-muted/20 sm:h-72">
-          <svg
-            aria-hidden="true"
-            className="absolute inset-0 size-full"
-            preserveAspectRatio="none"
-            viewBox="0 0 100 100"
-          >
-            <path
-              d="M 8 72 Q 50 18 92 72"
-              fill="none"
-              pathLength={100}
-              stroke="currentColor"
-              strokeDasharray="4 4"
-              strokeWidth="0.8"
-              className="text-muted-foreground/35"
+        <div className="flex flex-col gap-3">
+          <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-700"
+              style={{ width: trip ? `${progress}%` : "0%" }}
             />
-            {trip ? (
-              <path
-                d="M 8 72 Q 50 18 92 72"
-                fill="none"
-                pathLength={100}
-                stroke="currentColor"
-                strokeDasharray={`${progress} ${100 - progress}`}
-                strokeWidth="1.2"
-                className="text-primary transition-all duration-700"
-              />
-            ) : null}
-          </svg>
-
-          <div className="absolute left-[8%] top-[72%] size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-muted-foreground/40" />
-          <div className="absolute left-[92%] top-[72%] size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm" />
-          <div className="absolute bottom-4 left-5 right-5 flex justify-between text-xs text-muted-foreground">
-            <span>Salida</span>
-            <span>{trip ? "Destino" : "Sin destino"}</span>
           </div>
-          <div
-            className="absolute flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-3xl border bg-background shadow-md transition-all duration-700 sm:size-20"
-            style={{ left: `${planeLeft}%`, top: `${planeTop}%` }}
-          >
-            <PlaneIcon className="rotate-45" />
-            {!trip ? (
-              <span className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full border bg-destructive text-destructive-foreground shadow-sm">
-                <XIcon />
-              </span>
-            ) : null}
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Salida</span>
+            <span>Inicio del viaje</span>
+            <span>Acceso a estacion</span>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -324,8 +354,8 @@ function StatusMetric({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 gap-3 rounded-3xl border bg-muted/20 p-3.5 lg:bg-background xl:bg-muted/20">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-background">
+    <div className="flex min-w-0 gap-3 rounded-2xl border bg-background p-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
         {icon}
       </div>
       <div className="flex min-w-0 flex-col">
@@ -348,35 +378,65 @@ function TripRow({
   trip: FutureStudentTrip;
 }) {
   return (
-    <Card
-      className="animate-in fade-in-0 slide-in-from-bottom-3 shadow-sm duration-500"
-      size="sm"
+    <div
+      className="animate-in fade-in-0 slide-in-from-bottom-3 rounded-2xl border bg-background p-4 duration-500"
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <CardHeader>
-        <CardTitle className="truncate">{trip.servicio}</CardTitle>
-        <CardDescription className="flex min-w-0 flex-col gap-1">
-          <span className="flex items-center gap-2">
-            <CalendarClockIcon />
-            {formatDate(trip.fechaEntrada)} - {formatDate(trip.fechaSalida)}
-          </span>
-          <span className="flex min-w-0 items-center gap-2">
-            <MapPinIcon />
-            <span className="truncate">{trip.establecimiento}</span>
-          </span>
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Separator />
-        <div className="flex flex-col gap-1">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem] md:items-center">
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="truncate text-sm font-semibold">{trip.servicio}</span>
+          <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <CalendarClockIcon />
+              {formatDate(trip.fechaEntrada)} - {formatDate(trip.fechaSalida)}
+            </span>
+            <span className="flex min-w-0 items-center gap-2">
+              <MapPinIcon />
+              <span className="truncate">{trip.establecimiento}</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 rounded-xl bg-muted/40 p-3">
           <span className="text-xs font-medium text-muted-foreground">
             {assignmentLabel}
           </span>
-          <span className="text-sm">
+          <span className="truncate text-sm font-medium">
             {trip.estacionTipo ?? "Pendiente de estacion"}
           </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+function StatusLine({ active, label }: { active: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-background">
+        {active ? <CheckCircle2Icon /> : <XIcon />}
+      </span>
+      <span className={active ? "font-medium" : "text-muted-foreground"}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function EmptyTripState({
+  description,
+  title,
+}: {
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed bg-muted/20 p-5">
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold">{title}</span>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+    </div>
   );
 }

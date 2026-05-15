@@ -83,7 +83,7 @@ export type AnamnesisFormValue = {
   pacienteId: string;
   estadoCivil: Emptyable<(typeof estadosCiviles)[number]>;
   nivelEducativo: Emptyable<(typeof nivelesEducativos)[number]>;
-  anosCursados: string;
+  añosCursados: string;
   situacionLaboral: string;
   motivoConsulta: string;
   historiaEnfermedadActual: string;
@@ -152,7 +152,7 @@ const baseFormValue: AnamnesisFormValue = {
   pacienteId: "",
   estadoCivil: "",
   nivelEducativo: "",
-  anosCursados: "",
+  añosCursados: "",
   situacionLaboral: "",
   motivoConsulta: "",
   historiaEnfermedadActual: "",
@@ -208,7 +208,7 @@ function buildPayload(state: AnamnesisFormValue) {
     pacienteId: state.pacienteId.trim(),
     estadoCivil: state.estadoCivil,
     nivelEducativo: state.nivelEducativo,
-    anosCursados: optionalNumber(state.anosCursados),
+    añosCursados: optionalNumber(state.añosCursados),
     situacionLaboral: optionalText(state.situacionLaboral),
     motivoConsulta: state.motivoConsulta.trim(),
     historiaEnfermedadActual: state.historiaEnfermedadActual.trim(),
@@ -398,15 +398,15 @@ export function AnamnesisForm({
             value={form.nivelEducativo}
           />
           <TextField
-            error={visibleErrors.anosCursados}
-            label="Anos cursados"
+            error={visibleErrors.añosCursados}
+            label="Años cursados"
             min={0}
-            name="anosCursados"
+            name="añosCursados"
             onChange={(value) =>
-              setForm((current) => ({ ...current, anosCursados: value }))
+              setForm((current) => ({ ...current, añosCursados: value }))
             }
             type="number"
-            value={form.anosCursados}
+            value={form.añosCursados}
           />
           <TextField
             error={visibleErrors.situacionLaboral}

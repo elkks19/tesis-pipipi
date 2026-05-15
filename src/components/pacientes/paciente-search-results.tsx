@@ -32,6 +32,7 @@ import {
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
 type PacienteSearchResultsProps = {
+  createHistoriaRoute?: string;
   pacientes: PacienteSearchResult[];
   query: string;
   newPacienteRoute: string;
@@ -45,7 +46,11 @@ function getPacienteName(paciente: PacienteSearchResult) {
   return [nombres, apellidoPaterno, apellidoMaterno].filter(Boolean).join(" ");
 }
 
-function createHistoriaHref(pacienteId: string, query: string) {
+function createHistoriaHref(
+  pacienteId: string,
+  query: string,
+  createHistoriaRoute: string,
+) {
   const params = new URLSearchParams({
     pacienteId,
   });
@@ -54,7 +59,7 @@ function createHistoriaHref(pacienteId: string, query: string) {
     params.set("q", query);
   }
 
-  return `/estudiante/anamnesis/create-historia?${params.toString()}`;
+  return `${createHistoriaRoute}?${params.toString()}`;
 }
 
 function DetailRow({ label, value }: { label: string; value?: string }) {
@@ -156,6 +161,7 @@ function PacienteDetailDialog({
 }
 
 export function PacienteSearchResults({
+  createHistoriaRoute = "/estudiante/anamnesis/create-historia",
   pacientes,
   query,
   selectedPacienteId,
@@ -237,7 +243,13 @@ export function PacienteSearchResults({
             <ItemActions className="basis-full justify-end sm:basis-auto">
               <PacienteDetailDialog paciente={paciente} />
               <Button asChild size="sm">
-                <Link href={createHistoriaHref(paciente.id, query)}>
+                <Link
+                  href={createHistoriaHref(
+                    paciente.id,
+                    query,
+                    createHistoriaRoute,
+                  )}
+                >
                   <FilePlus2Icon data-icon="inline-start" />
                   Crear historia
                 </Link>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { NoActiveTripDashboard } from "@/components/trips/no-active-trip-dashboard";
 import { auth } from "@/lib/auth";
+import { getSessionUserRole } from "@/lib/role-redirect";
 import { resolveDocenteTripRoute } from "@/lib/student-trip-resolution";
 
 export const runtime = "nodejs";
@@ -23,6 +24,7 @@ export default async function DocentePage() {
   return (
     <NoActiveTripDashboard
       mode="docente"
+      canCreateViaje={getSessionUserRole(session?.user) === "docente-organizador"}
       refreshHref="/docente"
       trips={resolution.futureTrips}
       user={session?.user}

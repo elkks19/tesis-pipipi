@@ -164,6 +164,8 @@ export async function saveExamenFisicoSegmentario(
 
     revalidatePath(`/estudiante/examen-fisico-segmentario/${idHistoria}`);
     revalidatePath("/estudiante/examen-fisico-segmentario");
+    revalidatePath(`/docente/examen-fisico-segmentario/${idHistoria}`);
+    revalidatePath("/docente/examen-fisico-segmentario");
 
     return {
       message: "Examen fisico segmentario guardado correctamente.",

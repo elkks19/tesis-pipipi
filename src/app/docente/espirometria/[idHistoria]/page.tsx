@@ -5,7 +5,7 @@ import {
   EspirometriaForm,
   type EspirometriaFormValue,
 } from "@/components/forms/espirometria-form";
-import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
+import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import type { Espirometria } from "@/lib/schema/espirometria";
 import { saveEspirometria } from "@/app/estudiante/espirometria/[idHistoria]/actions";
 import { getHistoria, numberToString } from "../../_lib/historia-page";
@@ -64,7 +64,7 @@ export default async function DocenteEspirometriaCreatePage({
         </p>
       </div>
 
-      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
+      <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 
       <EspirometriaForm
         action={action}

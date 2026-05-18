@@ -18,6 +18,11 @@ import {
   TextField,
 } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
+import {
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
 import { CreateDiagnosticoSchema } from "@/lib/schema/diagnostico";
 
 export type DiagnosticoFormValue = {
@@ -110,6 +115,39 @@ function createInitialValue(defaultValue?: Partial<DiagnosticoFormValue>) {
   };
 }
 
+function diagnosisSummary(diagnostico: IcdCodeValue) {
+  return diagnostico.title || diagnostico.code || diagnostico.iNo;
+}
+
+function getConfirmationSections(form: DiagnosticoFormValue) {
+  return [
+    {
+      title: "Diagnosticos",
+      items: [
+        {
+          label: "Principal",
+          value: textSummary(diagnosisSummary(form.principal)),
+        },
+        {
+          label: "Secundarios",
+          value: listSummary(
+            form.secundarios
+              .filter((diagnostico) => diagnostico.iNo)
+              .map((diagnostico) => diagnosisSummary(diagnostico)),
+          ),
+        },
+      ],
+    },
+    {
+      title: "Plan",
+      items: [
+        { label: "Plan de trabajo", value: textSummary(form.planTrabajo) },
+        { label: "Receta relacionada", value: textSummary(form.recetaId) },
+      ],
+    },
+  ];
+}
+
 export function DiagnosticoForm({
   action,
   defaultValue,
@@ -126,6 +164,11 @@ export function DiagnosticoForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar diagnostico",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -160,8 +203,8 @@ export function DiagnosticoForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form))) {
+      return;
     }
   }
 
@@ -179,6 +222,7 @@ export function DiagnosticoForm({
       action={formAction}
       className="flex flex-col gap-6"
       onSubmit={handleSubmit}
+      ref={formRef}
     >
       <input name="historiaId" type="hidden" value={form.historiaId} />
 
@@ -313,6 +357,7 @@ export function DiagnosticoForm({
           {isPending ? "Guardando..." : "Guardar diagnostico"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

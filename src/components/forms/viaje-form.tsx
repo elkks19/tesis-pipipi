@@ -20,6 +20,11 @@ import {
 import { DateRangeField, Field, SelectField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
+import {
   Combobox,
   ComboboxChip,
   ComboboxChips,
@@ -260,6 +265,42 @@ function hasRole(role: AuthRole | null, roles: readonly AuthRole[]) {
   return role !== null && roles.includes(role);
 }
 
+function getConfirmationSections(
+  form: ViajeFormValue,
+  userById: Map<string, UserComboboxOption>,
+) {
+  return [
+    {
+      title: "Viaje",
+      items: [
+        { label: "Servicio", value: textSummary(form.servicio) },
+        {
+          label: "Fechas",
+          value: textSummary(`${form.fechaEntrada} a ${form.fechaSalida}`),
+        },
+        {
+          label: "Establecimiento",
+          value: textSummary(form.establecimiento.nombre),
+        },
+        { label: "Direccion", value: textSummary(form.establecimiento.direccion) },
+        { label: "Contacto", value: textSummary(form.establecimiento.contacto) },
+      ],
+    },
+    {
+      title: "Estaciones",
+      items: form.estaciones.map((station, index) => ({
+        label: station.tipo || `Estacion ${index + 1}`,
+        value: listSummary([
+          `Docente: ${
+            userById.get(station.docenteEncargado)?.name || "Sin asignar"
+          }`,
+          `${station.estudiantes.length} estudiantes`,
+        ]),
+      })),
+    },
+  ];
+}
+
 export function ViajeForm({
   action,
   defaultValue,
@@ -281,6 +322,11 @@ export function ViajeForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: submitLabel,
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -333,8 +379,8 @@ export function ViajeForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form, userById))) {
+      return;
     }
   }
 
@@ -382,7 +428,12 @@ export function ViajeForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className="flex flex-col gap-6"
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <FormSection
         description="Datos generales del viaje y fechas de operacion."
         title="Datos del viaje"
@@ -630,6 +681,7 @@ export function ViajeForm({
           {isPending ? "Guardando..." : submitLabel}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

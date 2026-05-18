@@ -30,9 +30,24 @@ const indexes: IndexDefinition[] = [
     name: "idx_actividades_station_actor",
   },
   {
+    ddoc: "idx_actividades_station_actor_viaje",
+    fields: ["type", "stationKey", "actorId", "viajeId"],
+    name: "idx_actividades_station_actor_viaje",
+  },
+  {
+    ddoc: "idx_actividades_station_actor_viaje_created",
+    fields: ["type", "stationKey", "actorId", "viajeId", "createdAt"],
+    name: "idx_actividades_station_actor_viaje_created",
+  },
+  {
     ddoc: "idx_actividades_station_viaje",
     fields: ["type", "stationKey", "viajeId"],
     name: "idx_actividades_station_viaje",
+  },
+  {
+    ddoc: "idx_actividades_station_viaje_created",
+    fields: ["type", "stationKey", "viajeId", "createdAt"],
+    name: "idx_actividades_station_viaje_created",
   },
   {
     ddoc: "idx_pacientes_documento",
@@ -73,4 +88,3 @@ export function ensureTesisIndexes() {
 
   return indexesPromise;
 }
-

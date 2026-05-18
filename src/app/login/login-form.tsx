@@ -23,15 +23,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
-type LoginFormProps = {
-  callbackURL: string;
-};
+const loginRedirectPath = "/";
 
 function subscribeToHydration() {
   return () => {};
 }
 
-export function LoginForm({ callbackURL }: LoginFormProps) {
+export function LoginForm() {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
@@ -53,9 +51,9 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
     }
 
     if (session) {
-      router.replace(callbackURL);
+      router.replace(loginRedirectPath);
     }
-  }, [callbackURL, hasMounted, router, session]);
+  }, [hasMounted, router, session]);
 
   async function handleEmailLogin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +62,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
 
     try {
       const result = await authClient.signIn.email({
-        callbackURL,
+        callbackURL: loginRedirectPath,
         email,
         password,
       });
@@ -75,7 +73,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
       }
 
       toast.success("Sesion iniciada correctamente.");
-      router.replace(callbackURL);
+      router.replace(loginRedirectPath);
     } finally {
       setIsEmailPending(false);
     }
@@ -87,7 +85,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
 
     try {
       const result = await authClient.signIn.social({
-        callbackURL,
+        callbackURL: loginRedirectPath,
         provider: "google",
       });
 
@@ -104,8 +102,6 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
       setIsGooglePending(false);
     }
   }
-
-  const registerHref = `/register?next=${encodeURIComponent(callbackURL)}`;
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
@@ -129,7 +125,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
                 />
               </Field>
               <Field data-invalid={Boolean(error)}>
-                <FieldLabel htmlFor="password">Contrasena</FieldLabel>
+                <FieldLabel htmlFor="password">Contraseña</FieldLabel>
                 <Input
                   autoComplete="current-password"
                   id="password"
@@ -169,7 +165,7 @@ export function LoginForm({ callbackURL }: LoginFormProps) {
             No tienes cuenta?{" "}
             <Link
               className="font-medium text-foreground underline"
-              href={registerHref}
+              href="/register"
             >
               Crea una
             </Link>

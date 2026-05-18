@@ -6,8 +6,8 @@ import {
   ActivityIcon,
   ClipboardListIcon,
   LogOutIcon,
+  TrendingUpIcon,
   UserRoundIcon,
-  type LucideIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,6 +39,7 @@ import { authClient } from "@/lib/auth-client";
 type DocenteStationSidebarProps = {
   activityHref?: string;
   basePath: string;
+  performanceHref?: string;
   primaryHref?: string;
   primaryLabel: string;
   subtitle: string;
@@ -49,9 +50,14 @@ function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function isExactNavItemActive(pathname: string, href: string) {
+  return pathname === href;
+}
+
 export function DocenteStationSidebar({
   activityHref,
   basePath,
+  performanceHref,
   primaryHref,
   primaryLabel,
   subtitle,
@@ -67,15 +73,24 @@ export function DocenteStationSidebar({
   const initials = getInitials(userName);
   const resolvedPrimaryHref = primaryHref ?? basePath;
   const resolvedActivityHref = activityHref ?? `${basePath}/actividad`;
+  const resolvedPerformanceHref = performanceHref ?? `${basePath}/rendimiento`;
   const navItems = [
     {
       href: resolvedPrimaryHref,
+      icon: ClipboardListIcon,
       label: primaryLabel,
     },
     {
+      exact: true,
       href: resolvedActivityHref,
       icon: ActivityIcon,
       label: "Actividad",
+    },
+    {
+      exact: true,
+      href: resolvedPerformanceHref,
+      icon: TrendingUpIcon,
+      label: "Rendimiento",
     },
   ];
 
@@ -107,7 +122,10 @@ export function DocenteStationSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive = isNavItemActive(pathname, item.href);
+                const isActive = item.exact
+                  ? isExactNavItemActive(pathname, item.href)
+                  : isNavItemActive(pathname, item.href);
+                const Icon = item.icon;
 
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -117,6 +135,7 @@ export function DocenteStationSidebar({
                       tooltip={item.label}
                     >
                       <Link href={item.href} onClick={closeMobileSidebar}>
+                        <Icon />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>

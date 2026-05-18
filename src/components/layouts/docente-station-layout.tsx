@@ -17,6 +17,7 @@ type DocenteStationLayoutProps = {
   children: ReactNode;
   description: string;
   icon: LucideIcon;
+  performanceHref?: string;
   primaryHref?: string;
   primaryIcon?: LucideIcon;
   primaryLabel: string;
@@ -30,6 +31,7 @@ export function DocenteStationLayout({
   children,
   description,
   icon,
+  performanceHref,
   primaryHref,
   primaryIcon,
   primaryLabel,
@@ -42,6 +44,7 @@ export function DocenteStationLayout({
         <DocenteStationSidebar
           activityHref={activityHref}
           basePath={basePath}
+          performanceHref={performanceHref}
           primaryHref={primaryHref}
           primaryLabel={primaryLabel}
           subtitle={subtitle}
@@ -55,6 +58,7 @@ export function DocenteStationLayout({
               <DocenteStationBreadcrumbs
                 activityHref={activityHref}
                 basePath={basePath}
+                performanceHref={performanceHref}
                 primaryHref={primaryHref}
                 primaryLabel={primaryLabel}
                 title={title}

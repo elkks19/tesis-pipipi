@@ -185,11 +185,13 @@ export const config = {
     "/",
     "/admin",
     "/admin/:path*",
+    "/archivos/:path*",
     "/docente",
     "/docente/:path*",
     "/estudiante",
     "/estudiante/:path*",
     "/login",
+    "/reportes/:path*",
     "/register",
   ],
 };

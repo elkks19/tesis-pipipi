@@ -11,3 +11,11 @@ export async function getAuthenticatedUserId() {
 
   return session?.user.id ?? null;
 }
+
+export async function getAuthenticatedUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  return session?.user ?? null;
+}

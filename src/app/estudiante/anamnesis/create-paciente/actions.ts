@@ -126,6 +126,39 @@ function getDocumentId(paciente: Paciente) {
   return `paciente:${crypto.randomUUID()}`;
 }
 
+function isPaciente(doc: unknown): doc is PouchDB.Core.ExistingDocument<Paciente> {
+  return (
+    typeof doc === "object" &&
+    doc !== null &&
+    "type" in doc &&
+    doc.type === "paciente" &&
+    "_id" in doc &&
+    "_rev" in doc
+  );
+}
+
+async function hasDuplicateDocument({
+  currentPacienteId,
+  paciente,
+}: {
+  currentPacienteId: string;
+  paciente: Paciente;
+}) {
+  const expectedId = getDocumentId(paciente);
+
+  if (expectedId === currentPacienteId) {
+    return false;
+  }
+
+  try {
+    const existing = await db.get(expectedId);
+
+    return isPaciente(existing);
+  } catch {
+    return false;
+  }
+}
+
 export async function createPaciente(
   _prevState: CreatePacienteActionState,
   formData: FormData,
@@ -194,6 +227,84 @@ export async function createPaciente(
         error instanceof Error
           ? error.message
           : "No se pudo guardar el paciente en la base local.",
+      ok: false,
+    };
+  }
+}
+
+export async function updatePaciente(
+  pacienteId: string,
+  _prevState: CreatePacienteActionState,
+  formData: FormData,
+): Promise<CreatePacienteActionState> {
+  void _prevState;
+  const userId = await getAuthenticatedUserId();
+
+  if (!userId) {
+    return {
+      message: "Debes iniciar sesion para editar el paciente.",
+      ok: false,
+    };
+  }
+
+  const parsed = CreatePacienteSchema.safeParse(getPacientePayload(formData));
+
+  if (!parsed.success) {
+    return {
+      errors: getFieldErrors(parsed.error),
+      message: "Revisa los campos marcados antes de guardar el paciente.",
+      ok: false,
+    };
+  }
+
+  const paciente: Paciente = {
+    type: "paciente",
+    ...parsed.data,
+  };
+
+  try {
+    const current = await db.get(pacienteId);
+
+    if (!isPaciente(current)) {
+      return {
+        message: "No se encontro el paciente seleccionado.",
+        ok: false,
+      };
+    }
+
+    if (await hasDuplicateDocument({ currentPacienteId: pacienteId, paciente })) {
+      return {
+        errors: {
+          "datosPersonales.numeroDocumentoIdentidad":
+            "Ya existe otro paciente con este documento.",
+        },
+        message: "No se pudo actualizar el paciente.",
+        ok: false,
+      };
+    }
+
+    await db.put({
+      _id: current._id,
+      _rev: current._rev,
+      ...paciente,
+    });
+    await logPacienteActivity({
+      actorId: userId,
+      after: paciente,
+      before: current,
+      pacienteId: current._id,
+    }).catch(() => undefined);
+
+    return {
+      message: "Paciente actualizado correctamente.",
+      ok: true,
+    };
+  } catch (error) {
+    return {
+      message:
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el paciente.",
       ok: false,
     };
   }

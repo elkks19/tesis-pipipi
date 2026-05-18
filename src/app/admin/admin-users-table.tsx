@@ -36,7 +36,7 @@ const roleLabels: Record<AuthRole, string> = {
 };
 
 const providerLabels: Record<string, string> = {
-  credential: "Usuario y contrasena",
+  credential: "Usuario y contraseña",
   google: "Google",
 };
 

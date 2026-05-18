@@ -65,7 +65,7 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
     setError("");
 
     if (password !== passwordConfirmation) {
-      setError("Las contrasenas no coinciden.");
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -150,7 +150,7 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
                 />
               </Field>
               <Field data-invalid={Boolean(error)}>
-                <FieldLabel htmlFor="password">Contrasena</FieldLabel>
+                <FieldLabel htmlFor="password">Contraseña</FieldLabel>
                 <Input
                   autoComplete="new-password"
                   id="password"
@@ -165,7 +165,7 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
               </Field>
               <Field data-invalid={Boolean(error)}>
                 <FieldLabel htmlFor="passwordConfirmation">
-                  Confirmar contrasena
+                  Confirmar contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"

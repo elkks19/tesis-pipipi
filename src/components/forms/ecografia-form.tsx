@@ -31,6 +31,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  booleanSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
+import {
   CreateEcografiaSchema,
   tiposEcogenicidad,
   tiposParedes,
@@ -209,6 +214,60 @@ function createInitialValue(defaultValue?: Partial<EcografiaFormValue>) {
   };
 }
 
+function getConfirmationSections(
+  form: EcografiaFormValue,
+  imageName: string,
+) {
+  return [
+    {
+      title: "Higado",
+      items: [
+        { label: "Dimensiones", value: textSummary(`${form.higado.dimensiones} cm`) },
+        { label: "Parenquima", value: textSummary(form.higado.parenquima) },
+        { label: "Hepatomegalia", value: booleanSummary(form.higado.hepatomegalia) },
+        { label: "Diagnostico", value: textSummary(form.higado.diagnostico) },
+      ],
+    },
+    {
+      title: "Vesicula biliar",
+      items: [
+        { label: "Paredes", value: textSummary(form.vesiculaBiliar.paredes) },
+        {
+          label: "Contenido anecoico",
+          value: booleanSummary(form.vesiculaBiliar.contenidoAnecoico),
+        },
+        { label: "Barro biliar", value: booleanSummary(form.vesiculaBiliar.barroBiliar) },
+        { label: "Calculos", value: booleanSummary(form.vesiculaBiliar.calculos) },
+        { label: "Diagnostico", value: textSummary(form.vesiculaBiliar.diagnostico) },
+      ],
+    },
+    {
+      title: "Riñones",
+      items: [
+        {
+          label: "Derecho",
+          value: textSummary(
+            `${form.riñones.derecho.longitud} cm / parenquima ${form.riñones.derecho.parenquima}`,
+          ),
+        },
+        {
+          label: "Izquierdo",
+          value: textSummary(
+            `${form.riñones.izquierdo.longitud} cm / parenquima ${form.riñones.izquierdo.parenquima}`,
+          ),
+        },
+        { label: "Ecogenicidad", value: textSummary(form.riñones.ecogenicidad) },
+        {
+          label: "Relacion cortico-medular",
+          value: textSummary(form.riñones.relacionCorticoMedular),
+        },
+        { label: "Diagnostico", value: textSummary(form.riñones.diagnostico) },
+        { label: "Imagen", value: textSummary(imageName) },
+      ],
+    },
+  ];
+}
+
 export function EcografiaForm({
   action,
   defaultValue,
@@ -229,6 +288,11 @@ export function EcografiaForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar ecografia",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -265,8 +329,11 @@ export function EcografiaForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    const selectedImage = inputRef.current?.files?.item(0)?.name;
+    const imageName = selectedImage ?? (preview ? "Imagen registrada" : "");
+
+    if (!confirmSubmit(event, getConfirmationSections(form, imageName))) {
+      return;
     }
   }
 
@@ -312,7 +379,12 @@ export function EcografiaForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className="flex flex-col gap-6"
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <Input name="historiaId" type="hidden" value={form.historiaId} />
 
       <FormSection
@@ -670,6 +742,7 @@ export function EcografiaForm({
           {isPending ? "Guardando..." : "Guardar ecografia"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

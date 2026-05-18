@@ -5,7 +5,7 @@ import {
   EcografiaForm,
   type EcografiaFormValue,
 } from "@/components/forms/ecografia-form";
-import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
+import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { getFileUrl } from "@/lib/file-storage";
 import type { Ecografia } from "@/lib/schema/ecografia";
 import { saveEcografia } from "@/app/estudiante/ecografia/[idHistoria]/actions";
@@ -95,7 +95,7 @@ export default async function DocenteEcografiaCreatePage({
         </p>
       </div>
 
-      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
+      <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 
       <EcografiaForm
         action={action}

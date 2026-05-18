@@ -196,7 +196,7 @@ export default async function ElectrocardiogramaPage({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline">
                             <Link
                               href={`/estudiante/electrocardiograma/${encodeURIComponent(

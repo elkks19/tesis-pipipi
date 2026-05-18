@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { connection } from "next/server";
 
 import { PendingHistoriesTable } from "@/app/estudiante/_components/pending-histories-table";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
@@ -38,6 +39,8 @@ export async function DocentePendingStationPage({
   statusIcon,
   title,
 }: DocentePendingStationPageProps) {
+  await connection();
+
   const params = await searchParams;
   const query = getParam(params.q).trim();
   const cursor = getParam(params.cursor);
@@ -72,6 +75,7 @@ export async function DocentePendingStationPage({
         mode="docente"
         page={page}
         query={query}
+        stationKey={stationKey}
         statusIcon={statusIcon}
       />
     </div>

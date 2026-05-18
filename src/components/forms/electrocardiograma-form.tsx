@@ -17,6 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
 import { CreateElectrocardiogramaSchema } from "@/lib/schema/electrocardiograma";
 
 export type ElectrocardiogramaFormValue = {
@@ -136,6 +141,52 @@ function createInitialValue(defaultValue?: Partial<ElectrocardiogramaFormValue>)
   };
 }
 
+function getConfirmationSections(form: ElectrocardiogramaFormValue) {
+  const hallazgos = [
+    form.crecimientoAuriculaDerecha ? "Crecimiento auricula derecha" : "",
+    form.crecimientoAuriculaIzquierda ? "Crecimiento auricula izquierda" : "",
+    form.crecimientoVentriculoDerecho ? "Crecimiento ventriculo derecho" : "",
+    form.crecimientoVentriculoIzquierdo
+      ? "Crecimiento ventriculo izquierdo"
+      : "",
+    form.supraInfraDesnivelST
+      ? `Supra/infra desnivel ST (${form.derivacionSupraInfraDesnivelST})`
+      : "",
+    form.extrasistoleSupraventricular ? "Extrasistole supraventricular" : "",
+    form.extrasistoleIntraventricular ? "Extrasistole intraventricular" : "",
+  ];
+
+  return [
+    {
+      title: "Lectura general",
+      items: [
+        { label: "Ritmo", value: textSummary(form.ritmo) },
+        {
+          label: "Frecuencia cardiaca",
+          value: textSummary(`${form.frecuenciaCardiaca} lpm`),
+        },
+        { label: "Intervalo PR", value: textSummary(`${form.intervaloPR} ms`) },
+        { label: "Intervalo QTc", value: textSummary(`${form.intervaloQTc} ms`) },
+      ],
+    },
+    {
+      title: "Hallazgos",
+      items: [
+        { label: "Alteraciones marcadas", value: listSummary(hallazgos) },
+        {
+          label: "Duraciones",
+          value: listSummary([
+            `Onda P ${form.duracionOndaP} ms`,
+            `QRS ${form.duracionComplejoQRS} ms`,
+            `Onda T ${form.duracionOndaT} ms`,
+          ]),
+        },
+        { label: "Diagnostico", value: textSummary(form.diagnostico) },
+      ],
+    },
+  ];
+}
+
 export function ElectrocardiogramaForm({
   action,
   defaultValue,
@@ -153,6 +204,11 @@ export function ElectrocardiogramaForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar electrocardiograma",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -189,8 +245,8 @@ export function ElectrocardiogramaForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form))) {
+      return;
     }
   }
 
@@ -199,6 +255,7 @@ export function ElectrocardiogramaForm({
       action={formAction}
       className="flex flex-col gap-6"
       onSubmit={handleSubmit}
+      ref={formRef}
     >
       <FormSection
         description="Ritmo basal, frecuencia cardiaca e intervalos principales."
@@ -409,6 +466,7 @@ export function ElectrocardiogramaForm({
           {isPending ? "Guardando..." : "Guardar electrocardiograma"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

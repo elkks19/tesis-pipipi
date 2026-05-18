@@ -3,20 +3,10 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ClipboardCheckIcon,
-  FilePenLineIcon,
-  UserRoundIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+import { StationActivityList } from "@/components/activity/station-activity-list";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { listActivity } from "@/lib/activity-queries";
 import type { StationKey } from "@/lib/station-histories";
@@ -29,28 +19,6 @@ type StationActivityPageProps = {
   title: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Fecha no disponible";
-  }
-
-  return new Intl.DateTimeFormat("es-BO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/La_Paz",
-  }).format(date);
-}
-
-function getActionLabel(action: "created" | "updated", subject: string) {
-  if (subject === "paciente") {
-    return action === "created" ? "Paciente creado" : "Paciente actualizado";
-  }
-
-  return action === "created" ? "Registro creado" : "Registro editado";
-}
-
 function getPageHref({
   basePath,
   cursor,
@@ -59,6 +27,44 @@ function getPageHref({
   cursor?: string;
 }) {
   return cursor ? `${basePath}?cursor=${encodeURIComponent(cursor)}` : basePath;
+}
+
+function getStationBasePath(basePath: string) {
+  return basePath.endsWith("/actividad")
+    ? basePath.slice(0, -"/actividad".length)
+    : basePath;
+}
+
+function getEditHref({
+  basePath,
+  historiaId,
+  mode,
+  pacienteId,
+  subject,
+  stationKey,
+}: {
+  basePath: string;
+  historiaId?: string;
+  mode: "docente" | "estudiante";
+  pacienteId: string;
+  subject: "historia" | "paciente";
+  stationKey: StationKey;
+}) {
+  const stationBasePath = getStationBasePath(basePath);
+
+  if (subject === "paciente" && stationKey === "anamnesis") {
+    return `${stationBasePath}/pacientes/${encodeURIComponent(pacienteId)}/edit`;
+  }
+
+  if (mode === "docente" && historiaId) {
+    return `${stationBasePath}/${encodeURIComponent(historiaId)}`;
+  }
+
+  return undefined;
+}
+
+function getReportHref(historia?: { reporteHistoria?: { url: string } }) {
+  return historia?.reporteHistoria?.url;
 }
 
 export async function StationActivityPage({
@@ -92,45 +98,21 @@ export async function StationActivityPage({
       </div>
 
       {page.rows.length > 0 ? (
-        <ItemGroup>
-          {page.rows.map((row) => {
-            const Icon =
-              row.action === "created" ? ClipboardCheckIcon : FilePenLineIcon;
-
-            return (
-              <Item className="bg-background" key={row.id} variant="outline">
-                <ItemMedia variant="icon">
-                  <Icon />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>
-                    {getActionLabel(row.action, row.subject)}
-                  </ItemTitle>
-                  <ItemDescription>
-                    {row.pacienteName} · {row.pacienteDocument}
-                  </ItemDescription>
-                  <ItemDescription>
-                    {row.changedFields.length > 0
-                      ? `Campos: ${row.changedFields.join(", ")}`
-                      : "Sin campos modificados detectados"}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemContent className="hidden flex-none md:flex">
-                  <ItemTitle className="text-xs text-muted-foreground">
-                    <UserRoundIcon />
-                    {row.actorName}
-                  </ItemTitle>
-                  <ItemDescription>{formatDate(row.createdAt)}</ItemDescription>
-                </ItemContent>
-                <ItemActions className="basis-full justify-end sm:basis-auto md:hidden">
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(row.createdAt)}
-                  </span>
-                </ItemActions>
-              </Item>
-            );
-          })}
-        </ItemGroup>
+        <StationActivityList
+          mode={mode}
+          rows={page.rows.map((row) => ({
+            ...row,
+            editHref: getEditHref({
+              basePath,
+              historiaId: row.historiaId,
+              mode,
+              pacienteId: row.pacienteId,
+              stationKey,
+              subject: row.subject,
+            }),
+            reportHref: getReportHref(row.historia),
+          }))}
+        />
       ) : (
         <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border border-dashed bg-background px-6 py-8 text-center">
           <ClipboardCheckIcon className="text-muted-foreground" />

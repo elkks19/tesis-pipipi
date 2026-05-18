@@ -22,6 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
+import {
   CreateEspirometriaSchema,
   tiposObservaciones,
 } from "@/lib/schema/espirometria";
@@ -128,6 +133,44 @@ function createInitialValue(defaultValue?: Partial<EspirometriaFormValue>) {
   };
 }
 
+function getConfirmationSections(form: EspirometriaFormValue) {
+  return [
+    {
+      title: "Volumenes",
+      items: [
+        {
+          label: "FEV1",
+          value: textSummary(`${form.FEV1} (${form.porcentajeFEVteorico}%)`),
+        },
+        {
+          label: "FVC",
+          value: textSummary(`${form.FVC} (${form.porcentajeFVCteorico}%)`),
+        },
+        {
+          label: "FEV1/FVC",
+          value: textSummary(
+            `${form.FEV1FVC} (${form.porcentajeFEV1FVCteorico}%)`,
+          ),
+        },
+        {
+          label: "PEF",
+          value: textSummary(
+            `${form.flujoEspiratorioPicoPEF} (${form.porcentajePEFteorico}%)`,
+          ),
+        },
+      ],
+    },
+    {
+      title: "Interpretacion",
+      items: [
+        { label: "Fuente teorica", value: textSummary(form.fuenteDatosTeoricos) },
+        { label: "Observaciones", value: listSummary(form.observaciones) },
+        { label: "Diagnostico", value: textSummary(form.diagnostico) },
+      ],
+    },
+  ];
+}
+
 export function EspirometriaForm({
   action,
   defaultValue,
@@ -144,6 +187,11 @@ export function EspirometriaForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar espirometria",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -178,8 +226,8 @@ export function EspirometriaForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form))) {
+      return;
     }
   }
 
@@ -188,6 +236,7 @@ export function EspirometriaForm({
       action={formAction}
       className="flex flex-col gap-6"
       onSubmit={handleSubmit}
+      ref={formRef}
     >
       <FormSection
         description="Volumenes y porcentajes teoricos principales de la maniobra."
@@ -342,6 +391,7 @@ export function EspirometriaForm({
           {isPending ? "Guardando..." : "Guardar espirometria"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

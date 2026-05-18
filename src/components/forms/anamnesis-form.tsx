@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
-  type SubmitEvent,
+  type FormEvent,
   type ReactNode,
   useEffect,
   useActionState,
@@ -28,6 +28,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  booleanSummary,
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
 import {
   consumosAlcohol,
   CreateAnamnesisSchema,
@@ -308,6 +314,70 @@ function createInitialValue(defaultValue?: Partial<AnamnesisFormValue>) {
   };
 }
 
+function diseaseSummary(enfermedad: EnfermedadForm) {
+  return enfermedad.title || enfermedad.code || enfermedad.iNo;
+}
+
+function getConfirmationSections(form: AnamnesisFormValue) {
+  return [
+    {
+      title: "Contexto",
+      items: [
+        { label: "Estado civil", value: textSummary(form.estadoCivil) },
+        { label: "Nivel educativo", value: textSummary(form.nivelEducativo) },
+        { label: "Años cursados", value: textSummary(form.añosCursados) },
+        { label: "Situacion laboral", value: textSummary(form.situacionLaboral) },
+      ],
+    },
+    {
+      title: "Consulta",
+      items: [
+        { label: "Motivo de consulta", value: textSummary(form.motivoConsulta) },
+        {
+          label: "Historia de enfermedad actual",
+          value: textSummary(form.historiaEnfermedadActual),
+        },
+      ],
+    },
+    {
+      title: "Antecedentes",
+      items: [
+        {
+          label: "Personales",
+          value: listSummary(
+            form.antecedentesPatologicos.personales.map((item) =>
+              diseaseSummary(item.enfermedad),
+            ),
+          ),
+        },
+        {
+          label: "Familiares",
+          value: listSummary(
+            form.antecedentesPatologicos.familiares.map((item) =>
+              [item.parentesco, diseaseSummary(item.enfermedad)]
+                .filter(Boolean)
+                .join(": "),
+            ),
+          ),
+        },
+        {
+          label: "Actividad fisica",
+          value: booleanSummary(
+            form.antecedentesNoPatologicos.realizaActividadFisica,
+          ),
+        },
+        {
+          label: "Tabaco y alcohol",
+          value: listSummary([
+            form.antecedentesNoPatologicos.habitoTabaquico,
+            form.antecedentesNoPatologicos.consumoAlcohol,
+          ]),
+        },
+      ],
+    },
+  ];
+}
+
 export function AnamnesisForm({
   action,
   defaultValue,
@@ -324,6 +394,11 @@ export function AnamnesisForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar anamnesis",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -347,7 +422,7 @@ export function AnamnesisForm({
     }
   }, [actionState, router, successRedirectHref]);
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const result = CreateAnamnesisSchema.safeParse(buildPayload(form));
 
     if (!result.success) {
@@ -358,13 +433,18 @@ export function AnamnesisForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form))) {
+      return;
     }
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className="flex flex-col gap-6"
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <FormSection
         description="Identificacion de la historia y contexto social del paciente."
         title="Datos de anamnesis"
@@ -818,6 +898,7 @@ export function AnamnesisForm({
           </Button>
         </div>
       </footer>
+      {confirmationDialog}
     </form>
   );
 

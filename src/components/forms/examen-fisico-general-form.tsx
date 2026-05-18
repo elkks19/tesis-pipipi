@@ -15,6 +15,10 @@ import { toast } from "sonner";
 import { SelectField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
+import {
   CreateExamenFisicoGeneralSchema,
   diagnosticosIMC,
 } from "@/lib/schema/examenFisicoGeneral";
@@ -226,6 +230,63 @@ function createInitialValue(defaultValue?: Partial<ExamenFisicoGeneralFormValue>
   };
 }
 
+function getConfirmationSections(form: ExamenFisicoGeneralFormValue) {
+  return [
+    {
+      title: "Presion arterial",
+      items: [
+        {
+          label: "Brazo derecho",
+          value: textSummary(
+            `${form.presionArterial.derecha.max}/${form.presionArterial.derecha.min} mmHg`,
+          ),
+        },
+        {
+          label: "Brazo izquierdo",
+          value: textSummary(
+            `${form.presionArterial.izquierda.max}/${form.presionArterial.izquierda.min} mmHg`,
+          ),
+        },
+        {
+          label: "Presion arterial media",
+          value: textSummary(`${form.presionArterialMedia} mmHg`),
+        },
+      ],
+    },
+    {
+      title: "Signos vitales",
+      items: [
+        { label: "Pulsos", value: textSummary(`${form.pulsos} lpm`) },
+        {
+          label: "Frecuencia respiratoria",
+          value: textSummary(`${form.frecuenciaRespiratoria} rpm`),
+        },
+        {
+          label: "Frecuencia cardiaca",
+          value: textSummary(`${form.frecuenciaCardiaca} lpm`),
+        },
+        {
+          label: "Temperatura axilar",
+          value: textSummary(`${form.temperaturaAxilar} C`),
+        },
+      ],
+    },
+    {
+      title: "Antropometria",
+      items: [
+        { label: "Peso", value: textSummary(`${form.peso} kg`) },
+        { label: "Talla", value: textSummary(`${form.talla} cm`) },
+        { label: "IMC", value: textSummary(form.imc) },
+        { label: "Diagnostico IMC", value: textSummary(form.diagnosticoIMC) },
+        {
+          label: "Indice cintura/cadera",
+          value: textSummary(form.indiceCinturaCadera),
+        },
+      ],
+    },
+  ];
+}
+
 export function ExamenFisicoGeneralForm({
   action,
   defaultValue,
@@ -243,6 +304,11 @@ export function ExamenFisicoGeneralForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar examen general",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -286,8 +352,8 @@ export function ExamenFisicoGeneralForm({
     setForm(nextForm);
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(nextForm))) {
+      return;
     }
   }
 
@@ -333,7 +399,12 @@ export function ExamenFisicoGeneralForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className="flex flex-col gap-6"
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <FormSection
         description="Registro bilateral de presion arterial y calculo automatico de presion arterial media."
         title="Presion arterial"
@@ -533,6 +604,7 @@ export function ExamenFisicoGeneralForm({
           {isPending ? "Guardando..." : "Guardar examen general"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

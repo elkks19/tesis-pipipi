@@ -12,6 +12,11 @@ import { PlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { SelectField, TextField } from "@/components/forms/fields";
+import {
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
 import { Button } from "@/components/ui/button";
 import {
   CreateLaboratoriosSchema,
@@ -106,6 +111,31 @@ function createInitialValue(defaultValue?: Partial<LaboratoriosFormValue>) {
   };
 }
 
+function getConfirmationSections(form: LaboratoriosFormValue) {
+  return [
+    {
+      title: "Resultados base",
+      items: [
+        { label: "Glicemia capilar", value: textSummary(form.glicemiaCapilar) },
+        { label: "Grupo sanguineo", value: textSummary(form.grupoSanguineo) },
+      ],
+    },
+    {
+      title: "Otros estudios",
+      items: [
+        {
+          label: "Estudios registrados",
+          value: listSummary(
+            form.otrosEstudios
+              .filter((estudio) => estudio.nombre || estudio.resultado)
+              .map((estudio) => `${estudio.nombre}: ${estudio.resultado}`),
+          ),
+        },
+      ],
+    },
+  ];
+}
+
 export function LaboratoriosForm({
   action,
   defaultValue,
@@ -122,6 +152,11 @@ export function LaboratoriosForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar laboratorios",
+    });
   const visibleErrors = {
     ...actionState.errors,
     ...errors,
@@ -156,8 +191,8 @@ export function LaboratoriosForm({
 
     setErrors({});
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form))) {
+      return;
     }
   }
 
@@ -175,6 +210,7 @@ export function LaboratoriosForm({
       action={formAction}
       className="flex flex-col gap-6"
       onSubmit={handleSubmit}
+      ref={formRef}
     >
       <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-1">
@@ -293,6 +329,7 @@ export function LaboratoriosForm({
           {isPending ? "Guardando..." : "Guardar laboratorios"}
         </Button>
       </footer>
+      {confirmationDialog}
     </form>
   );
 }

@@ -5,7 +5,7 @@ import {
   ExamenFisicoSegmentarioForm,
   type ExamenFisicoSegmentarioFormValue,
 } from "@/components/forms/examen-fisico-segmentario-form";
-import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
+import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
 import type { ExamenFisicoSegmentario } from "@/lib/schema/examenFisicoSegmentario";
 import type { Historia } from "@/lib/schema/historia";
@@ -90,7 +90,7 @@ export default async function ExamenFisicoSegmentarioPage({
         </p>
       </div>
 
-      <HistoriaClinicalSummary
+      <HistoriaClinicalSummaryModal
         historia={historia}
         scope="examenFisicoSegmentario"
       />

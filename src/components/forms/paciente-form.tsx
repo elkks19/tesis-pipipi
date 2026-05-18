@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
-  type SubmitEvent,
+  type FormEvent,
   type ReactNode,
   useActionState,
   useEffect,
@@ -30,6 +30,12 @@ import {
   generos,
   tiposDocumentoIdentidad,
 } from "@/lib/schema/pacientes";
+import {
+  booleanSummary,
+  listSummary,
+  textSummary,
+  useSubmitConfirmation,
+} from "@/components/forms/submit-confirmation";
 import { cn } from "@/lib/utils";
 
 type PacienteFormActionState = {
@@ -150,6 +156,68 @@ function createInitialValue(defaultValue?: PacienteFormDefaultValue) {
   };
 }
 
+function getFullName(datos: DatosPersonalesForm) {
+  return [
+    datos.nombres,
+    datos.apellidoPaterno,
+    datos.apellidoMaterno,
+  ]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getConfirmationSections(
+  form: PacienteFormValue,
+  shouldIncludePadres: boolean,
+) {
+  return [
+    {
+      title: "Paciente",
+      items: [
+        { label: "Nombre completo", value: textSummary(getFullName(form.datosPersonales)) },
+        { label: "Fecha de nacimiento", value: textSummary(form.datosPersonales.fechaNacimiento) },
+        {
+          label: "Documento",
+          value: textSummary(
+            `${form.datosPersonales.documentoIdentidad} ${form.datosPersonales.numeroDocumentoIdentidad}`.trim(),
+          ),
+        },
+        { label: "Genero", value: textSummary(form.genero) },
+      ],
+    },
+    {
+      title: "Procedencia",
+      items: [
+        { label: "Pais", value: textSummary(form.lugarNacimiento.pais) },
+        { label: "Departamento", value: textSummary(form.lugarNacimiento.departamento) },
+        { label: "Distrito o municipio", value: textSummary(form.lugarNacimiento.distrito) },
+        { label: "Nacionalidad", value: textSummary(form.nacionalidad) },
+      ],
+    },
+    {
+      title: "Padres o tutores",
+      items: [
+        {
+          label: "Registros incluidos",
+          value: shouldIncludePadres
+            ? listSummary(
+                form.padres.map((padre) => {
+                  const nombre = getFullName(padre.datosPersonales);
+                  return `${nombre || "Sin nombre"} - ${padre.relacion || "Sin relacion"} (${booleanSummary(
+                    padre.asumeSustento,
+                    "asume sustento",
+                    "no asume sustento",
+                  )})`;
+                }),
+              )
+            : "No aplica por edad",
+        },
+      ],
+    },
+  ];
+}
+
 function normalizeOptional(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
@@ -265,6 +333,11 @@ export function PacienteForm({
     action ?? noopAction,
     { ok: false },
   );
+  const { confirmationDialog, confirmSubmit, formRef } =
+    useSubmitConfirmation({
+      actionAvailable: Boolean(action),
+      confirmLabel: "Guardar paciente",
+    });
   const shouldShowPadres = isMinor(form.datosPersonales.fechaNacimiento);
 
   function updateDatosPersonales<T extends keyof DatosPersonalesForm>(
@@ -315,7 +388,7 @@ export function PacienteForm({
     }));
   }
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const result = CreatePacienteSchema.safeParse(
       buildPayload(form, shouldShowPadres),
     );
@@ -330,8 +403,8 @@ export function PacienteForm({
     setErrors({});
     setStatus("validated");
 
-    if (!action) {
-      event.preventDefault();
+    if (!confirmSubmit(event, getConfirmationSections(form, shouldShowPadres))) {
+      return;
     }
   }
 
@@ -364,6 +437,7 @@ export function PacienteForm({
         action={formAction}
         className="flex flex-col gap-6"
         onSubmit={handleSubmit}
+        ref={formRef}
       >
         <FormSection
           description="Identificacion y datos necesarios para abrir la historia."
@@ -752,6 +826,7 @@ export function PacienteForm({
             </Button>
           </div>
         </footer>
+        {confirmationDialog}
       </form>
     </div>
   );

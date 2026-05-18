@@ -56,6 +56,7 @@ export default async function DiagnosticoPage({
         filterId="diagnostico-search"
         page={page}
         query={query}
+        stationKey="diagnostico"
         statusIcon={<FileCheck2Icon />}
       />
     </div>

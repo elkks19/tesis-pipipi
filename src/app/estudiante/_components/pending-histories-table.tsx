@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   ClipboardPenLineIcon,
   IdCardIcon,
+  ScrollTextIcon,
   UserRoundIcon,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
+import type { StationKey } from "@/lib/station-histories";
 
 import { StationHistoriasFilters } from "./station-historias-filters";
 import type { StationHistoryPageResult } from "../_lib/station-history-queries";
@@ -31,6 +33,7 @@ type PendingHistoriesTableProps = {
   mode?: "docente" | "estudiante";
   page: StationHistoryPageResult;
   query: string;
+  stationKey: StationKey;
   statusIcon: ReactNode;
   statusLabel?: string;
 };
@@ -100,6 +103,18 @@ function getPageHref({
   return search ? `${basePath}?${search}` : basePath;
 }
 
+function getStationReportHref({
+  historiaId,
+}: {
+  historiaId: string;
+}) {
+  const params = new URLSearchParams({
+    at: String(Date.now()),
+  });
+
+  return `/reportes/historias/${encodeURIComponent(historiaId)}?${params}`;
+}
+
 export function PendingHistoriesTable({
   basePath,
   cursor,
@@ -109,11 +124,12 @@ export function PendingHistoriesTable({
   mode = "estudiante",
   page,
   query,
+  stationKey,
   statusIcon,
   statusLabel = mode === "docente" ? "Registrado" : "Pendiente",
 }: PendingHistoriesTableProps) {
+  const previousCursor = cursors.at(-1);
   const previousCursors = cursors.slice(0, -1);
-  const previousCursor = previousCursors.at(-1);
   const nextCursors = cursor ? [...cursors, cursor] : cursors;
 
   return (
@@ -136,6 +152,12 @@ export function PendingHistoriesTable({
             {page.rows.length > 0 ? (
               page.rows.map((row) => {
                 const datos = row.paciente.datosPersonales;
+                const rowStatusLabel =
+                  mode === "docente"
+                    ? row.stationCompleted
+                      ? "Registrado"
+                      : "Pendiente"
+                    : statusLabel;
 
                 return (
                   <TableRow key={row.historiaId}>
@@ -172,11 +194,25 @@ export function PendingHistoriesTable({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {statusIcon}
-                        <span>{statusLabel}</span>
+                        <span>{rowStatusLabel}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
+                        {mode === "docente" ? (
+                          <Button asChild size="sm" variant="outline">
+                            <Link
+                              href={getStationReportHref({
+                                historiaId: row.historiaId,
+                              })}
+                              prefetch={false}
+                              target="_blank"
+                            >
+                              <ScrollTextIcon data-icon="inline-start" />
+                              Reporte
+                            </Link>
+                          </Button>
+                        ) : null}
                         <Button asChild size="sm" variant="outline">
                           <Link
                             href={`${basePath}/${encodeURIComponent(
@@ -184,7 +220,9 @@ export function PendingHistoriesTable({
                             )}`}
                           >
                             <ClipboardPenLineIcon data-icon="inline-start" />
-                            {mode === "docente" ? "Editar" : "Registrar"}
+                            {mode === "docente" && row.stationCompleted
+                              ? "Editar"
+                              : "Registrar"}
                           </Link>
                         </Button>
                       </div>

@@ -2,7 +2,6 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
-import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia, Paciente } from "@/lib/schema";
 import type { Viaje } from "@/lib/schema/viajes";
@@ -61,6 +60,7 @@ type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 export type StationHistoryRow = {
   historiaId: string;
   paciente: PacienteSearchResult;
+  stationCompleted: boolean;
 };
 
 export type StationHistoryPageResult = {
@@ -239,51 +239,14 @@ function isComplementaryRequested(doc: HistoriaDocument, stationKey: StationKey)
   return Boolean(doc.examenesComplementariosSolicitados?.[config.complementaryKey]);
 }
 
-async function isAssignedToStation({
-  doc,
-  mode,
-  stationKey,
-  userId,
-  viajes,
-}: {
-  doc: HistoriaDocument;
-  mode: "docente" | "estudiante";
-  stationKey: StationKey;
-  userId?: string;
-  viajes: Map<string, ViajeDocument | null>;
-}) {
-  if (!userId || !doc.viajeId) {
-    return mode === "estudiante";
-  }
-
-  const viaje = await getViaje(doc.viajeId, viajes);
-  const estacion = viaje?.estaciones.find(
-    (item) => item.tipo === stationConfigs[stationKey].viajeTipo,
-  );
-
-  if (!estacion) {
-    return false;
-  }
-
-  if (mode === "docente") {
-    return estacion.docenteEncargadoId === userId;
-  }
-
-  return estacion.estudiantesIds.includes(userId);
-}
-
 async function serializeHistoria({
   doc,
   mode,
   stationKey,
-  userId,
-  viajes,
 }: {
   doc: HistoriaDocument;
   mode: "docente" | "estudiante";
   stationKey: StationKey;
-  userId?: string;
-  viajes: Map<string, ViajeDocument | null>;
 }) {
   const config = stationConfigs[stationKey];
   const hasValue = hasStationValue(doc, config.field);
@@ -296,19 +259,7 @@ async function serializeHistoria({
     if (doc.diagnostico || hasValue || !isComplementaryRequested(doc, stationKey)) {
       return null;
     }
-  } else if (!hasValue) {
-    return null;
-  }
-
-  const isAssigned = await isAssignedToStation({
-    doc,
-    mode,
-    stationKey,
-    userId,
-    viajes,
-  });
-
-  if (!isAssigned) {
+  } else if (!isComplementaryRequested(doc, stationKey)) {
     return null;
   }
 
@@ -321,6 +272,7 @@ async function serializeHistoria({
   return {
     historiaId: doc._id,
     paciente,
+    stationCompleted: hasValue,
   };
 }
 
@@ -329,7 +281,6 @@ export async function listStationHistories({
   mode,
   query,
   stationKey,
-  userId,
 }: {
   cursor?: string;
   mode: "docente" | "estudiante";
@@ -337,95 +288,34 @@ export async function listStationHistories({
   stationKey: StationKey;
   userId?: string;
 }): Promise<StationHistoryPageResult> {
-  await ensureTesisIndexes();
-
   const normalizedQuery = normalize(query);
   const rows: StationHistoryRow[] = [];
-  const viajes = new Map<string, ViajeDocument | null>();
-  const assignedViajeIds = await getAssignedViajeIds({
-    mode,
-    stationKey,
-    userId,
-  });
+  const startIndex = Number.parseInt(cursor ?? "0", 10);
+  const offset = Number.isFinite(startIndex) && startIndex > 0 ? startIndex : 0;
+  const result = await db.allDocs({ include_docs: true });
 
-  if (assignedViajeIds.length === 0) {
-    return {
-      hasNextPage: false,
-      pageSize: PAGE_SIZE,
-      rows: [],
-    };
-  }
-
-  const config = stationConfigs[stationKey];
-  const selector: Record<string, unknown> = {
-    type: "historia",
-    viajeId: {
-      $in: assignedViajeIds,
-    },
-  };
-
-  if (mode === "estudiante") {
-    selector.diagnostico = { $exists: false };
-    selector[config.field] = { $exists: false };
-
-    if ("complementaryKey" in config) {
-      selector[`examenesComplementariosSolicitados.${config.complementaryKey}`] =
-        true;
+  for (const item of result.rows) {
+    if (!isHistoriaDocument(item.doc)) {
+      continue;
     }
-  } else {
-    selector[config.field] = { $exists: true };
-  }
 
-  let reachedEnd = false;
-  let bookmark = cursor || undefined;
-
-  while (rows.length <= PAGE_SIZE && !reachedEnd) {
-    const result = await findTesisDocs({
-      bookmark,
-      limit: PAGE_SIZE * 4,
-      selector,
+    const row = await serializeHistoria({
+      doc: item.doc,
+      mode,
+      stationKey,
     });
 
-    if (result.docs.length === 0) {
-      reachedEnd = true;
-      break;
-    }
-
-    bookmark = result.bookmark;
-
-    for (const doc of result.docs) {
-
-      if (!isHistoriaDocument(doc)) {
-        continue;
-      }
-
-      const row = await serializeHistoria({
-        doc,
-        mode,
-        stationKey,
-        userId,
-        viajes,
-      });
-
-      if (row && rowMatchesQuery(row, normalizedQuery)) {
-        rows.push(row);
-      }
-
-      if (rows.length > PAGE_SIZE) {
-        break;
-      }
-    }
-
-    if (result.docs.length < PAGE_SIZE * 4 || !result.bookmark) {
-      reachedEnd = true;
+    if (row && rowMatchesQuery(row, normalizedQuery)) {
+      rows.push(row);
     }
   }
 
-  const visibleRows = rows.slice(0, PAGE_SIZE);
+  const visibleRows = rows.slice(offset, offset + PAGE_SIZE);
+  const nextOffset = offset + PAGE_SIZE;
 
   return {
-    hasNextPage: rows.length > PAGE_SIZE,
-    nextCursor: rows.length > PAGE_SIZE ? bookmark : undefined,
+    hasNextPage: nextOffset < rows.length,
+    nextCursor: nextOffset < rows.length ? String(nextOffset) : undefined,
     pageSize: PAGE_SIZE,
     rows: visibleRows,
   };

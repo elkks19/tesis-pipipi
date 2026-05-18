@@ -57,6 +57,7 @@ export default async function LaboratoriosPage({
         filterId="laboratorios-search"
         page={page}
         query={query}
+        stationKey="laboratorios"
         statusIcon={<FlaskConicalIcon />}
       />
     </div>

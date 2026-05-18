@@ -57,6 +57,7 @@ export default async function EspirometriaPage({
         filterId="espirometria-search"
         page={page}
         query={query}
+        stationKey="espirometria"
         statusIcon={<WindIcon />}
       />
     </div>

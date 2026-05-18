@@ -1,7 +1,11 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import type { Actividad, ActividadAction } from "@/lib/schema/actividad";
+import type {
+  Actividad,
+  ActividadAction,
+  ActividadChange,
+} from "@/lib/schema/actividad";
 import type { Historia } from "@/lib/schema/historia";
 import {
   resolveDocenteTripRoute,
@@ -71,14 +75,19 @@ function valuesAreEqual(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function getChangedFields(before: unknown, after: unknown) {
+function getChanges(before: unknown, after: unknown): ActividadChange[] {
   const beforeFields = flatten(before);
   const afterFields = flatten(after);
   const keys = new Set([...beforeFields.keys(), ...afterFields.keys()]);
 
   return [...keys]
     .filter((key) => !valuesAreEqual(beforeFields.get(key), afterFields.get(key)))
-    .sort();
+    .sort()
+    .map((key) => ({
+      after: afterFields.get(key),
+      before: beforeFields.get(key),
+      field: key,
+    }));
 }
 
 function getAction(before: unknown): ActividadAction {
@@ -120,13 +129,14 @@ export async function logStationActivity({
     return;
   }
 
-  const changedFields = getChangedFields(before, after);
+  const changes = getChanges(before, after);
 
   await putActivity({
     type: "actividad",
     action: getAction(before),
     actorId,
-    changedFields,
+    changedFields: changes.map((change) => change.field),
+    changes,
     createdAt: new Date().toISOString(),
     historiaId: historia._id,
     pacienteId: historia.pacienteId,
@@ -148,11 +158,14 @@ export async function logPacienteActivity({
     return;
   }
 
+  const changes = getChanges(before, after);
+
   await putActivity({
     type: "actividad",
     action: getAction(before),
     actorId,
-    changedFields: getChangedFields(before, after),
+    changedFields: changes.map((change) => change.field),
+    changes,
     createdAt: new Date().toISOString(),
     pacienteId,
     stationKey: "anamnesis",

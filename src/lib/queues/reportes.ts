@@ -6,8 +6,10 @@ export const reportesQueueName = "reportes";
 export const reporteHistoriaJobName = "reporteHistoria";
 
 export type ReporteHistoriaJobData = {
+  diagnosticoFingerprint?: string;
   historiaId: string;
   requestedBy: string;
+  requestedByName?: string;
 };
 
 let reportesQueue: Queue<ReporteHistoriaJobData> | null = null;

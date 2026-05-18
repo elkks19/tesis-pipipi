@@ -20,12 +20,23 @@ export type ExamenesComplementariosSolicitados = {
 	electrocardiograma: boolean;
 };
 
+export type ReporteHistoriaFile = {
+	generatedAt: string;
+	key: string;
+	nombre: string;
+	tamano: number;
+	tipo: string;
+	url: string;
+};
+
 export type Historia = {
 	type: "historia";
 
 	created_by?: string;
 	pacienteId: string;
 	viajeId?: string;
+	reporteHistoria?: ReporteHistoriaFile;
+	reportesHistoria?: ReporteHistoriaFile[];
 	examenesComplementariosSolicitados?: ExamenesComplementariosSolicitados;
 	anamnesis?: Anamnesis & Partial<AuditFields>;
 	examenFisicoGeneral?: ExamenFisicoGeneral & Partial<AuditFields>;

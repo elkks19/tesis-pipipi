@@ -192,7 +192,7 @@ export default async function EcografiaPage({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline">
                             <Link
                               href={`/estudiante/ecografia/${encodeURIComponent(

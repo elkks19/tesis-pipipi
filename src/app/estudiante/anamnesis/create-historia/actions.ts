@@ -11,6 +11,7 @@ import {
 } from "@/lib/schema/anamnesis";
 import type { Historia } from "@/lib/schema/historia";
 import type { Paciente } from "@/lib/schema/pacientes";
+import { isDocenteEncargado } from "@/lib/station-histories";
 
 export type CreateAnamnesisActionState = {
   errors?: Record<string, string>;
@@ -375,6 +376,114 @@ export async function createAnamnesis(
         error instanceof Error
           ? error.message
           : "No se pudo guardar la historia en la base de datos.",
+      ok: false,
+    };
+  }
+}
+
+function isHistoria(doc: unknown): doc is Historia & { _id: string; _rev: string } {
+  return (
+    typeof doc === "object" &&
+    doc !== null &&
+    "type" in doc &&
+    doc.type === "historia" &&
+    "_id" in doc &&
+    "_rev" in doc
+  );
+}
+
+export async function updateAnamnesis(
+  idHistoria: string,
+  _previousState: CreateAnamnesisActionState,
+  formData: FormData,
+): Promise<CreateAnamnesisActionState> {
+  void _previousState;
+
+  const userId = await getAuthenticatedUserId();
+
+  if (!userId) {
+    return {
+      message: "Debes iniciar sesion para editar la anamnesis.",
+      ok: false,
+    };
+  }
+
+  const parsed = CreateAnamnesisSchema.safeParse(getPayload(formData));
+
+  if (!parsed.success) {
+    return {
+      errors: getFieldErrors(parsed.error),
+      message: "Revisa los campos marcados antes de guardar la anamnesis.",
+      ok: false,
+    };
+  }
+
+  try {
+    const historia = await db.get(idHistoria);
+
+    if (!isHistoria(historia)) {
+      return {
+        message: "No se encontro la historia clinica.",
+        ok: false,
+      };
+    }
+
+    const canEdit = await isDocenteEncargado({
+      historia,
+      stationKey: "anamnesis",
+      userId,
+    });
+
+    if (!canEdit) {
+      return {
+        message: "No puedes editar una historia fuera de tu estacion.",
+        ok: false,
+      };
+    }
+
+    const { pacienteId, ...anamnesisData } = parsed.data;
+
+    if (pacienteId !== historia.pacienteId) {
+      return {
+        message: "La anamnesis no corresponde al paciente de esta historia.",
+        ok: false,
+      };
+    }
+
+    const before = historia.anamnesis;
+    const anamnesis = {
+      ...(anamnesisData as Anamnesis),
+      created_by: before?.created_by ?? userId,
+      updated_by: userId,
+    };
+    const nextHistoria = {
+      ...historia,
+      anamnesis,
+    };
+
+    await db.put(nextHistoria);
+    await logStationActivity({
+      actorId: userId,
+      after: anamnesis,
+      before,
+      historia: nextHistoria,
+      stationKey: "anamnesis",
+    }).catch(() => undefined);
+
+    revalidatePath("/docente/anamnesis");
+    revalidatePath(`/docente/anamnesis/${idHistoria}`);
+
+    return {
+      historiaId: idHistoria,
+      message: "Anamnesis actualizada correctamente.",
+      ok: true,
+    };
+  } catch (error) {
+    return {
+      message:
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la anamnesis.",
       ok: false,
     };
   }

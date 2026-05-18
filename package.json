@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 5173",
+    "dev": "NODE_OPTIONS=--use-system-ca node --use-system-ca node_modules/next/dist/bin/next dev -p 5173",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_OPTIONS=--use-system-ca node --use-system-ca node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "tunnel": "ngrok http 5173 --url integral-lemming-lately.ngrok-free.app",
-    "worker:reportes": "node scripts/reporte-historia-worker.mjs",
-    "seed:users": "node scripts/seed-users.mjs"
+    "worker:reportes": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/reporte-historia-worker.mjs",
+    "seed:historias": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/seed-historias.mjs",
+    "seed:users": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/seed-users.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
@@ -45,6 +46,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@flydotio/dockerfile": "^0.7.10",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

@@ -5,10 +5,12 @@ import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
 import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { Actividad } from "@/lib/schema/actividad";
+import type { ActividadChange } from "@/lib/schema/actividad";
+import type { Historia } from "@/lib/schema/historia";
+import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Paciente } from "@/lib/schema/pacientes";
 import type { Viaje } from "@/lib/schema/viajes";
 import {
-  getAssignedViajeIds,
   stationConfigs,
   type StationKey,
 } from "@/lib/station-histories";
@@ -19,6 +21,8 @@ type ActivityDocument = PouchDB.Core.ExistingDocument<Actividad>;
 
 type PacienteDocument = PouchDB.Core.ExistingDocument<Paciente>;
 
+type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
+
 type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 export type ActivityListItem = {
@@ -26,10 +30,13 @@ export type ActivityListItem = {
   actorEmail?: string;
   actorId: string;
   actorName: string;
+  changes: ActividadChange[];
   changedFields: string[];
   createdAt: string;
   historiaId?: string;
+  historia?: Historia;
   id: string;
+  paciente?: PacienteSearchResult;
   pacienteDocument: string;
   pacienteId: string;
   pacienteName: string;
@@ -64,15 +71,42 @@ function isPacienteDocument(doc: unknown): doc is PacienteDocument {
   );
 }
 
+function isHistoriaDocument(doc: unknown): doc is HistoriaDocument {
+  return (
+    typeof doc === "object" &&
+    doc !== null &&
+    "type" in doc &&
+    doc.type === "historia"
+  );
+}
+
 function isViajeDocument(doc: unknown): doc is ViajeDocument {
   return (
     typeof doc === "object" &&
     doc !== null &&
     "type" in doc &&
     doc.type === "viaje" &&
+    "fechaEntrada" in doc &&
+    "fechaSalida" in doc &&
     "estaciones" in doc &&
     Array.isArray(doc.estaciones)
   );
+}
+
+function getTodayValue() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/La_Paz",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
 function getPacienteName(paciente: PacienteDocument | null) {
@@ -96,6 +130,43 @@ function getPacienteDocument(paciente: PacienteDocument | null) {
   return `${datos.documentoIdentidad} ${datos.numeroDocumentoIdentidad}`;
 }
 
+function dateToInputValue(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function serializePaciente(doc: PacienteDocument | null): PacienteSearchResult | undefined {
+  if (!doc?._id || doc.type !== "paciente") {
+    return undefined;
+  }
+
+  return {
+    id: doc._id,
+    datosPersonales: {
+      ...doc.datosPersonales,
+      fechaNacimiento: dateToInputValue(doc.datosPersonales.fechaNacimiento),
+    },
+    genero: doc.genero,
+    lugarNacimiento: doc.lugarNacimiento,
+    nacionalidad: doc.nacionalidad,
+    etnia: doc.etnia,
+    padres: doc.padres?.map((padre) => ({
+      ...padre,
+      datosPersonales: {
+        ...padre.datosPersonales,
+        fechaNacimiento: dateToInputValue(
+          padre.datosPersonales.fechaNacimiento,
+        ),
+      },
+    })),
+  };
+}
+
 async function getPaciente(
   pacienteId: string,
   cache: Map<string, PacienteDocument | null>,
@@ -116,44 +187,74 @@ async function getPaciente(
   }
 }
 
-async function getViaje(viajeId: string, cache: Map<string, ViajeDocument | null>) {
-  if (cache.has(viajeId)) {
-    return cache.get(viajeId) ?? null;
+async function getHistoria(
+  historiaId: string | undefined,
+  cache: Map<string, HistoriaDocument | null>,
+) {
+  if (!historiaId) {
+    return null;
+  }
+
+  if (cache.has(historiaId)) {
+    return cache.get(historiaId) ?? null;
   }
 
   try {
-    const doc = await db.get(viajeId);
-    const viaje = isViajeDocument(doc) ? doc : null;
-    cache.set(viajeId, viaje);
+    const doc = await db.get(historiaId);
+    const historia = isHistoriaDocument(doc) ? doc : null;
+    cache.set(historiaId, historia);
 
-    return viaje;
+    return historia;
   } catch {
-    cache.set(viajeId, null);
+    cache.set(historiaId, null);
     return null;
   }
 }
 
-async function canSeeActivity({
-  activity,
+async function getActiveViajeId({
   mode,
+  stationKey,
   userId,
-  viajes,
 }: {
-  activity: ActivityDocument;
   mode: "docente" | "estudiante";
+  stationKey: StationKey;
   userId: string;
-  viajes: Map<string, ViajeDocument | null>;
 }) {
-  if (mode === "estudiante") {
-    return activity.actorId === userId;
-  }
+  const today = getTodayValue();
+  const stationSelector =
+    mode === "docente"
+      ? {
+          docenteEncargadoId: userId,
+          tipo: stationConfigs[stationKey].viajeTipo,
+        }
+      : {
+          estudiantesIds: {
+            $elemMatch: {
+              $eq: userId,
+            },
+          },
+          tipo: stationConfigs[stationKey].viajeTipo,
+        };
+  const result = await findTesisDocs({
+    limit: 10,
+    selector: {
+      fechaEntrada: {
+        $lte: today,
+      },
+      fechaSalida: {
+        $gte: today,
+      },
+      estaciones: {
+        $elemMatch: stationSelector,
+      },
+      type: "viaje",
+    },
+  });
+  const activeTrips = result.docs
+    .filter(isViajeDocument)
+    .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
 
-  const viaje = await getViaje(activity.viajeId, viajes);
-  const estacion = viaje?.estaciones.find(
-    (item) => item.tipo === stationConfigs[activity.stationKey].viajeTipo,
-  );
-
-  return estacion?.docenteEncargadoId === userId;
+  return activeTrips[0]?._id ?? activeTrips[0]?.id;
 }
 
 export async function listActivity({
@@ -174,27 +275,24 @@ export async function listActivity({
     stationKey,
     type: "actividad",
   };
+  const activeViajeId = await getActiveViajeId({
+    mode,
+    stationKey,
+    userId,
+  });
+
+  if (!activeViajeId) {
+    return {
+      hasNextPage: false,
+      pageSize: PAGE_SIZE,
+      rows: [],
+    };
+  }
+
+  selector.viajeId = activeViajeId;
 
   if (mode === "estudiante") {
     selector.actorId = userId;
-  } else {
-    const viajeIds = await getAssignedViajeIds({
-      mode,
-      stationKey,
-      userId,
-    });
-
-    if (viajeIds.length === 0) {
-      return {
-        hasNextPage: false,
-        pageSize: PAGE_SIZE,
-        rows: [],
-      };
-    }
-
-    selector.viajeId = {
-      $in: viajeIds,
-    };
   }
 
   const result = await findTesisDocs({
@@ -209,12 +307,18 @@ export async function listActivity({
     }
   }
 
+  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
   const visibleRows = rows.slice(0, PAGE_SIZE);
   const usersById = getAuthUsersByIds(visibleRows.map((row) => row.actorId));
   const pacientes = new Map<string, PacienteDocument | null>();
+  const historias = new Map<string, HistoriaDocument | null>();
   const hydratedRows = await Promise.all(
     visibleRows.map(async (row) => {
-      const paciente = await getPaciente(row.pacienteId, pacientes);
+      const [paciente, historia] = await Promise.all([
+        getPaciente(row.pacienteId, pacientes),
+        getHistoria(row.historiaId, historias),
+      ]);
       const actor = usersById.get(row.actorId);
 
       return {
@@ -222,10 +326,13 @@ export async function listActivity({
         actorEmail: actor?.email,
         actorId: row.actorId,
         actorName: actor?.name ?? "Usuario no encontrado",
+        changes: row.changes ?? [],
         changedFields: row.changedFields,
         createdAt: row.createdAt,
+        historia: historia ?? undefined,
         historiaId: row.historiaId,
         id: row._id ?? "",
+        paciente: serializePaciente(paciente),
         pacienteDocument: getPacienteDocument(paciente),
         pacienteId: row.pacienteId,
         pacienteName: getPacienteName(paciente),
@@ -235,8 +342,6 @@ export async function listActivity({
       };
     }),
   );
-  const lastVisibleRow = visibleRows.at(-1);
-
   return {
     hasNextPage: rows.length > PAGE_SIZE,
     nextCursor: rows.length > PAGE_SIZE ? result.bookmark : undefined,

@@ -6,6 +6,7 @@ import {
   IdCardIcon,
   InfoIcon,
   MapPinIcon,
+  PencilIcon,
   PlusIcon,
   SearchIcon,
   UserRoundIcon,
@@ -33,6 +34,7 @@ import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
 type PacienteSearchResultsProps = {
   createHistoriaRoute?: string;
+  editPacienteRoute?: string;
   pacientes: PacienteSearchResult[];
   query: string;
   newPacienteRoute: string;
@@ -162,6 +164,7 @@ function PacienteDetailDialog({
 
 export function PacienteSearchResults({
   createHistoriaRoute = "/estudiante/anamnesis/create-historia",
+  editPacienteRoute = "/estudiante/anamnesis/pacientes",
   pacientes,
   query,
   selectedPacienteId,
@@ -242,6 +245,14 @@ export function PacienteSearchResults({
             </ItemContent>
             <ItemActions className="basis-full justify-end sm:basis-auto">
               <PacienteDetailDialog paciente={paciente} />
+              <Button asChild size="sm" variant="outline">
+                <Link
+                  href={`${editPacienteRoute}/${encodeURIComponent(paciente.id)}/edit`}
+                >
+                  <PencilIcon data-icon="inline-start" />
+                  Editar
+                </Link>
+              </Button>
               <Button asChild size="sm">
                 <Link
                   href={createHistoriaHref(

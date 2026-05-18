@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { CreateExamenFisicoSegmentarioSchema } from "@/lib/schema/examenFisicoSegmentario";
 
 export type ExamenFisicoSegmentarioFormValue = {
@@ -197,6 +198,16 @@ function createInitialValue(
   };
 }
 
+function previewText(value: string) {
+  const normalized = value.trim().replace(/\s+/g, " ");
+
+  if (normalized.length <= 110) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 107)}...`;
+}
+
 export function ExamenFisicoSegmentarioForm({
   action,
   defaultValue,
@@ -347,15 +358,44 @@ export function ExamenFisicoSegmentarioForm({
       </footer>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Solicitar examenes complementarios</DialogTitle>
+            <DialogTitle>Confirmar examen segmentario</DialogTitle>
             <DialogDescription>
-              Marca los estudios que quedaran solicitados al guardar este
-              examen segmentario.
+              Revisa el resumen y marca los estudios complementarios que
+              quedaran solicitados al guardar.
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex flex-col gap-4">
+            {fieldGroups.map((group) => (
+              <section className="flex flex-col gap-2" key={group.title}>
+                <h3 className="text-sm font-semibold">{group.title}</h3>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {group.fields.map((field) => (
+                    <div
+                      className="rounded-2xl bg-muted/40 p-3"
+                      key={field.name}
+                    >
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {field.label}
+                      </span>
+                      <p className="mt-1 text-sm leading-relaxed">
+                        {previewText(form[field.name])}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-semibold">
+              Examenes complementarios solicitados
+            </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {examenesComplementarios.map((examen) => (
               <CheckboxField
@@ -367,6 +407,7 @@ export function ExamenFisicoSegmentarioForm({
                 }
               />
             ))}
+          </div>
           </div>
 
           <DialogFooter>

@@ -112,3 +112,9 @@ export async function getFileUrl(key: string) {
     });
   }
 }
+
+export async function getFileStream(key: string) {
+  const storage = await getStorageDisk();
+
+  return storage.getStream(key);
+}

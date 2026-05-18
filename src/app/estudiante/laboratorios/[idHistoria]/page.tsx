@@ -5,7 +5,7 @@ import {
   LaboratoriosForm,
   type LaboratoriosFormValue,
 } from "@/components/forms/laboratorios-form";
-import { HistoriaClinicalSummary } from "@/components/historias/historia-clinical-summary";
+import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
 import type { Historia } from "@/lib/schema/historia";
 import type { Laboratorios } from "@/lib/schema/laboratorios";
@@ -80,7 +80,7 @@ export default async function LaboratoriosCreatePage({
         </p>
       </div>
 
-      <HistoriaClinicalSummary historia={historia} scope="complementarios" />
+      <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 
       <LaboratoriosForm
         action={action}

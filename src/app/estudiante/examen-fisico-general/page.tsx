@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -110,6 +111,8 @@ function getPageHref({
 export default async function ExamenFisicoGeneralPage({
   searchParams,
 }: ExamenFisicoGeneralPageProps) {
+  await connection();
+
   const params = await searchParams;
   const query = getParam(params.q).trim();
   const cursor = getParam(params.cursor);
@@ -117,8 +120,8 @@ export default async function ExamenFisicoGeneralPage({
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const previousCursor = cursors.at(-1);
   const previousCursors = cursors.slice(0, -1);
-  const previousCursor = previousCursors.at(-1);
   const historiasPage = await listHistoriasForExamenFisicoGeneral({
     cursor,
     query,
@@ -205,7 +208,7 @@ export default async function ExamenFisicoGeneralPage({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline">
                             <Link
                               href={`/estudiante/examen-fisico-general/${encodeURIComponent(

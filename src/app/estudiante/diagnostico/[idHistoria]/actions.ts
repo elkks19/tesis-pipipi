@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logStationActivity } from "@/lib/activity-log";
-import { getAuthenticatedUserId } from "@/lib/auth-session";
+import { getAuthenticatedUser } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { enqueueReporteHistoria } from "@/lib/queues/reportes";
 import {
@@ -102,6 +102,22 @@ function isHistoriaDocument(doc: unknown): doc is HistoriaDocument {
   );
 }
 
+function getDiagnosticoFingerprint(diagnostico: Diagnostico) {
+  return JSON.stringify({
+    planTrabajo: diagnostico.planTrabajo,
+    principal: diagnostico.principal,
+    recetaId: diagnostico.recetaId ?? "",
+    secundarios: diagnostico.secundarios,
+  });
+}
+
+function revalidateDiagnosticoPaths(idHistoria: string) {
+  revalidatePath(`/estudiante/diagnostico/${idHistoria}`);
+  revalidatePath("/estudiante/diagnostico");
+  revalidatePath(`/docente/diagnostico/${idHistoria}`);
+  revalidatePath("/docente/diagnostico");
+}
+
 export async function saveDiagnostico(
   idHistoria: string,
   _previousState: SaveDiagnosticoActionState,
@@ -109,7 +125,8 @@ export async function saveDiagnostico(
 ): Promise<SaveDiagnosticoActionState> {
   void _previousState;
 
-  const userId = await getAuthenticatedUserId();
+  const user = await getAuthenticatedUser();
+  const userId = user?.id;
 
   if (!userId) {
     return {
@@ -150,6 +167,12 @@ export async function saveDiagnostico(
       diagnostico,
     };
 
+    console.info("[diagnostico] saving diagnostico", {
+      hasPreviousDiagnostico: Boolean(historia.diagnostico),
+      historiaId: idHistoria,
+      userId,
+    });
+
     await db.put(nextHistoria);
     await logStationActivity({
       actorId: userId,
@@ -160,13 +183,25 @@ export async function saveDiagnostico(
     }).catch(() => undefined);
 
     try {
+      console.info("[diagnostico] enqueueing history report", {
+        historiaId: idHistoria,
+        userId,
+      });
+
       await enqueueReporteHistoria({
+        diagnosticoFingerprint: getDiagnosticoFingerprint(diagnostico),
         historiaId: idHistoria,
         requestedBy: userId,
+        requestedByName: user.name ?? user.email ?? userId,
       });
-    } catch {
-      revalidatePath(`/estudiante/diagnostico/${idHistoria}`);
-      revalidatePath("/estudiante/diagnostico");
+    } catch (error) {
+      console.error("[diagnostico] report enqueue failed", {
+        error,
+        historiaId: idHistoria,
+        userId,
+      });
+
+      revalidateDiagnosticoPaths(idHistoria);
 
       return {
         message:
@@ -175,8 +210,12 @@ export async function saveDiagnostico(
       };
     }
 
-    revalidatePath(`/estudiante/diagnostico/${idHistoria}`);
-    revalidatePath("/estudiante/diagnostico");
+    console.info("[diagnostico] diagnostico saved and report queued", {
+      historiaId: idHistoria,
+      userId,
+    });
+
+    revalidateDiagnosticoPaths(idHistoria);
 
     return {
       message: "Diagnostico guardado. Reporte enviado a generacion.",

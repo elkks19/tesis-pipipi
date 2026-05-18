@@ -57,7 +57,7 @@ export function PasswordSetupGate() {
       if (result.error) {
         toast.error(
           result.error.message ??
-            "No se pudo verificar si tu cuenta tiene contrasena.",
+            "No se pudo verificar si tu cuenta tiene contraseña.",
         );
         setRequiresPassword(false);
         setRequiresGoogleLink(false);
@@ -89,7 +89,7 @@ export function PasswordSetupGate() {
     setError("");
 
     if (password !== passwordConfirmation) {
-      setError("Las contrasenas no coinciden.");
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -178,10 +178,10 @@ export function PasswordSetupGate() {
             <div className="mb-2 flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
               <KeyRoundIcon />
             </div>
-            <DialogTitle>Configura una contrasena</DialogTitle>
+            <DialogTitle>Configura una contraseña</DialogTitle>
             <DialogDescription>
               Esta cuenta ingreso con un proveedor externo. Para sincronizar con
-              el servidor local del viaje necesitas una contrasena de acceso.
+              el servidor local del viaje necesitas una contraseña de acceso.
             </DialogDescription>
           </DialogHeader>
 
@@ -189,7 +189,7 @@ export function PasswordSetupGate() {
             <FieldGroup>
               <Field data-invalid={Boolean(error)}>
                 <FieldLabel htmlFor="password-setup-password">
-                  Contrasena
+                  Contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"
@@ -204,7 +204,7 @@ export function PasswordSetupGate() {
               </Field>
               <Field data-invalid={Boolean(error)}>
                 <FieldLabel htmlFor="password-setup-confirmation">
-                  Confirmar contrasena
+                  Confirmar contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"
@@ -223,7 +223,7 @@ export function PasswordSetupGate() {
 
             <Button disabled={isSubmitting} type="submit">
               {isSubmitting ? <Loader2Icon data-icon="inline-start" /> : null}
-              Guardar contrasena
+              Guardar contraseña
             </Button>
           </form>
         </DialogContent>
@@ -243,7 +243,7 @@ export function PasswordSetupGate() {
             </div>
             <DialogTitle>Vincula tu cuenta institucional</DialogTitle>
             <DialogDescription>
-              Esta cuenta se creo con correo y contrasena. Vincula Google para
+              Esta cuenta se creo con correo y contraseña. Vincula Google para
               mantener el acceso institucional y evitar cuentas duplicadas.
             </DialogDescription>
           </DialogHeader>

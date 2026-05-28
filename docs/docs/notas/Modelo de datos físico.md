@@ -1,0 +1,1 @@
+Aqui ya se describen las estructuras de datos mas especificas al [[SGBD]]

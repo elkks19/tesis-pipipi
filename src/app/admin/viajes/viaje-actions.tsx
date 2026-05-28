@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3Icon,
   CalendarDaysIcon,
   DownloadIcon,
   PencilIcon,
@@ -63,6 +64,14 @@ function getReportHref(viaje: ViajeListItem) {
   return `/admin/viajes/${encodeURIComponent(viaje.docId)}/reporte`;
 }
 
+function getPerformanceHref(viaje: ViajeListItem) {
+  return `/admin/viajes/${encodeURIComponent(viaje.docId)}/rendimiento`;
+}
+
+function getPerformancePdfHref(viaje: ViajeListItem) {
+  return `/admin/viajes/${encodeURIComponent(viaje.docId)}/rendimiento/pdf`;
+}
+
 function getUserLabel(user: AuthUserListItem | undefined, fallbackId: string) {
   if (!user) {
     return fallbackId;
@@ -109,6 +118,28 @@ export function ViajeActions({ canEdit, viaje }: ViajeActionsProps) {
           </Button>
         </TooltipTrigger>
         <TooltipContent>Ver reporte</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button asChild size="icon-sm" variant="outline">
+            <Link href={getPerformanceHref(viaje)}>
+              <BarChart3Icon />
+              <span className="sr-only">Ver rendimiento</span>
+            </Link>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Ver rendimiento</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button asChild size="icon-sm" variant="outline">
+            <Link href={getPerformancePdfHref(viaje)} target="_blank">
+              <DownloadIcon />
+              <span className="sr-only">PDF rendimiento</span>
+            </Link>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>PDF rendimiento</TooltipContent>
       </Tooltip>
     </div>
   );
@@ -216,6 +247,18 @@ function ViajeDetailsDialog({ canEdit, viaje }: ViajeActionsProps) {
             <Link href={getReportHref(viaje)} target="_blank">
               <ScrollTextIcon data-icon="inline-start" />
               Ver reporte
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={getPerformanceHref(viaje)}>
+              <BarChart3Icon data-icon="inline-start" />
+              Ver rendimiento
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={getPerformancePdfHref(viaje)} target="_blank">
+              <DownloadIcon data-icon="inline-start" />
+              PDF rendimiento
             </Link>
           </Button>
         </DialogFooter>

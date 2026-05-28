@@ -9,6 +9,7 @@ type MangoFindRequest = {
   limit?: number;
   selector: Record<string, unknown>;
   sort?: unknown[];
+  use_index?: string | string[];
 };
 
 type MangoFindResponse = {
@@ -23,4 +24,3 @@ type MangoDatabase = {
 export function findTesisDocs(request: MangoFindRequest) {
   return (db as unknown as MangoDatabase).find(request);
 }
-

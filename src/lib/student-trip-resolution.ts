@@ -1,3 +1,5 @@
+import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { Viaje } from "@/lib/schema/viajes";
 
 export type ActiveStudentTrip = {
@@ -27,15 +29,7 @@ export type StudentTripResolution = {
   redirectTo?: string;
 };
 
-type ViajeDocument = Viaje & {
-  _id?: string;
-};
-
-type CouchAllDocsResponse = {
-  rows?: {
-    doc?: unknown;
-  }[];
-};
+type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 const stationRoutes: Record<string, string> = {
   Anamnesis: "/estudiante/anamnesis/create-historia",
@@ -80,30 +74,6 @@ const docenteStationBasePaths: Record<string, string> = {
   Laboratorios: "/docente/laboratorios",
   Diagnóstico: "/docente/diagnostico",
 };
-
-function getCouchAllDocsUrl() {
-  const couchDbUrl = process.env.COUCHDB_URL;
-
-  if (!couchDbUrl) {
-    throw new Error("COUCHDB_URL debe estar configurado.");
-  }
-
-  const baseUrl = couchDbUrl.endsWith("/") ? couchDbUrl : `${couchDbUrl}/`;
-  const url = new URL("_all_docs", baseUrl);
-  url.searchParams.set("include_docs", "true");
-
-  const headers = new Headers();
-
-  if (url.username || url.password) {
-    const username = decodeURIComponent(url.username);
-    const password = decodeURIComponent(url.password);
-    headers.set("Authorization", `Basic ${btoa(`${username}:${password}`)}`);
-    url.username = "";
-    url.password = "";
-  }
-
-  return { headers, url };
-}
 
 function isViaje(doc: unknown): doc is ViajeDocument {
   return (
@@ -155,20 +125,17 @@ function getDocenteStation(viaje: ViajeDocument, userId: string) {
 }
 
 async function listViajes() {
-  const { headers, url } = getCouchAllDocsUrl();
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers,
+  await ensureTesisIndexes();
+
+  const result = await findTesisDocs({
+    limit: 500,
+    selector: {
+      type: "viaje",
+    },
+    use_index: "idx_type",
   });
 
-  if (!response.ok) {
-    throw new Error("No se pudieron consultar los viajes.");
-  }
-
-  const payload = (await response.json()) as CouchAllDocsResponse;
-
-  return (payload.rows ?? [])
-    .map((row) => row.doc)
+  return result.docs
     .filter(isViaje)
     .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
 }

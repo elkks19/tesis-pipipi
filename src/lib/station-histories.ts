@@ -2,11 +2,13 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
+import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia, Paciente } from "@/lib/schema";
 import type { Viaje } from "@/lib/schema/viajes";
 
 const PAGE_SIZE = 10;
+const HISTORY_FIND_BATCH_SIZE = 500;
 
 export const stationConfigs = {
   anamnesis: {
@@ -292,23 +294,42 @@ export async function listStationHistories({
   const rows: StationHistoryRow[] = [];
   const startIndex = Number.parseInt(cursor ?? "0", 10);
   const offset = Number.isFinite(startIndex) && startIndex > 0 ? startIndex : 0;
-  const result = await db.allDocs({ include_docs: true });
+  let bookmark: string | undefined;
 
-  for (const item of result.rows) {
-    if (!isHistoriaDocument(item.doc)) {
-      continue;
-    }
+  await ensureTesisIndexes();
 
-    const row = await serializeHistoria({
-      doc: item.doc,
-      mode,
-      stationKey,
+  do {
+    const result = await findTesisDocs({
+      bookmark,
+      limit: HISTORY_FIND_BATCH_SIZE,
+      selector: {
+        type: "historia",
+      },
+      use_index: "idx_type",
     });
 
-    if (row && rowMatchesQuery(row, normalizedQuery)) {
-      rows.push(row);
+    bookmark = result.bookmark;
+
+    for (const doc of result.docs) {
+      if (!isHistoriaDocument(doc)) {
+        continue;
+      }
+
+      const row = await serializeHistoria({
+        doc,
+        mode,
+        stationKey,
+      });
+
+      if (row && rowMatchesQuery(row, normalizedQuery)) {
+        rows.push(row);
+      }
     }
-  }
+
+    if (result.docs.length < HISTORY_FIND_BATCH_SIZE) {
+      break;
+    }
+  } while (bookmark);
 
   const visibleRows = rows.slice(offset, offset + PAGE_SIZE);
   const nextOffset = offset + PAGE_SIZE;

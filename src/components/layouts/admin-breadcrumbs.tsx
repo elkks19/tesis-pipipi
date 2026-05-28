@@ -22,7 +22,9 @@ export function AdminBreadcrumbs() {
   const pathname = usePathname();
   const currentLabel = pathname.endsWith("/edit")
     ? "Editar viaje"
-    : pageLabels[pathname] ?? "Administracion";
+    : pathname.includes("/rendimiento")
+      ? "Rendimiento"
+      : pageLabels[pathname] ?? "Administracion";
   const isHome = pathname === "/admin";
 
   return (

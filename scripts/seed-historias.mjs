@@ -753,31 +753,51 @@ function omitRandomStations(historia) {
 }
 
 async function deleteSeedDocs(db) {
-  const prefixes = [
-    "actividad:seed:",
-    "historia:seed:",
-    "paciente:seed:",
-    "viaje:seed:",
+  const seedGroups = [
+    { prefix: "actividad:seed:", type: "actividad" },
+    { prefix: "historia:seed:", type: "historia" },
+    { prefix: "paciente:seed:", type: "paciente" },
+    { prefix: "viaje:seed:", type: "viaje" },
   ];
   const docsToDelete = [];
 
-  for (const prefix of prefixes) {
-    const result = await db.allDocs({
-      endkey: `${prefix}\ufff0`,
-      include_docs: true,
-      startkey: prefix,
-    });
+  await db.createIndex({
+    index: {
+      ddoc: "idx_type",
+      fields: ["type"],
+      name: "idx_type",
+    },
+  });
 
-    docsToDelete.push(
-      ...result.rows
-        .map((row) => row.doc)
-        .filter(Boolean)
-        .map((doc) => ({
-          _deleted: true,
-          _id: doc._id,
-          _rev: doc._rev,
-        })),
-    );
+  for (const group of seedGroups) {
+    let bookmark;
+
+    do {
+      const result = await db.find({
+        bookmark,
+        limit: 500,
+        selector: {
+          type: group.type,
+        },
+        use_index: "idx_type",
+      });
+
+      bookmark = result.bookmark;
+
+      docsToDelete.push(
+        ...result.docs
+          .filter((doc) => doc._id?.startsWith(group.prefix))
+          .map((doc) => ({
+            _deleted: true,
+            _id: doc._id,
+            _rev: doc._rev,
+          })),
+      );
+
+      if (result.docs.length < 500) {
+        break;
+      }
+    } while (bookmark);
   }
 
   if (docsToDelete.length > 0) {
@@ -791,6 +811,9 @@ async function createPouchDb() {
   globalThis.self = globalThis.self ?? globalThis;
 
   const { default: PouchDB } = await import("pouchdb/dist/pouchdb.js");
+  const { default: PouchDBFind } = await import("pouchdb-find");
+
+  PouchDB.plugin(PouchDBFind);
 
   return new PouchDB(process.env.COUCHDB_URL);
 }

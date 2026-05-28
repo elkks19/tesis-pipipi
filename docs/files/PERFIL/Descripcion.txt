@@ -1,0 +1,58 @@
+### Nombre del proyecto:
+
+"DESARROLLO DE UN SISTEMA DE E-COMMERCE APLICANDO TÉCNICAS DE MACHINE LEARNING 
+Y ANÁLISIS DE SENTIMIENTO PARA IDENTIFICAR OPORTUNIDADES DE MEJORA EN BASE A
+LA RETROALIMENTACIÓN DE LOS CLIENTES." \
+Caso: "SOALPRO S.R.L."
+
+### Descripción de la problemática:
+
+Un sistema de comercio electrónico (e-commerce) es un software capaz de unificar todos los procesos 
+necesarios para conectar a vendedores y compradores a través de internet. Estos sistemas actualmente 
+se han convertido en una herramienta importante para las empresas y muchas no tienen aún presencia real 
+y efectiva en internet.
+Por otro lado, los compradores están en la posibilidad de escribir reviews (reseñas) sobre los productos 
+o servicios que han adquirido, por lo que la falta de una herramienta para analizar las mismas es una 
+desventaja competitiva para las empresas, las que se ven obligadas a depender de interpretaciones 
+subjetivas y procesos manuales para el análisis de dichas reviews. 
+
+### Descripción de la solución planteada:
+
+El proyecto consiste en el desarrollo de una sistema de e-commerce capaz de realizar la gestión necesaria 
+en dicha área, además de hacer uso de análisis de sentimiento para que la empresa pueda identificar 
+aspectos de un producto que no son bien recibidos por los clientes, y así poder mejorarlos.
+
+### Tecnologías que se desea usar:
+
+Se tiene pensado usar una arquitectura de microservicios, para así poder hacer uso de Python y Tensorflow
+para la realización del análisis de sentimiento, exponiendo una api hecha en Django y otra api hecha 
+usando el framework de Go, Gin para el desarrollo del sistema de e-commerce, usando htmx como componente
+del frontend para hacer uso de las apis.
+Como tunel de pagos se tiene planeado usar Stripe.
+Así mismo hacer un cliente móvil en FlutterFlow que pueda acceder a la api gateway.
+Además de hacer uso de Redis para la cache de los productos, entre otros servicios.
+Como sistema gestor de base de datos se tiene planeado usar PostgreSQL.
+Todo esto desplegado en Fly.io, por la facilidad que ofrece al momento de elegir la estrategia de despliegue.
+Además de hacer uso de Docker.
+
+### Variables de entrada (Información que van an tener que ingresar los usuarios a su sistema)
+
+Los usuarios tendrán que usar un proveedor de OAuth para poder acceder al sistema, o ingresar su correo y contraseña.
+Además de ingresar los datos de su tarjeta de crédito para poder realizar compras.
+En el caso de que una compra sea realizada, el usuario tendrá que ingresar su dirección para poder recibir el producto.
+Además de poder ingresar reviews sobre los productos que ha comprado una vez hayan sido recibidos.
+
+### Variables de salida (Información que su sistema generará)
+
+El sistema generará una lista de productos que el usuario podrá comprar.
+Además de generar una lista de reviews que otros usuarios han realizado anteriormente
+El sistema podrá generar reportes sobre el historial de compras de un usuario.
+Para los usuarios con permisos más elevados, el sistema generará reportes por producto en los cuales detallará los
+aspectos que no han sido bien recibidos por los clientes, así como los aspectos que si han sido bien recibidos, así como
+un reporte sobre los productos más vendidos y los productos menos vendidos.
+
+### Indicar cómo se obtendrá la información del caso de estudio y la información del experto en la materia
+
+El caso de estudio se encuentra en evaluación debido al bajo volumen de reviews que podría generar, por lo que probablemente
+se reemplace por un caso de estudio de una empresa que realize ventas en internet y obtenga más retroalimentación de 
+sus clientes.

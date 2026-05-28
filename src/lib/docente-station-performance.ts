@@ -9,6 +9,7 @@ import { resolveDocenteTripRoute } from "@/lib/student-trip-resolution";
 import { stationConfigs, type StationKey } from "@/lib/station-histories";
 
 import { getViajeByDocId } from "@/app/admin/viajes/queries";
+import type { ViajeListItem } from "@/app/admin/viajes/queries";
 
 type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
 type ActividadDocument = PouchDB.Core.ExistingDocument<Actividad>;
@@ -16,6 +17,15 @@ type ActividadDocument = PouchDB.Core.ExistingDocument<Actividad>;
 type StationAuditValue = {
   created_by?: string;
   updated_by?: string;
+};
+
+type PerformanceTrip = {
+  estacionTipo: string;
+  establecimiento: string;
+  fechaEntrada: string;
+  fechaSalida: string;
+  servicio: string;
+  viajeId: string;
 };
 
 function isHistoria(doc: unknown): doc is HistoriaDocument {
@@ -65,40 +75,53 @@ function formatPercent(value: number) {
   return Math.round(value);
 }
 
-export async function getDocenteStationPerformance(stationKey: StationKey) {
-  const user = await getAuthenticatedUser();
+function topPerformer<Row extends {
+    id: string;
+    name: string;
+  }>(
+  rows: Row[],
+  getValue: (row: Row) => number,
+) {
+  const top = rows
+    .map((row) => ({
+      count: getValue(row),
+      id: row.id,
+      name: row.name,
+    }))
+    .sort((a, b) => b.count - a.count)[0];
 
-  if (!user) {
+  if (!top || top.count <= 0) {
     return null;
   }
 
+  return top;
+}
+
+function toPerformanceTrip(
+  viaje: ViajeListItem,
+  stationLabel: string,
+): PerformanceTrip {
+  return {
+    estacionTipo: stationLabel,
+    establecimiento: viaje.establecimiento.nombre,
+    fechaEntrada: viaje.fechaEntrada,
+    fechaSalida: viaje.fechaSalida,
+    servicio: viaje.servicio,
+    viajeId: viaje.docId,
+  };
+}
+
+export async function getStationPerformanceForTrip({
+  stationKey,
+  viajeId,
+}: {
+  stationKey: StationKey;
+  viajeId: string;
+}) {
   await ensureTesisIndexes();
 
-  const activeTrip = await resolveDocenteTripRoute(user.id).then(
-    (result) => result.activeTrip,
-  );
   const config = stationConfigs[stationKey];
-
-  if (!activeTrip || activeTrip.estacionTipo !== config.viajeTipo) {
-    return {
-      activeTrip: null,
-      rows: [],
-      station: {
-        key: stationKey,
-        label: config.viajeTipo,
-      },
-      summary: {
-        completionRate: 0,
-        completed: 0,
-        requested: 0,
-        students: 0,
-        totalActivities: 0,
-        updates: 0,
-      },
-    };
-  }
-
-  const viaje = await getViajeByDocId(activeTrip.viajeId);
+  const viaje = await getViajeByDocId(viajeId);
   const station = viaje?.estaciones.find(
     (estacion) => estacion.tipo === config.viajeTipo,
   );
@@ -106,6 +129,8 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
   if (!viaje || !station) {
     return null;
   }
+
+  const activeTrip = toPerformanceTrip(viaje, config.viajeTipo);
 
   const [historiesResult, activitiesResult] = await Promise.all([
     findTesisDocs({
@@ -132,18 +157,24 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
   const completedHistories = requestedHistories.filter((historia) =>
     Boolean(getStationAudit(historia, stationKey)),
   );
-  const usersById = getAuthUsersByIds(station.estudiantesIds);
-  const rows = station.estudiantesIds
-    .map((studentId) => {
-      const student = usersById.get(studentId);
+  const actorIds = [
+    ...new Set([
+      ...station.estudiantesIds,
+      ...activities.map((activity) => activity.actorId).filter(Boolean),
+    ]),
+  ];
+  const usersById = getAuthUsersByIds(actorIds);
+  const rows = actorIds
+    .map((actorId) => {
+      const student = usersById.get(actorId);
       const studentActivities = activities.filter(
-        (activity) => activity.actorId === studentId,
+        (activity) => activity.actorId === actorId,
       );
       const stationCreated = completedHistories.filter(
-        (historia) => getStationAudit(historia, stationKey)?.created_by === studentId,
+        (historia) => getStationAudit(historia, stationKey)?.created_by === actorId,
       );
       const stationUpdated = completedHistories.filter(
-        (historia) => getStationAudit(historia, stationKey)?.updated_by === studentId,
+        (historia) => getStationAudit(historia, stationKey)?.updated_by === actorId,
       );
       const touchedHistoryIds = new Set([
         ...studentActivities
@@ -158,6 +189,17 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
       const updatedActivities = studentActivities.filter(
         (activity) => activity.action === "updated",
       ).length;
+      const historyCreatedActivities = studentActivities.filter(
+        (activity) =>
+          activity.action === "created" && activity.subject === "historia",
+      ).length;
+      const patientCreatedActivities = studentActivities.filter(
+        (activity) =>
+          activity.action === "created" && activity.subject === "paciente",
+      ).length;
+      const dataUpdatedActivities = studentActivities.filter(
+        (activity) => activity.action === "updated",
+      ).length;
       const lastActivityAt = studentActivities
         .map((activity) => activity.createdAt)
         .sort((a, b) => b.localeCompare(a))[0];
@@ -167,10 +209,14 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
           (stationCreated.length / Math.max(1, completedHistories.length)) * 100,
         ),
         createdActivities,
+        dataUpdatedActivities,
         email: student?.email ?? "",
-        id: studentId,
+        historyCreatedActivities,
+        id: actorId,
+        isAssignedStudent: station.estudiantesIds.includes(actorId),
         lastActivityAt,
-        name: student?.name ?? studentId,
+        name: student?.name ?? actorId,
+        patientCreatedActivities,
         registered: stationCreated.length,
         role: student?.role ?? null,
         touchedHistories: touchedHistoryIds.size,
@@ -188,6 +234,15 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
 
       return b.totalActivities - a.totalActivities;
     });
+  const historiesCreated = activities.filter(
+    (activity) => activity.action === "created" && activity.subject === "historia",
+  ).length;
+  const patientsCreated = activities.filter(
+    (activity) => activity.action === "created" && activity.subject === "paciente",
+  ).length;
+  const dataUpdates = activities.filter(
+    (activity) => activity.action === "updated",
+  ).length;
 
   return {
     activeTrip,
@@ -197,6 +252,21 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
       label: config.viajeTipo,
     },
     summary: {
+      dataUpdates,
+      historiesCreated,
+      patientsCreated,
+      topDataUpdater: topPerformer(
+        rows,
+        (row) => row.dataUpdatedActivities,
+      ),
+      topHistoryCreator: topPerformer(
+        rows,
+        (row) => row.historyCreatedActivities,
+      ),
+      topPatientCreator: topPerformer(
+        rows,
+        (row) => row.patientCreatedActivities,
+      ),
       completionRate: formatPercent(
         (completedHistories.length / Math.max(1, requestedHistories.length)) * 100,
       ),
@@ -208,3 +278,29 @@ export async function getDocenteStationPerformance(stationKey: StationKey) {
     },
   };
 }
+
+export async function getDocenteStationPerformance(stationKey: StationKey) {
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const activeTrip = await resolveDocenteTripRoute(user.id).then(
+    (result) => result.activeTrip,
+  );
+  const config = stationConfigs[stationKey];
+
+  if (!activeTrip || activeTrip.estacionTipo !== config.viajeTipo) {
+    return null;
+  }
+
+  return getStationPerformanceForTrip({
+    stationKey,
+    viajeId: activeTrip.viajeId,
+  });
+}
+
+export type DocenteStationPerformance = NonNullable<
+  Awaited<ReturnType<typeof getStationPerformanceForTrip>>
+>;

@@ -11,6 +11,7 @@ export {
   defaultAuthRole,
   docenteRoles,
   estudianteRoles,
+  researcherRoles,
 } from "@/lib/auth-role-values";
 
 export const authStatements = {
@@ -46,6 +47,14 @@ const docenteOrganizador = authAccessControl.newRole({
   viaje: ["create", "read", "list"],
 });
 
+const docenteInvestigador = authAccessControl.newRole({
+  actividad: ["read"],
+  estacion: ["read"],
+  session: [],
+  user: [],
+  viaje: ["read", "list"],
+});
+
 const admin = authAccessControl.newRole({
   ...adminAc.statements,
   actividad: ["read"],
@@ -56,6 +65,7 @@ const admin = authAccessControl.newRole({
 export const authRoles = {
   admin,
   docente,
+  "docente-investigador": docenteInvestigador,
   "docente-organizador": docenteOrganizador,
   estudiante,
 } satisfies Record<AuthRole, typeof estudiante>;

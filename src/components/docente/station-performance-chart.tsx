@@ -176,21 +176,21 @@ export function StationCategoryBars({
   return (
     <div className="grid gap-3 xl:grid-cols-3">
       <ActorMetricChart
-        description="Grafico de historias creadas"
+        description="Aportes por actor"
         metricKey="historyCreatedActivities"
         rows={rows}
         title="Historias creadas"
         total={totals.historiesCreated}
       />
       <ActorMetricChart
-        description="Grafico de pacientes creados"
+        description="Registros iniciales por actor"
         metricKey="patientCreatedActivities"
         rows={rows}
         title="Pacientes creados"
         total={totals.patientsCreated}
       />
       <ActorMetricChart
-        description="Grafico de datos editados"
+        description="Actualizaciones por actor"
         metricKey="dataUpdatedActivities"
         rows={rows}
         title="Datos editados"

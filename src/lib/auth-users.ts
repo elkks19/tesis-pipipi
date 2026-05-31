@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import type { AuthRole } from "@/lib/auth-role-values";
 
 export type AuthUserListItem = {
+  createdAt?: string | null;
   email: string;
   id: string;
   name: string;
@@ -16,6 +17,7 @@ export type AuthUserWithAccounts = AuthUserListItem & {
 };
 
 type AuthUserRow = {
+  createdAt?: string | null;
   email: string;
   id: string;
   name: string;
@@ -32,11 +34,12 @@ export function listAuthUsers(): AuthUserListItem[] {
   try {
     const rows = database
       .prepare(
-        'SELECT id, name, email, role FROM "user" ORDER BY name COLLATE NOCASE ASC',
+        'SELECT id, name, email, role, createdAt FROM "user" ORDER BY name COLLATE NOCASE ASC',
       )
       .all() as AuthUserRow[];
 
     return rows.map((row) => ({
+      createdAt: row.createdAt,
       email: row.email,
       id: row.id,
       name: row.name,
@@ -61,7 +64,7 @@ export function getAuthUsersByIds(ids: string[]) {
 
   try {
     const statement = database.prepare(
-      'SELECT id, name, email, role FROM "user" WHERE id = ?',
+      'SELECT id, name, email, role, createdAt FROM "user" WHERE id = ?',
     );
 
     for (const id of uniqueIds) {
@@ -69,6 +72,7 @@ export function getAuthUsersByIds(ids: string[]) {
 
       if (row) {
         users.set(row.id, {
+          createdAt: row.createdAt,
           email: row.email,
           id: row.id,
           name: row.name,
@@ -96,6 +100,7 @@ export function listAuthUsersWithAccounts(): AuthUserWithAccounts[] {
           "user".name,
           "user".email,
           "user".role,
+          "user".createdAt,
           GROUP_CONCAT(account.providerId) AS providers
         FROM "user"
         LEFT JOIN account ON account.userId = "user".id
@@ -105,6 +110,7 @@ export function listAuthUsersWithAccounts(): AuthUserWithAccounts[] {
       .all() as (AuthUserRow & { providers: string | null })[];
 
     return rows.map((row) => ({
+      createdAt: row.createdAt,
       email: row.email,
       id: row.id,
       name: row.name,

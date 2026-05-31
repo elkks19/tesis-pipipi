@@ -30,12 +30,14 @@ import {
   type DocenteStationPerformance,
 } from "@/lib/docente-station-performance";
 import type { StationKey } from "@/lib/station-histories";
+import { cn } from "@/lib/utils";
 
 type StationPerformancePageProps = {
   stationKey: StationKey;
 };
 
 type StationPerformanceViewProps = {
+  compactTitle?: boolean;
   pdfHref: string;
   performance: DocenteStationPerformance;
   title?: string;
@@ -98,15 +100,23 @@ function MetricCard({
 }
 
 export function StationPerformanceView({
+  compactTitle = false,
   pdfHref,
   performance,
   title = "Rendimiento de estudiantes",
 }: StationPerformanceViewProps) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold">{title}</h1>
+          <h1
+            className={cn(
+              "font-heading font-semibold",
+              compactTitle ? "text-base" : "text-2xl",
+            )}
+          >
+            {title}
+          </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
             {performance.station.label} en {performance.activeTrip.servicio} -{" "}
             {performance.activeTrip.establecimiento}
@@ -165,7 +175,8 @@ export function StationPerformanceView({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Estudiante</TableHead>
@@ -232,7 +243,8 @@ export function StationPerformanceView({
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

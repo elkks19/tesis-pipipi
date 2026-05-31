@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import type { AuthRole } from "@/lib/auth-role-values";
 import {
+  canAccessDataScience,
   getRoleHomePath,
   getSessionUserRole,
 } from "@/lib/role-redirect";
@@ -115,6 +116,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname === "/investigador" || pathname.startsWith("/investigador/")) {
+    if (!canAccessDataScience(role)) {
+      return redirectTo(startPath, request);
+    }
+
+    return pathname === "/investigador"
+      ? redirectTo("/investigador/investigacion", request)
+      : NextResponse.next();
+  }
+
   if (pathname === "/estudiante" || pathname.startsWith("/estudiante/")) {
     if (roleHomePath !== "/estudiante") {
       return redirectTo(startPath, request);
@@ -190,6 +201,8 @@ export const config = {
     "/docente/:path*",
     "/estudiante",
     "/estudiante/:path*",
+    "/investigador",
+    "/investigador/:path*",
     "/login",
     "/reportes/:path*",
     "/register",

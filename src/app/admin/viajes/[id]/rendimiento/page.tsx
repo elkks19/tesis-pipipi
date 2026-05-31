@@ -6,6 +6,12 @@ import { getViajeByDocId } from "@/app/admin/viajes/queries";
 import { StationPerformanceView } from "@/components/docente/station-performance-page";
 import { Button } from "@/components/ui/button";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   getStationPerformanceForTrip,
   type DocenteStationPerformance,
 } from "@/lib/docente-station-performance";
@@ -75,7 +81,7 @@ export default async function AdminViajeRendimientoPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="sticky top-14 z-10 flex flex-col gap-4 border-b bg-background py-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-2xl font-semibold">
             Rendimiento por estaciones
@@ -101,15 +107,32 @@ export default async function AdminViajeRendimientoPage({
       </div>
 
       {performances.length > 0 ? (
-        performances.map(({ performance, stationKey }) => (
-          <section className="flex flex-col gap-4" key={stationKey}>
-            <StationPerformanceView
-              pdfHref={getStationPdfHref(viajeId, stationKey)}
-              performance={performance}
-              title={`Rendimiento - ${performance.station.label}`}
-            />
-          </section>
-        ))
+        <Tabs defaultValue={performances[0]?.stationKey}>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Estacion a revisar
+            </p>
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="w-max">
+                {performances.map(({ performance, stationKey }) => (
+                  <TabsTrigger key={stationKey} value={stationKey}>
+                    {performance.station.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </div>
+          {performances.map(({ performance, stationKey }) => (
+            <TabsContent className="mt-5" key={stationKey} value={stationKey}>
+              <StationPerformanceView
+                compactTitle
+                pdfHref={getStationPdfHref(viajeId, stationKey)}
+                performance={performance}
+                title={performance.station.label}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
       ) : (
         <div className="rounded-3xl border border-dashed bg-muted/20 p-8 text-center text-sm text-muted-foreground">
           No hay estaciones configuradas para calcular rendimiento.

@@ -4,6 +4,7 @@ import {
   defaultAuthRole,
   docenteRoles,
   estudianteRoles,
+  researcherRoles,
   type AuthRole,
 } from "@/lib/auth-role-values";
 
@@ -30,6 +31,10 @@ export function getRoleHomePath(role: AuthRole) {
     return "/docente";
   }
 
+  if (hasRole(researcherRoles, role)) {
+    return "/investigador/investigacion";
+  }
+
   return "/estudiante";
 }
 
@@ -39,6 +44,10 @@ export function canAccessAdmin(role: AuthRole) {
 
 export function canAccessDocente(role: AuthRole) {
   return hasRole(adminRoles, role) || hasRole(docenteRoles, role);
+}
+
+export function canAccessDataScience(role: AuthRole) {
+  return hasRole(adminRoles, role) || hasRole(researcherRoles, role);
 }
 
 export function canAccessEstudiante(role: AuthRole) {

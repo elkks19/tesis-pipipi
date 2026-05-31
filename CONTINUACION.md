@@ -26,7 +26,7 @@ Estamos trabajando en `/home/esnupi/Documents/tesis`, una app Next.js 16 con App
 
 ## Estado general actual
 
-El proyecto ya tiene flujos de historias por estaciones para estudiantes y docentes, modales de resumen clinico, actividad/auditoria por estacion, reportes Carbone, seeders de historias y una interfaz docente de rendimiento por estacion.
+El proyecto ya tiene flujos de historias por estaciones para estudiantes y docentes, modales de resumen clinico, actividad/auditoria por estacion, reportes Carbone, seeders de historias, rendimiento por estacion para docentes y rendimiento centralizado para administradores.
 
 El worktree puede tener cambios previos no committeados. Revisar antes de tocar archivos y no revertir cosas no relacionadas.
 
@@ -36,7 +36,9 @@ Archivo central:
 
 - `src/lib/station-histories.ts`
 
-Actualmente `listStationHistories()` usa `db.allDocs({ include_docs: true })` y filtra en memoria. Esto fue pedido explicitamente por el usuario porque las queries con indices/find estaban dejando datatables sin resultados.
+Actualmente `listStationHistories()` ya no usa `allDocs`. Usa Mango `find` via `findTesisDocs()` con selector `{ type: "historia" }`, `use_index: "idx_type"` y batches de 500. Se mantiene filtrado posterior por estacion/paciente para preservar comportamiento de datatables.
+
+Tambien se elimino el uso directo de `_all_docs` en `src/lib/student-trip-resolution.ts`; ahora lista viajes con Mango `find`.
 
 Comportamiento esperado:
 
@@ -44,7 +46,11 @@ Comportamiento esperado:
 - Docente: ve historias de su estacion con estado pendiente/registrado.
 - Complementarios validan `examenesComplementariosSolicitados`.
 
-No volver a optimizar esto con `find` salvo pedido explicito.
+Notas:
+
+- No reintroducir `allDocs` ni `_all_docs`.
+- Si se quiere escalar mas, el siguiente paso correcto es pasar `viajeId` a las consultas de datatables para usar `idx_historias_viaje` y reducir mas el universo antes del filtrado por paciente.
+- Mantener `ensureTesisIndexes()` antes de consultas Mango.
 
 ## Resumen clinico
 
@@ -92,9 +98,27 @@ La UI de actividad:
 - Hay boton de detalles para ver cambios del registro de auditoria.
 - Se quito el resumen de campos cambiados debajo de cada item para no saturar.
 
-## Rendimiento docente por estacion
+## Rendimiento por estacion
 
-Se agrego una nueva interfaz en el sidebar de cada estacion docente: `Rendimiento`.
+Hay una interfaz reutilizable de rendimiento por estacion para docentes y administradores.
+
+El calculo central esta en:
+
+- `src/lib/docente-station-performance.ts`
+
+Funcion central:
+
+- `getStationPerformanceForTrip({ viajeId, stationKey })`
+
+La vista reutilizable esta en:
+
+- `src/components/docente/station-performance-page.tsx`
+  - `StationPerformancePage`: wrapper docente, resuelve viaje activo.
+  - `StationPerformanceView`: vista compartida para docente/admin.
+
+Graficos client:
+
+- `src/components/docente/station-performance-chart.tsx`
 
 Rutas:
 
@@ -107,25 +131,51 @@ Rutas:
 - `/docente/laboratorios/rendimiento`
 - `/docente/diagnostico/rendimiento`
 
-Archivos:
+PDFs docentes por estacion:
 
-- `src/lib/docente-station-performance.ts`
-- `src/components/docente/station-performance-page.tsx`
-- `src/app/docente/_components/station-performance-route.tsx`
-- `src/components/layouts/docente-station-sidebar.tsx`
-- `src/components/layouts/docente-station-layout.tsx`
-- `src/components/layouts/docente-station-breadcrumbs.tsx`
+- `/docente/{estacion}/rendimiento/pdf`
 
-La pantalla calcula por estudiante de la estacion actual del docente:
+Admin:
+
+- Desde datatable de viajes hay acciones para ver rendimiento y abrir PDF general de rendimiento.
+- Vista admin: `/admin/viajes/{id}/rendimiento`
+- PDF general admin: `/admin/viajes/{id}/rendimiento/pdf`
+- PDF por estacion admin: `/admin/viajes/{id}/rendimiento/{stationKey}/pdf`
+
+Archivos admin:
+
+- `src/app/admin/viajes/[id]/rendimiento/page.tsx`
+- `src/app/admin/viajes/[id]/rendimiento/pdf/route.ts`
+- `src/app/admin/viajes/[id]/rendimiento/[stationKey]/pdf/route.ts`
+- `src/app/admin/viajes/viaje-actions.tsx`
+
+El rendimiento muestra conteos reales, no participacion relativa:
 
 - registros completados
 - historias tocadas
 - actividad total
 - creaciones/ediciones
-- participacion porcentual
+- historias creadas por actor
+- pacientes creados por actor
+- datos editados por actor
 - ultima actividad
 
-Usa el viaje activo del docente y la `stationKey` de la ruta.
+Los actores incluyen estudiantes asignados y tambien cualquier docente/usuario que aparezca en auditoria (`actorId`).
+
+Importante:
+
+- La actividad de pacientes se registra con `stationKey: "anamnesis"`, por lo que `Pacientes creados` normalmente solo aparece en Anamnesis.
+- No usar Carbone para estos PDFs de rendimiento; se generan internamente.
+
+PDF builder:
+
+- `src/lib/reports/docente-station-performance-pdf.ts`
+
+Incluye:
+
+- PDF individual por estacion (`renderDocenteStationPerformancePdf`)
+- PDF general del viaje (`renderTripPerformancePdf`)
+- Graficos de barras por categoria/actor y tabla en paginas separadas para evitar que se monte el contenido.
 
 ## Reporte de historia clinica
 
@@ -164,12 +214,14 @@ Rutas:
 - `/admin/viajes/{id}/pdf`: genera PDF y descarga (`attachment`).
 - `/admin/viajes/{id}/reporte`: genera PDF y abre en otra pagina (`inline`).
 
-El datatable de viajes mantiene dos botones:
+El datatable de viajes mantiene botones para:
 
 - Descargar PDF
 - Ver reporte
+- Ver rendimiento
+- PDF rendimiento general
 
-Ambos usan el mismo builder y el mismo render de Carbone. Se elimino el reporte HTML viejo y el endpoint JSON temporal `reporte-estudiantes`.
+Los dos reportes de viaje (`pdf` y `reporte`) usan el mismo builder y el mismo render de Carbone. El rendimiento usa el generador interno de PDF, no Carbone. Se elimino el reporte HTML viejo y el endpoint JSON temporal `reporte-estudiantes`.
 
 Shape enviado a Carbone:
 
@@ -249,6 +301,8 @@ Actividades seed:
 - incluye creaciones y actualizaciones
 - usa estudiantes/docentes reales de cada estacion
 - sirve para poblar la UI de actividad y rendimiento
+
+El seeder ya no usa `allDocs` para borrar semillas. Usa `pouchdb-find`, crea `idx_type` y busca por `type`, filtrando prefijos seed por `_id`.
 
 Tambien existen:
 

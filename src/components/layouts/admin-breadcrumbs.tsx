@@ -14,6 +14,9 @@ import {
 
 const pageLabels: Record<string, string> = {
   "/admin": "Dashboard",
+  "/admin/ciencia-datos": "Investigacion",
+  "/admin/investigacion": "Investigacion",
+  "/admin/usuarios": "Usuarios",
   "/admin/viajes": "Viajes",
   "/admin/viajes/create": "Crear viaje",
 };

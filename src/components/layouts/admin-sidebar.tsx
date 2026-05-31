@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BrainCircuitIcon,
   BriefcaseMedicalIcon,
   LogOutIcon,
   ShieldIcon,
+  UsersRoundIcon,
   UserRoundIcon,
 } from "lucide-react";
 
@@ -44,6 +46,16 @@ const navItems = [
     href: "/admin/viajes",
     icon: BriefcaseMedicalIcon,
     label: "Viajes",
+  },
+  {
+    href: "/admin/usuarios",
+    icon: UsersRoundIcon,
+    label: "Usuarios",
+  },
+  {
+    href: "/admin/investigacion",
+    icon: BrainCircuitIcon,
+    label: "Investigacion",
   },
 ];
 

@@ -12,6 +12,7 @@ import {
   type DiagnosticoCie11,
 } from "@/lib/schema/diagnostico";
 import type { Historia } from "@/lib/schema/historia";
+import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
 export type SaveDiagnosticoActionState = {
   errors?: Record<string, string>;
@@ -153,6 +154,19 @@ export async function saveDiagnostico(
     if (!isHistoriaDocument(historia)) {
       return {
         message: "El documento seleccionado no corresponde a una historia.",
+        ok: false,
+      };
+    }
+
+    const canEdit = await canAccessActiveStationHistoria({
+      historia,
+      stationKey: "diagnostico",
+      userId,
+    });
+
+    if (!canEdit) {
+      return {
+        message: "No puedes editar una historia fuera de tu viaje activo.",
         ok: false,
       };
     }

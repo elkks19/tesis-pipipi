@@ -4,7 +4,8 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { fakerES_MX as faker } from "@faker-js/faker";
 
-const DEFAULT_COUNT = 80;
+const DEFAULT_COUNT = 1000;
+const DEFAULT_VIAJE_COUNT = 6;
 const DEFAULT_SEED = 20260515;
 const PASSWORD_SEED_NOTICE =
   "Si faltan usuarios, corre primero: pnpm run seed:users";
@@ -81,6 +82,72 @@ const enfermedades = [
   { code: "GB61", iNo: "http://id.who.int/icd/entity/1457239955", title: "Infeccion urinaria" },
   { code: "MG30.0", iNo: "http://id.who.int/icd/entity/1581976053", title: "Dolor cronico primario" },
   { code: "DA63", iNo: "http://id.who.int/icd/entity/1179281178", title: "Gastritis" },
+  { code: "CA40", iNo: "http://id.who.int/icd/entity/1156524373", title: "Bronquitis aguda" },
+  { code: "CA01", iNo: "http://id.who.int/icd/entity/257068234", title: "Rinitis alergica" },
+  { code: "DA42", iNo: "http://id.who.int/icd/entity/1437305011", title: "Reflujo gastroesofagico" },
+  { code: "DA90", iNo: "http://id.who.int/icd/entity/1676588433", title: "Colelitiasis" },
+  { code: "DB98", iNo: "http://id.who.int/icd/entity/1807604756", title: "Enfermedad hepatica grasa no alcoholica" },
+  { code: "GC08", iNo: "http://id.who.int/icd/entity/1205980068", title: "Enfermedad renal cronica" },
+  { code: "GB40", iNo: "http://id.who.int/icd/entity/1056917082", title: "Cistitis aguda" },
+  { code: "MG30.3", iNo: "http://id.who.int/icd/entity/849253504", title: "Dolor lumbar cronico" },
+  { code: "ME84", iNo: "http://id.who.int/icd/entity/1996104237", title: "Cefalea tensional" },
+  { code: "8A80", iNo: "http://id.who.int/icd/entity/1468245874", title: "Migrana" },
+  { code: "5B81", iNo: "http://id.who.int/icd/entity/1607406018", title: "Obesidad" },
+  { code: "5B7Z", iNo: "http://id.who.int/icd/entity/202538872", title: "Dislipidemia" },
+  { code: "3A00", iNo: "http://id.who.int/icd/entity/2092036365", title: "Anemia por deficiencia de hierro" },
+  { code: "JA00", iNo: "http://id.who.int/icd/entity/123456701", title: "Control prenatal normal" },
+  { code: "GA34", iNo: "http://id.who.int/icd/entity/123456702", title: "Vaginitis" },
+  { code: "1A07", iNo: "http://id.who.int/icd/entity/123456703", title: "Diarrea y gastroenteritis infecciosa" },
+  { code: "1F20", iNo: "http://id.who.int/icd/entity/123456704", title: "Candidiasis" },
+  { code: "BA01", iNo: "http://id.who.int/icd/entity/123456705", title: "Cardiopatia hipertensiva" },
+  { code: "BB40", iNo: "http://id.who.int/icd/entity/123456706", title: "Arritmia cardiaca" },
+  { code: "CA22", iNo: "http://id.who.int/icd/entity/123456707", title: "Enfermedad pulmonar obstructiva cronica" },
+  { code: "FB83", iNo: "http://id.who.int/icd/entity/123456708", title: "Osteoartritis" },
+  { code: "6B00", iNo: "http://id.who.int/icd/entity/123456709", title: "Trastorno de ansiedad generalizada" },
+  { code: "6A70", iNo: "http://id.who.int/icd/entity/123456710", title: "Trastorno depresivo" },
+  { code: "MG22", iNo: "http://id.who.int/icd/entity/123456711", title: "Mareo y vertigo" },
+  { code: "ED50", iNo: "http://id.who.int/icd/entity/123456712", title: "Dermatitis atopica" },
+];
+
+const serviciosViaje = [
+  "atencion clinica general",
+  "campaña integral comunitaria",
+  "tamizaje cardiometabolico",
+  "brigada rural de salud",
+  "control de enfermedades cronicas",
+  "jornada de complementarios",
+];
+const establecimientos = [
+  {
+    contacto: "77887788",
+    direccion: "Av. los palmos 123",
+    nombre: "Centro de Salud de prueba",
+  },
+  {
+    contacto: "71234567",
+    direccion: "Calle Aroma y Bolivar",
+    nombre: "Centro Integral San Miguel",
+  },
+  {
+    contacto: "76543210",
+    direccion: "Comunidad Alto Verde",
+    nombre: "Puesto de Salud Alto Verde",
+  },
+  {
+    contacto: "70112233",
+    direccion: "Zona Central, plaza principal",
+    nombre: "Hospital Municipal Norte",
+  },
+  {
+    contacto: "78990011",
+    direccion: "Camino a la laguna km 4",
+    nombre: "Centro Comunitario Esperanza",
+  },
+  {
+    contacto: "73445566",
+    direccion: "Av. Circunvalacion 405",
+    nombre: "Policonsultorio Universitario",
+  },
 ];
 
 const estadosCiviles = ["Soltero", "Casado", "Viudo", "Unión Libre", "Divorciado"];
@@ -218,14 +285,14 @@ function getStationAssignments(usersByEmail) {
   });
 }
 
-function stationStudent(assignments, tipo, index) {
+function stationRandomStudent(assignments, tipo) {
   const station = assignments.find((item) => item.tipo === tipo);
 
   if (!station) {
     throw new Error(`No existe asignacion para ${tipo}.`);
   }
 
-  return station.estudiantes[index % station.estudiantes.length];
+  return pick(station.estudiantes);
 }
 
 function stationAssignment(assignments, tipo) {
@@ -238,28 +305,42 @@ function stationAssignment(assignments, tipo) {
   return station;
 }
 
-function buildViaje(assignments) {
+function buildViaje(assignments, index) {
   const today = new Date();
-  const viajeId = "viaje:seed:historias";
+  const viajeNumber = index + 1;
+  const viajeId = `viaje:seed:historias:${String(viajeNumber).padStart(2, "0")}`;
+  const startDate = addDays(today, index * 18 - 36);
+  const endDate = addDays(startDate, faker.number.int({ max: 9, min: 4 }));
+  const establecimiento = establecimientos[index % establecimientos.length];
 
   return {
     _id: viajeId,
     id: viajeId,
     type: "viaje",
-    servicio: "atencion clinica general",
-    fechaEntrada: dateValue(addDays(today, -1)),
-    fechaSalida: dateValue(addDays(today, 14)),
-    establecimiento: {
-      nombre: "Centro de Salud de prueba",
-      direccion: "Av. los palmos 123",
-      contacto: "77887788",
-    },
+    servicio: serviciosViaje[index % serviciosViaje.length],
+    fechaEntrada: dateValue(startDate),
+    fechaSalida: dateValue(endDate),
+    establecimiento,
     estaciones: assignments.map((station) => ({
       tipo: station.tipo,
       docenteEncargadoId: station.docente.id,
       estudiantesIds: station.estudiantes.map((student) => student.id),
     })),
   };
+}
+
+function buildViajes(assignments, viajeCount) {
+  return Array.from({ length: viajeCount }, (_, index) =>
+    buildViaje(assignments, index),
+  );
+}
+
+function viajeForIndex(viajes, index) {
+  return viajes[(index - 1) % viajes.length];
+}
+
+function viajeLabel(viaje) {
+  return `${viaje.servicio} / ${viaje.establecimiento.nombre}`;
 }
 
 function buildPaciente(index) {
@@ -363,12 +444,26 @@ function buildChanges(before, after) {
     }));
 }
 
-function seedTimestamp(index, offsetMinutes) {
-  const base = new Date();
-  base.setHours(7, 0, 0, 0);
-  base.setDate(base.getDate() - Math.min(6, Math.floor(index / 14)));
+function seedTimestamp(viaje, index, offsetMinutes) {
+  const start = new Date(`${viaje.fechaEntrada}T08:00:00.000-04:00`);
+  const end = new Date(`${viaje.fechaSalida}T17:30:00.000-04:00`);
+  const totalDays = Math.max(
+    1,
+    Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1,
+  );
+  const dayOffset = (Math.floor(index / 6) + index) % totalDays;
+  const base = new Date(start);
 
-  return new Date(base.getTime() + offsetMinutes * 60_000).toISOString();
+  base.setDate(base.getDate() + dayOffset);
+  base.setHours(8 + (index % 8), 0, 0, 0);
+
+  const timestamp = new Date(base.getTime() + offsetMinutes * 60_000);
+
+  if (timestamp > end) {
+    return end.toISOString();
+  }
+
+  return timestamp.toISOString();
 }
 
 function activityId(index, stationKey, action, sequence) {
@@ -387,6 +482,7 @@ function buildActivity({
   stationKey,
   subject,
   viajeId,
+  viajeLabel,
 }) {
   const changes = buildChanges(before, after);
 
@@ -403,6 +499,7 @@ function buildActivity({
     stationKey,
     subject,
     viajeId,
+    viajeLabel,
   };
 }
 
@@ -708,48 +805,93 @@ function buildUpdatedStationBefore(stationKey, after) {
   return before;
 }
 
-function buildUpdatedPatientBefore(paciente) {
-  const before = clone(paciente);
-
-  before.datosPersonales.nombres = faker.person.firstName(
-    paciente.genero === "Femenino" ? "female" : "male",
-  );
-  before.nacionalidad = "Boliviana";
-
-  return before;
-}
-
-function getIncompleteIndexes(count) {
-  const incompleteCount = Math.max(1, Math.round(count * 0.05));
+function getRandomIndexes(count, probability) {
+  const targetCount = Math.max(1, Math.round(count * probability));
   const indexes = new Set();
 
-  while (indexes.size < incompleteCount) {
+  while (indexes.size < targetCount) {
     indexes.add(faker.number.int({ max: count, min: 1 }));
   }
 
   return indexes;
 }
 
-function omitRandomStations(historia) {
-  const removableFields = [
-    "examenFisicoGeneral",
-    "examenFisicoSegmentario",
-    "ecografia",
-    "electrocardiograma",
-    "espirometria",
-    "laboratorios",
-    "diagnostico",
-  ];
-  const fieldsToRemove = faker.helpers.arrayElements(removableFields, {
-    max: 3,
-    min: 1,
-  });
+function getRandomSubset(source, targetCount) {
+  return new Set(
+    faker.helpers.arrayElements([...source], {
+      max: targetCount,
+      min: targetCount,
+    }),
+  );
+}
 
-  for (const field of fieldsToRemove) {
-    delete historia[field];
+function buildComplementaryRequests(required) {
+  if (!required) {
+    return {};
   }
 
-  return fieldsToRemove;
+  const requests = {
+    ecografia: maybe(0.35),
+    electrocardiograma: maybe(0.3),
+    espirometria: maybe(0.22),
+    laboratorios: maybe(0.78),
+  };
+
+  if (!Object.values(requests).some(Boolean)) {
+    requests[pick(["ecografia", "electrocardiograma", "espirometria", "laboratorios"])] = true;
+  }
+
+  return requests;
+}
+
+function applyDataVariation(historia, paciente) {
+  const variation = pick([
+    "missing-maternal-lastname",
+    "no-declared-ethnicity",
+    "high-risk-vitals",
+    "sparse-anamnesis",
+    "borderline-labs",
+  ]);
+
+  switch (variation) {
+    case "missing-maternal-lastname":
+      paciente.datosPersonales.apellidoMaterno = "";
+      return ["paciente.datosPersonales.apellidoMaterno"];
+    case "no-declared-ethnicity":
+      paciente.etnia = "No declara";
+      return ["paciente.etnia"];
+    case "high-risk-vitals":
+      historia.examenFisicoGeneral.presionArterial.derecha.max = faker.number.int({
+        max: 180,
+        min: 150,
+      });
+      historia.examenFisicoGeneral.presionArterial.derecha.min = faker.number.int({
+        max: 115,
+        min: 95,
+      });
+      historia.examenFisicoGeneral.frecuenciaCardiaca = faker.number.int({
+        max: 122,
+        min: 106,
+      });
+      return [
+        "examenFisicoGeneral.presionArterial.derecha",
+        "examenFisicoGeneral.frecuenciaCardiaca",
+      ];
+    case "sparse-anamnesis":
+      historia.anamnesis.historiaEnfermedadActual =
+        "Paciente refiere sintomas inespecificos de corta evolucion.";
+      historia.anamnesis.antecedentesPatologicos.personales = [];
+      return [
+        "anamnesis.historiaEnfermedadActual",
+        "anamnesis.antecedentesPatologicos.personales",
+      ];
+    case "borderline-labs":
+      historia.diagnostico.planTrabajo =
+        "Control clinico cercano, repetir evaluacion si aparecen signos de alarma.";
+      return ["diagnostico.planTrabajo"];
+  }
+
+  return [];
 }
 
 async function deleteSeedDocs(db) {
@@ -807,6 +949,25 @@ async function deleteSeedDocs(db) {
   return docsToDelete.length;
 }
 
+async function resetDatabaseDocs(db) {
+  const response = await db.allDocs({
+    include_docs: false,
+  });
+  const docsToDelete = response.rows
+    .filter((row) => !row.id.startsWith("_design/"))
+    .map((row) => ({
+      _deleted: true,
+      _id: row.id,
+      _rev: row.value.rev,
+    }));
+
+  if (docsToDelete.length > 0) {
+    await db.bulkDocs(docsToDelete);
+  }
+
+  return docsToDelete.length;
+}
+
 async function createPouchDb() {
   globalThis.self = globalThis.self ?? globalThis;
 
@@ -821,11 +982,24 @@ async function createPouchDb() {
 loadEnvFile(path.join(process.cwd(), ".env"));
 
 const count = Number.parseInt(getArg("count", String(DEFAULT_COUNT)), 10);
+const viajeCount = Number.parseInt(
+  getArg("viajes", String(DEFAULT_VIAJE_COUNT)),
+  10,
+);
 const seed = Number.parseInt(getArg("seed", String(DEFAULT_SEED)), 10);
 const dryRun = hasFlag("dry-run");
+const resetDb = hasFlag("reset-db");
 
 if (!Number.isFinite(count) || count < 1) {
   throw new Error("--count debe ser un entero mayor a 0.");
+}
+
+if (!Number.isFinite(viajeCount) || viajeCount < 1) {
+  throw new Error("--viajes debe ser un entero mayor a 0.");
+}
+
+if (count < viajeCount * 100) {
+  throw new Error("Cada viaje debe tener al menos 100 historias.");
 }
 
 if (!dryRun && !process.env.COUCHDB_URL) {
@@ -836,51 +1010,67 @@ faker.seed(seed);
 
 const usersByEmail = getUsersByEmail();
 const assignments = getStationAssignments(usersByEmail);
-const viaje = buildViaje(assignments);
-const incompleteIndexes = getIncompleteIndexes(count);
-const docs = [viaje];
-const incompleteSummary = [];
+const viajes = buildViajes(assignments, viajeCount);
+const variationIndexes = getRandomIndexes(count, 0.05);
+const complementaryIndexes = getRandomIndexes(count, 0.2);
+const updateIndexes = getRandomIndexes(count, 0.0235);
+const multiUpdateIndexes = getRandomSubset(
+  updateIndexes,
+  Math.max(1, Math.round(count * 0.002)),
+);
+const docs = [...viajes];
+const variationSummary = [];
+const viajeCounts = new Map(viajes.map((viaje) => [viaje._id, 0]));
 let activityCount = 0;
 let updateActivityCount = 0;
 
 for (let index = 1; index <= count; index += 1) {
+  const viaje = viajeForIndex(viajes, index);
+  const currentViajeLabel = viajeLabel(viaje);
+  viajeCounts.set(viaje._id, (viajeCounts.get(viaje._id) ?? 0) + 1);
   const paciente = buildPaciente(index);
-  const anamnesisUser = stationStudent(assignments, "Anamnesis", index);
-  const efgUser = stationStudent(assignments, "Examen Físico General", index);
-  const efsUser = stationStudent(assignments, "Examen Físico Segmentario", index);
-  const ecografiaUser = stationStudent(assignments, "Ecografía", index);
-  const electroUser = stationStudent(assignments, "Electrocardiograma", index);
-  const espiroUser = stationStudent(assignments, "Espirometría", index);
-  const labUser = stationStudent(assignments, "Laboratorios", index);
-  const diagnosticoUser = stationStudent(assignments, "Diagnóstico", index);
+  const anamnesisUser = stationRandomStudent(assignments, "Anamnesis");
+  const efgUser = stationRandomStudent(assignments, "Examen Físico General");
+  const efsUser = stationRandomStudent(assignments, "Examen Físico Segmentario");
+  const ecografiaUser = stationRandomStudent(assignments, "Ecografía");
+  const electroUser = stationRandomStudent(assignments, "Electrocardiograma");
+  const espiroUser = stationRandomStudent(assignments, "Espirometría");
+  const labUser = stationRandomStudent(assignments, "Laboratorios");
+  const diagnosticoUser = stationRandomStudent(assignments, "Diagnóstico");
   const anamnesisAssignment = stationAssignment(assignments, "Anamnesis");
+  const complementaryRequests = buildComplementaryRequests(
+    complementaryIndexes.has(index),
+  );
   const historia = {
     _id: `historia:seed:${index}`,
     type: "historia",
     created_by: anamnesisUser.id,
     pacienteId: paciente._id,
     viajeId: viaje._id,
-    examenesComplementariosSolicitados: {
-      ecografia: true,
-      laboratorios: true,
-      espirometria: true,
-      electrocardiograma: true,
-    },
+    examenesComplementariosSolicitados: complementaryRequests,
     anamnesis: buildAnamnesis(anamnesisUser, paciente),
     examenFisicoGeneral: buildExamenFisicoGeneral(efgUser),
     examenFisicoSegmentario: buildExamenFisicoSegmentario(efsUser),
-    ecografia: buildEcografia(ecografiaUser, index),
-    electrocardiograma: buildElectrocardiograma(electroUser),
-    espirometria: buildEspirometria(espiroUser),
-    laboratorios: buildLaboratorios(labUser),
     diagnostico: buildDiagnostico(diagnosticoUser),
+    ...(complementaryRequests.ecografia
+      ? { ecografia: buildEcografia(ecografiaUser, index) }
+      : {}),
+    ...(complementaryRequests.electrocardiograma
+      ? { electrocardiograma: buildElectrocardiograma(electroUser) }
+      : {}),
+    ...(complementaryRequests.espirometria
+      ? { espirometria: buildEspirometria(espiroUser) }
+      : {}),
+    ...(complementaryRequests.laboratorios
+      ? { laboratorios: buildLaboratorios(labUser) }
+      : {}),
   };
 
-  if (incompleteIndexes.has(index)) {
-    const removedFields = omitRandomStations(historia);
-    incompleteSummary.push({
+  if (variationIndexes.has(index)) {
+    const fields = applyDataVariation(historia, paciente);
+    variationSummary.push({
+      fields,
       historiaId: historia._id,
-      removedFields,
     });
   }
 
@@ -934,7 +1124,15 @@ for (let index = 1; index <= count; index += 1) {
       user: diagnosticoUser,
     },
   ];
-  const pacienteCreatedAt = seedTimestamp(index, 1);
+  const updateStationKeys = updateIndexes.has(index)
+    ? faker.helpers.arrayElements(
+        stationActivities
+          .filter((item) => historia[item.field])
+          .map((item) => item.key),
+        multiUpdateIndexes.has(index) ? { max: 4, min: 2 } : { max: 1, min: 1 },
+      )
+    : [];
+  const pacienteCreatedAt = seedTimestamp(viaje, index, 1);
 
   docs.push(
     buildActivity({
@@ -949,31 +1147,10 @@ for (let index = 1; index <= count; index += 1) {
       stationKey: "anamnesis",
       subject: "paciente",
       viajeId: viaje._id,
+      viajeLabel: currentViajeLabel,
     }),
   );
   activityCount += 1;
-
-  if (index % 4 === 0) {
-    const beforePaciente = buildUpdatedPatientBefore(paciente);
-
-    docs.push(
-      buildActivity({
-        action: "updated",
-        actorId: anamnesisAssignment.docente.id,
-        after: paciente,
-        before: beforePaciente,
-        createdAt: seedTimestamp(index, 3),
-        historia,
-        id: activityId(index, "anamnesis", "updated-paciente", 1),
-        pacienteId: paciente._id,
-        stationKey: "anamnesis",
-        subject: "paciente",
-        viajeId: viaje._id,
-      }),
-    );
-    activityCount += 1;
-    updateActivityCount += 1;
-  }
 
   stationActivities.forEach((station, stationIndex) => {
     const stationValue = historia[station.field];
@@ -988,23 +1165,27 @@ for (let index = 1; index <= count; index += 1) {
         actorId: station.user.id,
         after: stationValue,
         before: undefined,
-        createdAt: seedTimestamp(index, 10 + stationIndex * 8),
+        createdAt: seedTimestamp(viaje, index, 10 + stationIndex * 8),
         historia,
         id: activityId(index, station.key, "created", 1),
         pacienteId: paciente._id,
         stationKey: station.key,
         subject: "historia",
         viajeId: viaje._id,
+        viajeLabel: currentViajeLabel,
       }),
     );
     activityCount += 1;
 
-    if (index % 3 !== 0 && !maybe(0.18)) {
+    if (!updateIndexes.has(index)) {
       return;
     }
 
-    const updateActor =
-      index % 5 === 0 ? station.assignment.docente : station.user;
+    if (!updateStationKeys.includes(station.key)) {
+      return;
+    }
+
+    const updateActor = station.assignment.docente;
     const beforeStation = buildUpdatedStationBefore(station.key, stationValue);
 
     stationValue.updated_by = updateActor.id;
@@ -1015,13 +1196,14 @@ for (let index = 1; index <= count; index += 1) {
         actorId: updateActor.id,
         after: stationValue,
         before: beforeStation,
-        createdAt: seedTimestamp(index, 14 + stationIndex * 8),
+        createdAt: seedTimestamp(viaje, index, 14 + stationIndex * 8),
         historia,
         id: activityId(index, station.key, "updated", 1),
         pacienteId: paciente._id,
         stationKey: station.key,
         subject: "historia",
         viajeId: viaje._id,
+        viajeLabel: currentViajeLabel,
       }),
     );
     activityCount += 1;
@@ -1031,11 +1213,27 @@ for (let index = 1; index <= count; index += 1) {
   docs.push(paciente, historia);
 }
 
+const outOfRangeActivities = docs
+  .filter((doc) => doc.type === "actividad")
+  .filter((activity) => {
+    const viaje = viajes.find((item) => item._id === activity.viajeId);
+
+    if (!viaje) {
+      return true;
+    }
+
+    const createdAt = new Date(activity.createdAt);
+    const start = new Date(`${viaje.fechaEntrada}T00:00:00.000-04:00`);
+    const end = new Date(`${viaje.fechaSalida}T23:59:59.999-04:00`);
+
+    return createdAt < start || createdAt > end;
+  });
+
 let removed = 0;
 
 if (!dryRun) {
   const db = await createPouchDb();
-  removed = await deleteSeedDocs(db);
+  removed = resetDb ? await resetDatabaseDocs(db) : await deleteSeedDocs(db);
 
   const response = await db.bulkDocs(docs);
   const failures = response.filter((item) => "error" in item);
@@ -1050,18 +1248,26 @@ console.log(
   JSON.stringify(
     {
       count,
-      deletedSeedDocs: removed,
+      complementaryCount: complementaryIndexes.size,
+      complementaryPercent: `${Math.round((complementaryIndexes.size / count) * 100)}%`,
+      deletedDocs: removed,
       dryRun,
-      incompleteCount: incompleteIndexes.size,
-      incompletePercent: `${Math.round((incompleteIndexes.size / count) * 100)}%`,
-      incompleteSummary,
+      resetDb,
+      multiUpdateTargetCount: multiUpdateIndexes.size,
+      updateTargetCount: updateIndexes.size,
+      variationCount: variationIndexes.size,
+      variationPercent: `${Math.round((variationIndexes.size / count) * 100)}%`,
+      variationSummary,
+      viajeCount,
+      viajeCounts: Object.fromEntries(viajeCounts),
       insertedDocs: docs.length,
+      outOfRangeActivities: outOfRangeActivities.length,
       seededActivities: activityCount,
       seededUpdateActivities: updateActivityCount,
       seed,
       stationKeys: stationKeyByTipo,
       stationFields: stationFieldByTipo,
-      viajeId: viaje._id,
+      viajeIds: viajes.map((viaje) => viaje._id),
     },
     null,
     2,

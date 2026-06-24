@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 
-import { listViajes } from "@/app/admin/viajes/queries";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { DataScienceChat } from "@/components/data-science/data-science-chat";
-import { toDataScienceTripOptions } from "@/lib/data-science-trip-options";
 
 export const metadata: Metadata = {
   title: "Investigacion",
@@ -13,9 +11,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function ResearcherResearchPage() {
-  const viajes = await listViajes({});
-  const tripOptions = toDataScienceTripOptions(viajes);
-
   return (
     <main className="h-svh overflow-hidden bg-muted/40 p-2 sm:p-3">
       <div className="flex h-full min-h-0 flex-col gap-2">
@@ -29,7 +24,7 @@ export default async function ResearcherResearchPage() {
           <LogoutButton className="shrink-0" />
         </section>
 
-        <DataScienceChat trips={tripOptions} />
+        <DataScienceChat />
       </div>
     </main>
   );

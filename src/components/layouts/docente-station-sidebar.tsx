@@ -42,6 +42,8 @@ type DocenteStationSidebarProps = {
   performanceHref?: string;
   primaryHref?: string;
   primaryLabel: string;
+  showActivity?: boolean;
+  showPerformance?: boolean;
   subtitle: string;
   title: string;
 };
@@ -60,6 +62,8 @@ export function DocenteStationSidebar({
   performanceHref,
   primaryHref,
   primaryLabel,
+  showActivity = true,
+  showPerformance = true,
   subtitle,
   title,
 }: DocenteStationSidebarProps) {
@@ -80,18 +84,26 @@ export function DocenteStationSidebar({
       icon: ClipboardListIcon,
       label: primaryLabel,
     },
-    {
-      exact: true,
-      href: resolvedActivityHref,
-      icon: ActivityIcon,
-      label: "Actividad",
-    },
-    {
-      exact: true,
-      href: resolvedPerformanceHref,
-      icon: TrendingUpIcon,
-      label: "Rendimiento",
-    },
+    ...(showActivity
+      ? [
+          {
+            exact: true,
+            href: resolvedActivityHref,
+            icon: ActivityIcon,
+            label: "Actividad",
+          },
+        ]
+      : []),
+    ...(showPerformance
+      ? [
+          {
+            exact: true,
+            href: resolvedPerformanceHref,
+            icon: TrendingUpIcon,
+            label: "Rendimiento",
+          },
+        ]
+      : []),
   ];
 
   function closeMobileSidebar() {

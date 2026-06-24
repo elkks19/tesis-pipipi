@@ -11,7 +11,7 @@ import {
 } from "@/lib/schema/anamnesis";
 import type { Historia } from "@/lib/schema/historia";
 import type { Paciente } from "@/lib/schema/pacientes";
-import { isDocenteEncargado } from "@/lib/station-histories";
+import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
 export type CreateAnamnesisActionState = {
   errors?: Record<string, string>;
@@ -428,7 +428,7 @@ export async function updateAnamnesis(
       };
     }
 
-    const canEdit = await isDocenteEncargado({
+    const canEdit = await canAccessActiveStationHistoria({
       historia,
       stationKey: "anamnesis",
       userId,

@@ -90,6 +90,26 @@ function dateToInputValue(value: Date | string) {
   return date.toISOString().slice(0, 10);
 }
 
+function getTodayValue() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/La_Paz",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
+function isActiveViaje(viaje: ViajeDocument, today = getTodayValue()) {
+  return viaje.fechaEntrada <= today && viaje.fechaSalida >= today;
+}
+
 function serializePaciente(doc: PacienteDocument): PacienteSearchResult | null {
   if (!doc._id || doc.type !== "paciente") {
     return null;
@@ -196,6 +216,8 @@ export async function getAssignedViajeIds({
     return [];
   }
 
+  await ensureTesisIndexes();
+
   const stationSelector =
     mode === "docente"
       ? {
@@ -223,6 +245,33 @@ export async function getAssignedViajeIds({
 
   return result.docs
     .filter(isViajeDocument)
+    .map((viaje) => viaje._id ?? viaje.id)
+    .filter(Boolean);
+}
+
+export async function getActiveAssignedViajeIds({
+  mode,
+  stationKey,
+  userId,
+}: {
+  mode: "docente" | "estudiante";
+  stationKey: StationKey;
+  userId?: string;
+}) {
+  const viajeIds = await getAssignedViajeIds({ mode, stationKey, userId });
+
+  if (viajeIds.length === 0) {
+    return [];
+  }
+
+  const viajeCache = new Map<string, ViajeDocument | null>();
+  const viajes = await Promise.all(
+    viajeIds.map((viajeId) => getViaje(viajeId, viajeCache)),
+  );
+
+  return viajes
+    .filter((viaje): viaje is ViajeDocument => Boolean(viaje))
+    .filter((viaje) => isActiveViaje(viaje))
     .map((viaje) => viaje._id ?? viaje.id)
     .filter(Boolean);
 }
@@ -283,6 +332,7 @@ export async function listStationHistories({
   mode,
   query,
   stationKey,
+  userId,
 }: {
   cursor?: string;
   mode: "docente" | "estudiante";
@@ -298,14 +348,36 @@ export async function listStationHistories({
 
   await ensureTesisIndexes();
 
+  const activeViajeIds =
+    mode === "docente"
+      ? await getActiveAssignedViajeIds({ mode, stationKey, userId })
+      : [];
+
+  if (mode === "docente" && activeViajeIds.length === 0) {
+    return {
+      hasNextPage: false,
+      pageSize: PAGE_SIZE,
+      rows: [],
+    };
+  }
+
+  const historySelector: Record<string, unknown> = {
+    type: "historia",
+  };
+  if (activeViajeIds.length === 1) {
+    historySelector.viajeId = activeViajeIds[0];
+  } else if (activeViajeIds.length > 1) {
+    historySelector.viajeId = {
+      $in: activeViajeIds,
+    };
+  }
+
   do {
     const result = await findTesisDocs({
       bookmark,
       limit: HISTORY_FIND_BATCH_SIZE,
-      selector: {
-        type: "historia",
-      },
-      use_index: "idx_type",
+      selector: historySelector,
+      use_index: activeViajeIds.length > 0 ? "idx_historias_viaje" : "idx_type",
     });
 
     bookmark = result.bookmark;
@@ -360,5 +432,38 @@ export async function isDocenteEncargado({
     (item) => item.tipo === stationConfigs[stationKey].viajeTipo,
   );
 
-  return estacion?.docenteEncargadoId === userId;
+  return Boolean(
+    viaje &&
+      isActiveViaje(viaje) &&
+      estacion?.docenteEncargadoId === userId,
+  );
+}
+
+export async function canAccessActiveStationHistoria({
+  historia,
+  stationKey,
+  userId,
+}: {
+  historia: HistoriaDocument;
+  stationKey: StationKey;
+  userId: string;
+}) {
+  if (!historia.viajeId) {
+    return false;
+  }
+
+  const viaje = await getViaje(historia.viajeId, new Map());
+
+  if (!viaje || !isActiveViaje(viaje)) {
+    return false;
+  }
+
+  const estacion = viaje.estaciones.find(
+    (item) => item.tipo === stationConfigs[stationKey].viajeTipo,
+  );
+
+  return Boolean(
+    estacion?.docenteEncargadoId === userId ||
+      estacion?.estudiantesIds.includes(userId),
+  );
 }

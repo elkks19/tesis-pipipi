@@ -6,6 +6,7 @@ import {
   type ExamenFisicoGeneralFormValue,
 } from "@/components/forms/examen-fisico-general-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { ExamenFisicoGeneral } from "@/lib/schema/examenFisicoGeneral";
 import { saveExamenFisicoGeneral } from "@/app/estudiante/examen-fisico-general/[idHistoria]/actions";
 import { getHistoria, numberToString } from "../../_lib/historia-page";
@@ -54,7 +55,11 @@ export default async function DocenteExamenFisicoGeneralCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "examenFisicoGeneral",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

@@ -6,6 +6,7 @@ import {
   type LaboratoriosFormValue,
 } from "@/components/forms/laboratorios-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Laboratorios } from "@/lib/schema/laboratorios";
 import { saveLaboratorios } from "@/app/estudiante/laboratorios/[idHistoria]/actions";
 import { getHistoria } from "../../_lib/historia-page";
@@ -35,7 +36,11 @@ export default async function DocenteLaboratoriosCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "laboratorios",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

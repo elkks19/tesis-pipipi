@@ -6,6 +6,7 @@ import {
   type DiagnosticoFormValue,
 } from "@/components/forms/diagnostico-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Diagnostico } from "@/lib/schema/diagnostico";
 import { saveDiagnostico } from "@/app/estudiante/diagnostico/[idHistoria]/actions";
 import { getHistoria } from "../../_lib/historia-page";
@@ -38,7 +39,11 @@ export default async function DocenteDiagnosticoCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "diagnostico",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

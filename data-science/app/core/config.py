@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     couchdb_url: str = Field(default="", alias="COUCHDB_URL")
     llm_provider: str = Field(default="ollama", alias="DS_LLM_PROVIDER")
     ollama_url: str = Field(default="http://localhost:11434", alias="DS_OLLAMA_URL")
-    chat_model: str = Field(default="llama3.2:3b", alias="DS_CHAT_MODEL")
+    chat_model: str = Field(default="qwen3:4b", alias="DS_CHAT_MODEL")
     embedding_model: str = Field(
         default="intfloat/multilingual-e5-small",
         alias="DS_EMBEDDING_MODEL",

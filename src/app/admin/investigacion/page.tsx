@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 
-import { listViajes } from "@/app/admin/viajes/queries";
 import { DataScienceChat } from "@/components/data-science/data-science-chat";
-import { toDataScienceTripOptions } from "@/lib/data-science-trip-options";
 
 export const metadata: Metadata = {
   title: "Investigacion",
 };
 
 export default async function AdminResearchPage() {
-  const viajes = await listViajes({});
-  const tripOptions = toDataScienceTripOptions(viajes);
-
   return (
     <main
       className="flex h-[calc(100svh-5.5rem)] min-h-0 flex-col gap-2 sm:h-[calc(100svh-6.5rem)]"
@@ -24,7 +19,7 @@ export default async function AdminResearchPage() {
         </p>
       </section>
 
-      <DataScienceChat trips={tripOptions} />
+      <DataScienceChat />
     </main>
   );
 }

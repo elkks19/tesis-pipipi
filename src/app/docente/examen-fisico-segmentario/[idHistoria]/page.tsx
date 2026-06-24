@@ -6,6 +6,7 @@ import {
   type ExamenFisicoSegmentarioFormValue,
 } from "@/components/forms/examen-fisico-segmentario-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { ExamenFisicoSegmentario } from "@/lib/schema/examenFisicoSegmentario";
 import { saveExamenFisicoSegmentario } from "@/app/estudiante/examen-fisico-segmentario/[idHistoria]/actions";
 import { getHistoria } from "../../_lib/historia-page";
@@ -42,7 +43,11 @@ export default async function DocenteExamenFisicoSegmentarioCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "examenFisicoSegmentario",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

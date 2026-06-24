@@ -21,4 +21,5 @@ export type Actividad = {
   stationKey: StationKey;
   subject: ActividadSubject;
   viajeId: string;
+  viajeLabel?: string;
 };

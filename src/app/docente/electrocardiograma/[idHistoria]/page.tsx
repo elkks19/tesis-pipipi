@@ -6,6 +6,7 @@ import {
   type ElectrocardiogramaFormValue,
 } from "@/components/forms/electrocardiograma-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Electrocardiograma } from "@/lib/schema/electrocardiograma";
 import { saveElectrocardiograma } from "@/app/estudiante/electrocardiograma/[idHistoria]/actions";
 import { getHistoria, numberToString } from "../../_lib/historia-page";
@@ -56,7 +57,11 @@ export default async function DocenteElectrocardiogramaCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "electrocardiograma",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

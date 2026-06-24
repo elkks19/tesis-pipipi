@@ -10,6 +10,7 @@ import {
   type Electrocardiograma,
 } from "@/lib/schema/electrocardiograma";
 import type { Historia } from "@/lib/schema/historia";
+import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
 export type SaveElectrocardiogramaActionState = {
   errors?: Record<string, string>;
@@ -150,6 +151,19 @@ export async function saveElectrocardiograma(
     if (!isHistoriaDocument(historia)) {
       return {
         message: "El documento seleccionado no corresponde a una historia.",
+        ok: false,
+      };
+    }
+
+    const canEdit = await canAccessActiveStationHistoria({
+      historia,
+      stationKey: "electrocardiograma",
+      userId,
+    });
+
+    if (!canEdit) {
+      return {
+        message: "No puedes editar una historia fuera de tu viaje activo.",
         ok: false,
       };
     }

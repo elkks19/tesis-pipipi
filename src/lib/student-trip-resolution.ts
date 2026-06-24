@@ -38,6 +38,7 @@ const stationRoutes: Record<string, string> = {
   Ecografía: "/estudiante/ecografia",
   Electrocardiograma: "/estudiante/electrocardiograma",
   Espirometría: "/estudiante/espirometria",
+  Farmacia: "/estudiante/farmacia",
   Laboratorios: "/estudiante/laboratorios",
   Diagnóstico: "/estudiante/diagnostico",
 };
@@ -49,6 +50,7 @@ const docenteStationRoutes: Record<string, string> = {
   Ecografía: "/docente/ecografia",
   Electrocardiograma: "/docente/electrocardiograma",
   Espirometría: "/docente/espirometria",
+  Farmacia: "/docente/farmacia",
   Laboratorios: "/docente/laboratorios",
   Diagnóstico: "/docente/diagnostico",
 };
@@ -60,6 +62,7 @@ const stationBasePaths: Record<string, string> = {
   Ecografía: "/estudiante/ecografia",
   Electrocardiograma: "/estudiante/electrocardiograma",
   Espirometría: "/estudiante/espirometria",
+  Farmacia: "/estudiante/farmacia",
   Laboratorios: "/estudiante/laboratorios",
   Diagnóstico: "/estudiante/diagnostico",
 };
@@ -71,6 +74,7 @@ const docenteStationBasePaths: Record<string, string> = {
   Ecografía: "/docente/ecografia",
   Electrocardiograma: "/docente/electrocardiograma",
   Espirometría: "/docente/espirometria",
+  Farmacia: "/docente/farmacia",
   Laboratorios: "/docente/laboratorios",
   Diagnóstico: "/docente/diagnostico",
 };

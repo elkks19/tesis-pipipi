@@ -6,6 +6,7 @@ import {
   type EspirometriaFormValue,
 } from "@/components/forms/espirometria-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Espirometria } from "@/lib/schema/espirometria";
 import { saveEspirometria } from "@/app/estudiante/espirometria/[idHistoria]/actions";
 import { getHistoria, numberToString } from "../../_lib/historia-page";
@@ -47,7 +48,11 @@ export default async function DocenteEspirometriaCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "espirometria",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

@@ -10,6 +10,7 @@ import {
   type Laboratorios,
 } from "@/lib/schema/laboratorios";
 import type { Historia } from "@/lib/schema/historia";
+import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
 export type SaveLaboratoriosActionState = {
   errors?: Record<string, string>;
@@ -125,6 +126,19 @@ export async function saveLaboratorios(
     if (!isHistoriaDocument(historia)) {
       return {
         message: "El documento seleccionado no corresponde a una historia.",
+        ok: false,
+      };
+    }
+
+    const canEdit = await canAccessActiveStationHistoria({
+      historia,
+      stationKey: "laboratorios",
+      userId,
+    });
+
+    if (!canEdit) {
+      return {
+        message: "No puedes editar una historia fuera de tu viaje activo.",
         ok: false,
       };
     }

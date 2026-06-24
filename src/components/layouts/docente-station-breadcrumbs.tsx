@@ -18,6 +18,8 @@ type DocenteStationBreadcrumbsProps = {
   performanceHref?: string;
   primaryHref?: string;
   primaryLabel: string;
+  showActivity?: boolean;
+  showPerformance?: boolean;
   title: string;
 };
 
@@ -58,6 +60,8 @@ export function DocenteStationBreadcrumbs({
   performanceHref,
   primaryHref,
   primaryLabel,
+  showActivity = true,
+  showPerformance = true,
   title,
 }: DocenteStationBreadcrumbsProps) {
   const pathname = usePathname();
@@ -68,7 +72,7 @@ export function DocenteStationBreadcrumbs({
     pathname,
     resolvedActivityHref,
     basePath,
-    resolvedPerformanceHref,
+    showPerformance ? resolvedPerformanceHref : "",
     resolvedPrimaryHref,
     primaryLabel,
   );
@@ -90,7 +94,11 @@ export function DocenteStationBreadcrumbs({
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{currentLabel}</BreadcrumbPage>
+              <BreadcrumbPage>
+                {showActivity || pathname !== resolvedActivityHref
+                  ? currentLabel
+                  : primaryLabel}
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </>
         ) : null}

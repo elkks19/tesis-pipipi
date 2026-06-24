@@ -35,9 +35,16 @@ def answer_with_statistics(
             chart_type,
             text,
         )
+        by_trip = cross_table_rows(rows, "genero", "viajeId", "genero", "viaje")
+        artifacts = [artifact]
+        if by_trip:
+            artifacts.append(table_artifact("Distribucion por genero y viaje", by_trip))
         return AnalyticsAnswer(
-            f"Encontre {total} historias. La distribucion por genero esta en la grafica.",
-            [artifact],
+            (
+                f"Encontre {total} historias. La distribucion por genero esta en la grafica "
+                "y agregue el cruce por viaje cuando hay datos disponibles."
+            ),
+            artifacts,
         )
 
     if "imc" in text:
@@ -58,7 +65,7 @@ def answer_with_statistics(
             [artifact],
         )
 
-    if "diagnost" in text:
+    if any(word in text for word in ["diagnost", "enfermedad", "patologia", "patología"]):
         counts = Counter(
             diagnosis
             for row in rows
@@ -72,9 +79,19 @@ def answer_with_statistics(
             chart_type,
             text,
         )
+        by_gender = diagnosis_cross_table_rows(rows, "genero", "genero")
+        by_age = diagnosis_cross_table_rows(rows, "grupoEdad", "grupoEdad")
+        artifacts = [artifact]
+        if by_gender:
+            artifacts.append(table_artifact("Diagnosticos por genero", by_gender))
+        if by_age:
+            artifacts.append(table_artifact("Diagnosticos por grupo de edad", by_age))
         return AnalyticsAnswer(
-            f"Encontre {total} historias. Los diagnosticos mas frecuentes estan en el resultado.",
-            [artifact],
+            (
+                f"Encontre {total} historias. Los diagnosticos mas frecuentes estan en el "
+                "resultado, con cruces por genero y grupo de edad si hay datos disponibles."
+            ),
+            artifacts,
         )
 
     return AnalyticsAnswer(
@@ -121,3 +138,39 @@ def normalize_chart_type(chart_type: str, text: str) -> str:
         return "pie"
 
     return "bar"
+
+
+def cross_table_rows(
+    rows: list[dict[str, Any]],
+    primary_field: str,
+    secondary_field: str,
+    primary_key: str,
+    secondary_key: str,
+) -> list[dict[str, Any]]:
+    counts = Counter(
+        (
+            str(row.get(primary_field) or "Sin dato"),
+            str(row.get(secondary_field) or "Sin dato"),
+        )
+        for row in rows
+    )
+    return [
+        {primary_key: primary, secondary_key: secondary, "historias": value}
+        for (primary, secondary), value in counts.most_common()
+    ]
+
+
+def diagnosis_cross_table_rows(
+    rows: list[dict[str, Any]],
+    secondary_field: str,
+    secondary_key: str,
+) -> list[dict[str, Any]]:
+    counts = Counter(
+        (diagnosis, str(row.get(secondary_field) or "Sin dato"))
+        for row in rows
+        for diagnosis in (row.get("diagnosticos") or ["Sin diagnostico"])
+    )
+    return [
+        {"diagnostico": diagnosis, secondary_key: secondary, "historias": value}
+        for (diagnosis, secondary), value in counts.most_common()
+    ]

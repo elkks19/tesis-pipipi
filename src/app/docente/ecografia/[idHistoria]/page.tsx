@@ -6,6 +6,7 @@ import {
   type EcografiaFormValue,
 } from "@/components/forms/ecografia-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { getFileUrl } from "@/lib/file-storage";
 import type { Ecografia } from "@/lib/schema/ecografia";
 import { saveEcografia } from "@/app/estudiante/ecografia/[idHistoria]/actions";
@@ -77,7 +78,11 @@ export default async function DocenteEcografiaCreatePage({
 }) {
   const { idHistoria } = await params;
   const decodedIdHistoria = decodeURIComponent(idHistoria);
-  const historia = await getHistoria(decodedIdHistoria);
+  const userId = await getAuthenticatedUserId();
+  const historia = await getHistoria(decodedIdHistoria, {
+    stationKey: "ecografia",
+    userId: userId ?? undefined,
+  });
 
   if (!historia) {
     notFound();

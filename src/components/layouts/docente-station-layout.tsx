@@ -21,6 +21,8 @@ type DocenteStationLayoutProps = {
   primaryHref?: string;
   primaryIcon?: LucideIcon;
   primaryLabel: string;
+  showActivity?: boolean;
+  showPerformance?: boolean;
   subtitle: string;
   title: string;
 };
@@ -35,9 +37,14 @@ export function DocenteStationLayout({
   primaryHref,
   primaryIcon,
   primaryLabel,
+  showActivity,
+  showPerformance,
   subtitle,
   title,
 }: DocenteStationLayoutProps) {
+  void icon;
+  void primaryIcon;
+
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -47,6 +54,8 @@ export function DocenteStationLayout({
           performanceHref={performanceHref}
           primaryHref={primaryHref}
           primaryLabel={primaryLabel}
+          showActivity={showActivity}
+          showPerformance={showPerformance}
           subtitle={subtitle}
           title={title}
         />
@@ -61,6 +70,8 @@ export function DocenteStationLayout({
                 performanceHref={performanceHref}
                 primaryHref={primaryHref}
                 primaryLabel={primaryLabel}
+                showActivity={showActivity}
+                showPerformance={showPerformance}
                 title={title}
               />
               <span className="truncate text-xs text-muted-foreground">

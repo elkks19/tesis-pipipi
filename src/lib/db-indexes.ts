@@ -25,6 +25,16 @@ const indexes: IndexDefinition[] = [
     name: "idx_historias_viaje",
   },
   {
+    ddoc: "idx_viaje_inventario_viaje",
+    fields: ["type", "viajeId"],
+    name: "idx_viaje_inventario_viaje",
+  },
+  {
+    ddoc: "idx_medicamento_catalogo_fuente",
+    fields: ["type", "fuente"],
+    name: "idx_medicamento_catalogo_fuente",
+  },
+  {
     ddoc: "idx_actividades_station_actor",
     fields: ["type", "stationKey", "actorId"],
     name: "idx_actividades_station_actor",
@@ -48,6 +58,16 @@ const indexes: IndexDefinition[] = [
     ddoc: "idx_actividades_station_viaje_created",
     fields: ["type", "stationKey", "viajeId", "createdAt"],
     name: "idx_actividades_station_viaje_created",
+  },
+  {
+    ddoc: "idx_actividades_viaje_created",
+    fields: ["type", "viajeId", "createdAt"],
+    name: "idx_actividades_viaje_created",
+  },
+  {
+    ddoc: "idx_actividades_viaje_actor_created",
+    fields: ["type", "viajeId", "actorId", "createdAt"],
+    name: "idx_actividades_viaje_actor_created",
   },
   {
     ddoc: "idx_pacientes_documento",

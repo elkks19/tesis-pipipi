@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type UIEvent,
+} from "react";
 import {
   CheckIcon,
   ChevronsUpDownIcon,
   FileDownIcon,
   FileTextIcon,
   HistoryIcon,
-  ListFilterIcon,
   LoaderCircleIcon,
   MessageSquareTextIcon,
   PlusIcon,
@@ -30,7 +36,6 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   ChartContainer,
   ChartTooltip,
@@ -83,7 +88,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import type { DataScienceTripOption } from "@/lib/data-science-types";
+import type {
+  DataScienceTripOption,
+  DataScienceTripSearchResponse,
+} from "@/lib/data-science-types";
 import { cn } from "@/lib/utils";
 
 type Artifact = {
@@ -183,16 +191,19 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function DataScienceChat({
-  trips,
-}: {
-  trips: DataScienceTripOption[];
-}) {
+export function DataScienceChat() {
   const [chats, setChats] = useState<StoredChatSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isChatsPending, setIsChatsPending] = useState(true);
   const [message, setMessage] = useState("");
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
+  const [selectedTripOptions, setSelectedTripOptions] = useState<
+    DataScienceTripOption[]
+  >([]);
+  const [tripOptions, setTripOptions] = useState<DataScienceTripOption[]>([]);
+  const [tripCursor, setTripCursor] = useState<string | null>(null);
+  const [tripHasMore, setTripHasMore] = useState(true);
+  const [isTripsPending, setIsTripsPending] = useState(false);
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
   const [tripSearch, setTripSearch] = useState("");
   const [stationKey, setStationKey] = useState("all");
@@ -202,12 +213,10 @@ export function DataScienceChat({
   const [reportPending, setReportPending] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const tripRequestIdRef = useRef(0);
   const canSubmit = message.trim().length > 0 && !pending;
-  const selectedTrips = trips.filter((trip) => selectedTripIds.includes(trip.id));
-  const filteredTrips = trips.filter((trip) =>
-    normalizeSearch(
-      `${trip.label} ${trip.secondaryLabel} ${trip.dateLabel}`,
-    ).includes(normalizeSearch(tripSearch)),
+  const selectedTrips = selectedTripOptions.filter((trip) =>
+    selectedTripIds.includes(trip.id),
   );
   const selectedStation = stationOptions.find(
     (station) => station.value === stationKey,
@@ -226,12 +235,83 @@ export function DataScienceChat({
         : selectedTrips.map((trip) => trip.label).join(", ");
   const hiddenSelectedTrips = Math.max(0, selectedTrips.length - 3);
 
-  function toggleTrip(tripId: string) {
+  const loadTripOptions = useCallback(
+    async ({
+      cursor,
+      mode,
+      query,
+    }: {
+      cursor?: string | null;
+      mode: "append" | "replace";
+      query: string;
+    }) => {
+      const requestId = tripRequestIdRef.current + 1;
+      tripRequestIdRef.current = requestId;
+      setIsTripsPending(true);
+
+      try {
+        const params = new URLSearchParams({
+          limit: "20",
+          q: query,
+        });
+        if (cursor) {
+          params.set("cursor", cursor);
+        }
+
+        const response = await fetch(`/api/investigacion/viajes?${params}`);
+        const data = (await response.json()) as
+          | DataScienceTripSearchResponse
+          | { message?: string };
+
+        if (!response.ok) {
+          throw new Error(
+            "message" in data ? data.message : "No se pudieron cargar los viajes.",
+          );
+        }
+
+        const result = data as DataScienceTripSearchResponse;
+        if (tripRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setTripOptions((current) =>
+          mode === "append"
+            ? mergeTripOptions(current, result.items)
+            : result.items,
+        );
+        setTripCursor(result.nextCursor);
+        setTripHasMore(result.hasMore);
+      } catch (error) {
+        if (tripRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los viajes.",
+        );
+      } finally {
+        if (tripRequestIdRef.current === requestId) {
+          setIsTripsPending(false);
+        }
+      }
+    },
+    [],
+  );
+
+  function toggleTrip(trip: DataScienceTripOption) {
+    setSelectedTripOptions((current) => mergeTripOptions(current, [trip]));
     setSelectedTripIds((current) =>
-      current.includes(tripId)
-        ? current.filter((id) => id !== tripId)
-        : [...current, tripId],
+      current.includes(trip.id)
+        ? current.filter((id) => id !== trip.id)
+        : [...current, trip.id],
     );
+  }
+
+  function clearTrips() {
+    setSelectedTripIds([]);
+    setSelectedTripOptions([]);
   }
 
   async function loadChats() {
@@ -330,6 +410,37 @@ export function DataScienceChat({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!tripPickerOpen) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void loadTripOptions({
+        mode: "replace",
+        query: tripSearch,
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [loadTripOptions, tripPickerOpen, tripSearch]);
+
+  function handleTripListScroll(event: UIEvent<HTMLDivElement>) {
+    const target = event.currentTarget;
+    const distanceToBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight;
+
+    if (distanceToBottom > 96 || isTripsPending || !tripHasMore) {
+      return;
+    }
+
+    void loadTripOptions({
+      cursor: tripCursor,
+      mode: "append",
+      query: tripSearch,
+    });
+  }
 
   async function submitChat() {
     const question = message.trim();
@@ -576,11 +687,12 @@ export function DataScienceChat({
             <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  aria-expanded={tripPickerOpen}
                   className="h-auto min-h-10 justify-between px-3 py-2 text-left font-normal"
+                  role="combobox"
                   variant="outline"
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <ListFilterIcon aria-hidden="true" data-icon="inline-start" />
                     <span className="min-w-0 truncate">{tripScopeLabel}</span>
                   </span>
                   <ChevronsUpDownIcon aria-hidden="true" />
@@ -588,12 +700,12 @@ export function DataScienceChat({
               </PopoverTrigger>
               <PopoverContent
                 align="start"
-                className="w-[min(620px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
+                className="w-[min(680px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
               >
                 <PopoverHeader className="border-b p-4">
-                  <PopoverTitle>Alcance del analisis</PopoverTitle>
+                  <PopoverTitle>Buscar viajes</PopoverTitle>
                   <PopoverDescription>
-                    Incluye todos los viajes o selecciona campañas específicas.
+                    Escribe un lugar, servicio o fecha. La lista carga más resultados al bajar.
                   </PopoverDescription>
                 </PopoverHeader>
 
@@ -611,7 +723,7 @@ export function DataScienceChat({
                   </InputGroup>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
-                      onClick={() => setSelectedTripIds([])}
+                      onClick={clearTrips}
                       size="sm"
                       type="button"
                       variant={selectedTripIds.length === 0 ? "default" : "outline"}
@@ -623,7 +735,7 @@ export function DataScienceChat({
                     </Button>
                     {selectedTripIds.length > 0 ? (
                       <Button
-                        onClick={() => setSelectedTripIds([])}
+                        onClick={clearTrips}
                         size="sm"
                         type="button"
                         variant="ghost"
@@ -635,25 +747,34 @@ export function DataScienceChat({
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto p-2">
-                  {filteredTrips.length > 0 ? (
-                    filteredTrips.map((trip) => {
-                      const checked = selectedTripIds.includes(trip.id);
+                <div
+                  className="max-h-80 overflow-y-auto p-2"
+                  onScroll={handleTripListScroll}
+                >
+                  {tripOptions.length > 0 ? (
+                    tripOptions.map((trip) => {
+                      const selected = selectedTripIds.includes(trip.id);
 
                       return (
-                        <label
+                        <button
                           className={cn(
-                            "flex w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
-                            checked && "bg-muted",
+                            "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
+                            selected && "bg-muted",
                           )}
-                          htmlFor={`trip-${trip.id}`}
                           key={trip.id}
+                          onClick={() => toggleTrip(trip)}
+                          type="button"
                         >
-                          <Checkbox
-                            checked={checked}
-                            id={`trip-${trip.id}`}
-                            onCheckedChange={() => toggleTrip(trip.id)}
-                          />
+                          <span
+                            className={cn(
+                              "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-input bg-background",
+                            )}
+                          >
+                            {selected ? <CheckIcon aria-hidden="true" /> : null}
+                          </span>
                           <span className="flex min-w-0 flex-1 flex-col gap-1">
                             <span className="truncate text-sm font-medium">
                               {trip.label}
@@ -662,14 +783,29 @@ export function DataScienceChat({
                               {trip.secondaryLabel} · {trip.dateLabel}
                             </span>
                           </span>
-                        </label>
+                        </button>
                       );
                     })
-                  ) : (
+                  ) : !isTripsPending ? (
                     <div className="p-5 text-center text-sm text-muted-foreground">
                       No hay viajes que coincidan con la busqueda.
                     </div>
-                  )}
+                  ) : null}
+                  {isTripsPending ? (
+                    <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+                      <LoaderCircleIcon
+                        aria-hidden="true"
+                        className="animate-spin"
+                        data-icon="inline-start"
+                      />
+                      Cargando viajes
+                    </div>
+                  ) : null}
+                  {!isTripsPending && tripOptions.length > 0 && !tripHasMore ? (
+                    <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                      No hay más viajes para esta búsqueda.
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center justify-between gap-3 border-t p-3">
@@ -695,7 +831,7 @@ export function DataScienceChat({
                   <Button
                     className="h-6 max-w-48 gap-1 px-2 text-xs"
                     key={trip.id}
-                    onClick={() => toggleTrip(trip.id)}
+                    onClick={() => toggleTrip(trip)}
                     size="sm"
                     type="button"
                     variant="secondary"
@@ -831,12 +967,16 @@ export function DataScienceChat({
   );
 }
 
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+function mergeTripOptions(
+  current: DataScienceTripOption[],
+  incoming: DataScienceTripOption[],
+) {
+  const byId = new Map(current.map((trip) => [trip.id, trip]));
+  for (const trip of incoming) {
+    byId.set(trip.id, trip);
+  }
+
+  return Array.from(byId.values());
 }
 
 function EmptyConversation({

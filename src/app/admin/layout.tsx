@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <TooltipProvider>
       <SidebarProvider>
         <AdminSidebar />
-        <SidebarInset className="bg-muted/40">
+        <SidebarInset className="bg-background">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </span>
             </div>
           </header>
-          <div className="m-2 mx-auto w-[calc(100%-1rem)] rounded-3xl bg-background p-4 shadow-sm ring-1 ring-border/60 has-[[data-admin-workspace]]:rounded-none has-[[data-admin-workspace]]:p-2 has-[[data-admin-workspace]]:shadow-none has-[[data-admin-workspace]]:ring-0 sm:m-4 sm:w-[calc(100%-2rem)] sm:p-6 sm:has-[[data-admin-workspace]]:p-2 lg:p-8 lg:has-[[data-admin-workspace]]:p-2">
+          <div className="w-full p-4 sm:p-5 lg:p-6">
             {children}
           </div>
         </SidebarInset>

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -23,7 +25,10 @@ class ChatScope(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    chart_type: str = Field(default="auto", alias="chartType")
+    chart_type: Literal["auto", "table", "bar", "line", "pie"] = Field(
+        default="auto",
+        alias="chartType",
+    )
     conversation_id: str | None = Field(default=None, alias="conversationId")
     message: str = Field(min_length=1)
     scope: ChatScope = Field(default_factory=ChatScope)

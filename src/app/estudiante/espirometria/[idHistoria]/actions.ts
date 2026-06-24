@@ -10,6 +10,7 @@ import {
   type Espirometria,
 } from "@/lib/schema/espirometria";
 import type { Historia } from "@/lib/schema/historia";
+import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
 export type SaveEspirometriaActionState = {
   errors?: Record<string, string>;
@@ -128,6 +129,19 @@ export async function saveEspirometria(
     if (!isHistoriaDocument(historia)) {
       return {
         message: "El documento seleccionado no corresponde a una historia.",
+        ok: false,
+      };
+    }
+
+    const canEdit = await canAccessActiveStationHistoria({
+      historia,
+      stationKey: "espirometria",
+      userId,
+    });
+
+    if (!canEdit) {
+      return {
+        message: "No puedes editar una historia fuera de tu viaje activo.",
         ok: false,
       };
     }

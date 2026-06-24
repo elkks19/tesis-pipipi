@@ -105,6 +105,32 @@ async function putActivity(activity: Actividad) {
   });
 }
 
+async function getViajeLabel(viajeId: string) {
+  try {
+    const viaje = await db.get(viajeId);
+
+    if (
+      typeof viaje === "object" &&
+      viaje !== null &&
+      "type" in viaje &&
+      viaje.type === "viaje" &&
+      "servicio" in viaje &&
+      "establecimiento" in viaje &&
+      typeof viaje.servicio === "string" &&
+      typeof viaje.establecimiento === "object" &&
+      viaje.establecimiento !== null &&
+      "nombre" in viaje.establecimiento &&
+      typeof viaje.establecimiento.nombre === "string"
+    ) {
+      return `${viaje.servicio} / ${viaje.establecimiento.nombre}`;
+    }
+  } catch {
+    // El log debe guardarse aunque el viaje no pueda resolverse para etiqueta.
+  }
+
+  return viajeId;
+}
+
 export async function resolveActiveViajeForUser(actorId: string) {
   const [studentResolution, docenteResolution] = await Promise.all([
     resolveStudentTripRoute(actorId).catch(
@@ -130,6 +156,7 @@ export async function logStationActivity({
   }
 
   const changes = getChanges(before, after);
+  const viajeLabel = await getViajeLabel(historia.viajeId);
 
   await putActivity({
     type: "actividad",
@@ -143,6 +170,7 @@ export async function logStationActivity({
     stationKey,
     subject: "historia",
     viajeId: historia.viajeId,
+    viajeLabel,
   });
 }
 
@@ -171,5 +199,6 @@ export async function logPacienteActivity({
     stationKey: "anamnesis",
     subject: "paciente",
     viajeId: activeTrip.viajeId,
+    viajeLabel: `${activeTrip.servicio} / ${activeTrip.establecimiento}`,
   });
 }

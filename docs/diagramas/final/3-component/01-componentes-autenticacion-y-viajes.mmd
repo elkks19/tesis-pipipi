@@ -1,0 +1,30 @@
+%% Detalla cómo la aplicación decide acceso y navegación inicial. El diagrama muestra Better Auth, roles reales del proyecto, resolución de viaje activo/futuro y persistencia del documento type viaje.
+C4Component
+  title Componentes - Autenticación, roles y viajes
+
+  Container(nextApp, "Aplicación web", "Next.js 16", "Rutas App Router y server actions")
+  ContainerDb(authDb, "Better Auth SQLite", "SQLite", "Usuarios, sesiones, cuentas y roles")
+  ContainerDb(couchdb, "CouchDB", "PouchDB Find", "Documentos type viaje")
+
+  Container_Boundary(authViajes, "Módulos Next.js") {
+    Component(authConfig, "src/lib/auth.ts", "Better Auth", "Configura email/password, Google y plugin admin")
+    Component(authRoles, "src/lib/auth-roles.ts", "Access control", "Permisos por recurso: viaje, estacion, actividad, user, session")
+    Component(roleValues, "src/lib/auth-role-values.ts", "TypeScript", "Roles: admin, docente, docente-organizador, docente-investigador, estudiante")
+    Component(roleRedirect, "src/lib/role-redirect.ts", "Server utility", "Decide destino post-login por rol")
+    Component(tripResolution, "src/lib/student-trip-resolution.ts", "Server utility", "Resuelve viaje activo/futuro y estación asignada")
+    Component(viajeQueries, "src/app/admin/viajes/queries.ts", "Server query", "Lista viajes para administración y dashboard")
+    Component(viajeActions, "src/app/admin/viajes/**/actions.ts", "Server actions", "Crea y actualiza viajes")
+    Component(viajeSchema, "src/lib/schema/viajes.ts", "Zod + TypeScript", "Valida servicio, fechas, establecimiento y estaciones")
+  }
+
+  Rel(nextApp, authConfig, "Obtiene sesión y usuario", "Server runtime")
+  Rel(authConfig, authDb, "Lee/escribe sesión y usuarios", "Better Auth")
+  Rel(authConfig, authRoles, "Aplica permisos declarados")
+  Rel(authRoles, roleValues, "Usa roles permitidos")
+  Rel(roleRedirect, tripResolution, "Resuelve rutas de docente/estudiante")
+  Rel(tripResolution, couchdb, "Busca viajes activos/futuros", "Mango find idx_type")
+  Rel(viajeActions, viajeSchema, "Valida formulario de viaje", "Zod")
+  Rel(viajeActions, couchdb, "Persiste documento type viaje", "PouchDB")
+  Rel(viajeQueries, couchdb, "Consulta viajes", "PouchDB Find")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

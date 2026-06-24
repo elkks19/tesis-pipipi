@@ -1,0 +1,17 @@
+Reporte de historia
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+reporteHistoria.generatedAt	string	Sí si existe reporte	Fecha/hora de generación del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	2026-06-03T01:50:12.151Z	Persistido en historia.
+reporteHistoria.key	string	Sí si existe reporte	Clave de almacenamiento del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	reportes/historias/historia-01/reporte.pdf	Persistido en historia.
+reporteHistoria.nombre	string	Sí si existe reporte	Nombre del archivo PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	historia-clinica-8308424.pdf	Persistido en historia.
+reporteHistoria.tamano	number	Sí si existe reporte	Tamaño del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	145000	En bytes.
+reporteHistoria.tipo	string	Sí si existe reporte	Tipo MIME del archivo.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	application/pdf	Persistido en historia.
+reporteHistoria.url	string	Sí si existe reporte	URL de acceso al PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	/archivos/reportes/historias/historia-01/reporte.pdf	Persistido en historia.
+reportesHistoria[].generatedAt	string	Sí si existe item	Fecha/hora de un reporte histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	2026-06-03T01:50:12.151Z	Misma estructura que reporteHistoria.
+reportesHistoria[].key	string	Sí si existe item	Clave de almacenamiento histórica.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	reportes/historias/historia-01/reporte.pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].nombre	string	Sí si existe item	Nombre de archivo histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	historia-clinica-8308424.pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].tamano	number	Sí si existe item	Tamaño de archivo histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	145000	Misma estructura que reporteHistoria.
+reportesHistoria[].tipo	string	Sí si existe item	Tipo MIME histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	application/pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].url	string	Sí si existe item	URL histórica.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	/archivos/reportes/historias/historia-01/reporte.pdf	Misma estructura que reporteHistoria.
+paciente.nombreCompleto	string	Derivado	Nombre completo usado en reporte.	src/lib/reports/historia-carbone-report.ts	Juan Carlos Mamani Quispe	Derivado desde paciente.datosPersonales; no se persiste como campo de paciente.
+edad	number	Derivado	Edad usada en análisis/reportes.	docs/FLUJOS_DEL_SISTEMA.md; data-science/app/analytics/dataframe_builder.py	31	Calculada desde fechaNacimiento; no persistida en historia.
+grupoEdad	string	Derivado	Grupo etario usado en investigación.	docs/FLUJOS_DEL_SISTEMA.md; data-science/app/analytics/dataframe_builder.py	30-39	Calculado desde fechaNacimiento; no persistido en historia.

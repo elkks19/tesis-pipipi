@@ -1,0 +1,12 @@
+Diagnóstico
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+diagnostico.principal	object	Sí	Diagnóstico principal codificado.	src/lib/schema/diagnostico.ts	{}	Usa DiagnosticoCie11.
+diagnostico.principal.code	string	Sí	Código CIE-11 del diagnóstico principal.	src/lib/schema/diagnostico.ts	BA00	Requerido como string.
+diagnostico.principal.iNo	string	Sí	Identificador interno CIE-11.	src/lib/schema/diagnostico.ts	123456	Requerido y mínimo 1 carácter.
+diagnostico.principal.title	string	Sí	Nombre del diagnóstico principal.	src/lib/schema/diagnostico.ts	Hypertension	Requerido y mínimo 1 carácter.
+diagnostico.secundarios[]	object[]	Sí	Diagnósticos secundarios codificados.	src/lib/schema/diagnostico.ts	[{}]	Arreglo requerido; puede estar vacío.
+diagnostico.secundarios[].code	string	Sí si existe secundario	Código CIE-11 del diagnóstico secundario.	src/lib/schema/diagnostico.ts	5A11	Obligatorio dentro del item.
+diagnostico.secundarios[].iNo	string	Sí si existe secundario	Identificador interno CIE-11 del secundario.	src/lib/schema/diagnostico.ts	78910	Obligatorio dentro del item.
+diagnostico.secundarios[].title	string	Sí si existe secundario	Nombre del diagnóstico secundario.	src/lib/schema/diagnostico.ts	Diabetes mellitus	Obligatorio dentro del item.
+diagnostico.planTrabajo	string	Sí	Plan de trabajo indicado.	src/lib/schema/diagnostico.ts	Control en 7 días	Requerido.
+diagnostico.recetaId	string	No	Referencia a receta asociada.	src/lib/schema/diagnostico.ts	receta-01	Opcional; verificar uso actual en implementación.

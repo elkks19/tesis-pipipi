@@ -1,0 +1,44 @@
+Anamnesis
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+anamnesis.estadoCivil	enum	Sí	Estado civil del paciente.	src/lib/schema/anamnesis.ts	Soltero	Valores definidos en estadosCiviles.
+anamnesis.nivelEducativo	enum	Sí	Nivel educativo alcanzado.	src/lib/schema/anamnesis.ts	Secundaria concluida	Valores definidos en nivelesEducativos.
+anamnesis.añosCursados	number	No	Años cursados.	src/lib/schema/anamnesis.ts	12	Opcional.
+anamnesis.situacionLaboral	string	No	Situación laboral declarada.	src/lib/schema/anamnesis.ts	Agricultor	Opcional.
+anamnesis.motivoConsulta	string	Sí	Motivo principal de consulta.	src/lib/schema/anamnesis.ts	Dolor abdominal	Requerido.
+anamnesis.historiaEnfermedadActual	string	Sí	Relato de la enfermedad actual.	src/lib/schema/anamnesis.ts	Dolor de 3 días de evolución	Requerido.
+anamnesis.antecedentesNoPatologicos.habitoTabaquico	enum	Sí	Hábito tabáquico.	src/lib/schema/anamnesis.ts	Nunca fumo	Valores definidos en habitosTabaco.
+anamnesis.antecedentesNoPatologicos.consumoAlcohol	enum	Sí	Consumo de alcohol.	src/lib/schema/anamnesis.ts	No consume alcohol	Valores definidos en consumosAlcohol.
+anamnesis.antecedentesNoPatologicos.realizaActividadFisica	boolean	Sí	Indica si realiza actividad física.	src/lib/schema/anamnesis.ts	true	Se coerciona a boolean.
+anamnesis.antecedentesNoPatologicos.consumoFrutasVerduras	enum	Sí	Consumo de frutas y verduras.	src/lib/schema/anamnesis.ts	3 - 4 porciones al día	Valores definidos en porcionesFrutasVerduras.
+anamnesis.antecedentesPatologicos.personales[]	object[]	Sí	Lista de antecedentes patológicos personales.	src/lib/schema/anamnesis.ts	[{}]	Arreglo requerido; puede estar vacío.
+anamnesis.antecedentesPatologicos.personales[].enfermedad	object	Sí	Enfermedad personal codificada.	src/lib/schema/anamnesis.ts	{"code":"5A11","title":"Diabetes mellitus"}	Usa ICDSchema: iNo, code, title.
+anamnesis.antecedentesPatologicos.personales[].fechaDiagnostico	Date	No	Fecha del diagnóstico personal.	src/lib/schema/anamnesis.ts	2020-05-01	Opcional.
+anamnesis.antecedentesPatologicos.personales[].tratamiento	string	No	Tratamiento del antecedente personal.	src/lib/schema/anamnesis.ts	Metformina	Opcional.
+anamnesis.antecedentesPatologicos.familiares[]	object[]	Sí	Lista de antecedentes familiares.	src/lib/schema/anamnesis.ts	[{}]	Arreglo requerido; puede estar vacío.
+anamnesis.antecedentesPatologicos.familiares[].parentesco	string	Sí	Parentesco del familiar.	src/lib/schema/anamnesis.ts	Padre	Obligatorio dentro de cada antecedente.
+anamnesis.antecedentesPatologicos.familiares[].enfermedad	object	Sí	Enfermedad familiar codificada.	src/lib/schema/anamnesis.ts	{"code":"BA00","title":"Hypertension"}	Usa ICDSchema: iNo, code, title.
+anamnesis.antecedentesPatologicos.familiares[].edadDiagnostico	number	Sí	Edad al diagnóstico del familiar.	src/lib/schema/anamnesis.ts	55	Obligatorio.
+anamnesis.antecedentesPatologicos.familiares[].fallecimiento	boolean	Sí	Indica si el familiar falleció.	src/lib/schema/anamnesis.ts	false	Se coerciona a boolean.
+anamnesis.antecedentesPatologicos.familiares[].edadFallecimiento	number	No	Edad de fallecimiento.	src/lib/schema/anamnesis.ts	70	Opcional; verificar regla condicional con fallecimiento.
+anamnesis.antecedentesGinecoObstetricos	object	No	Antecedentes gineco-obstétricos.	src/lib/schema/anamnesis.ts	{}	TODO indica validación opcional según género pendiente.
+anamnesis.antecedentesGinecoObstetricos.estadioTanner	string	Sí si existe bloque	Estadio Tanner.	src/lib/schema/anamnesis.ts	III	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.menarca	number	Sí si existe bloque	Edad de menarca.	src/lib/schema/anamnesis.ts	12	Entero.
+anamnesis.antecedentesGinecoObstetricos.ritmoMenstrual	string	Sí si existe bloque	Ritmo menstrual.	src/lib/schema/anamnesis.ts	Regular	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.gestaciones	number	Sí si existe bloque	Número de gestaciones.	src/lib/schema/anamnesis.ts	2	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.partos	number	Sí si existe bloque	Número de partos.	src/lib/schema/anamnesis.ts	1	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.abortos	number	Sí si existe bloque	Número de abortos.	src/lib/schema/anamnesis.ts	0	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.cesareas	number	Sí si existe bloque	Número de cesáreas.	src/lib/schema/anamnesis.ts	1	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimaGestacion	string	Sí si existe bloque	Fecha de última gestación.	src/lib/schema/anamnesis.ts	2023-04-01	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimoParto	string	Sí si existe bloque	Fecha de último parto.	src/lib/schema/anamnesis.ts	2023-12-10	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimoAborto	string	Sí si existe bloque	Fecha de último aborto.	src/lib/schema/anamnesis.ts	2021-02-15	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimaCesarea	string	Sí si existe bloque	Fecha de última cesárea.	src/lib/schema/anamnesis.ts	2023-12-10	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.edadMenopausia	number	Sí si existe bloque	Edad de menopausia.	src/lib/schema/anamnesis.ts	50	Entero.
+anamnesis.antecedentesGinecoObstetricos.terapiaAnticonceptiva	boolean	Sí si existe bloque	Indica uso de terapia anticonceptiva.	src/lib/schema/anamnesis.ts	true	Se coerciona a boolean.
+anamnesis.antecedentesGinecoObstetricos.metodoAnticonceptivo	string	No	Método anticonceptivo usado.	src/lib/schema/anamnesis.ts	DIU	TODO indica validación condicional pendiente.
+anamnesis.antecedentesGinecoObstetricos.inicioVidaSexual	number	Sí si existe bloque	Edad de inicio de vida sexual.	src/lib/schema/anamnesis.ts	18	Entero.
+anamnesis.antecedentesGinecoObstetricos.numeroParejasSexuales	number	Sí si existe bloque	Número de parejas sexuales.	src/lib/schema/anamnesis.ts	2	Entero.
+anamnesis.antecedentesGinecoObstetricos.cirugiaPelviana	string	Sí si existe bloque	Cirugía pelviana referida.	src/lib/schema/anamnesis.ts	Ninguna	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.fechaPapanicolau	Date	No	Fecha de Papanicolau.	src/lib/schema/anamnesis.ts	2025-05-12	Opcional; se coerciona a Date.
+anamnesis.antecedentesGinecoObstetricos.resultadoPapanicolau	string	No	Resultado de Papanicolau.	src/lib/schema/anamnesis.ts	Negativo	TODO indica validación condicional pendiente.
+anamnesis.antecedentesGinecoObstetricos.colposcopia	string	No	Resultado o nota de colposcopía.	src/lib/schema/anamnesis.ts	Normal	Opcional.
+anamnesis.antecedentesGinecoObstetricos.biopsiaCervical	string	No	Resultado o nota de biopsia cervical.	src/lib/schema/anamnesis.ts	No realizada	Opcional.

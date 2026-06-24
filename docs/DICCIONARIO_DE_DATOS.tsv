@@ -1,0 +1,349 @@
+Usuario/rol
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador interno del usuario autenticado.	src/lib/auth-users.ts	user_01	Persistido en tabla "user" de Better Auth.
+name	string	Sí	Nombre del usuario.	src/lib/auth-users.ts	Brayan Navarro	Se captura en registro o se deriva del correo al invitar.
+email	string	Sí	Correo electrónico usado para autenticación.	src/lib/auth-users.ts; src/app/register/register-form.tsx	brayan@example.com	Debe tener formato de email en el formulario.
+role	enum	Sí	Rol de autorización del usuario.	src/lib/auth-role-values.ts	docente	Valores: docente, docente-organizador, docente-investigador, admin, estudiante.
+createdAt	string | null	No	Fecha de creación del usuario.	src/lib/auth-users.ts	2026-06-01T10:30:00.000Z	Campo persistido por Better Auth; puede venir nulo.
+updatedAt	string	No	Fecha de última actualización del usuario.	src/app/admin/actions.ts	2026-06-05T14:10:00.000Z	Se actualiza al cambiar el rol; verificar campos completos generados por Better Auth.
+providers	string[]	Derivado	Proveedores de autenticación vinculados.	src/lib/auth-users.ts	google	Derivado con GROUP_CONCAT desde tabla account; no es campo directo de user.
+
+
+Viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador lógico del viaje.	src/lib/schema/viajes.ts	viaje-2026-tilata	El documento CouchDB también puede tener _id/_rev.
+type	string literal	Sí	Tipo documental.	src/lib/schema/viajes.ts	viaje	Siempre "viaje".
+servicio	string	Sí	Servicio o campaña del viaje.	src/lib/schema/viajes.ts	Medicina Familiar	Requerido y no vacío en CreateViajeSchema.
+fechaEntrada	string	Sí	Fecha inicial del viaje.	src/lib/schema/viajes.ts	2026-07-01	Al crear debe ser hoy o futura.
+fechaSalida	string	Sí	Fecha final del viaje.	src/lib/schema/viajes.ts	2026-07-05	Debe ser posterior o igual a fechaEntrada.
+establecimiento.nombre	string	Sí	Nombre del establecimiento de salud.	src/lib/schema/viajes.ts	Centro de Salud Tilata	Requerido y no vacío.
+establecimiento.direccion	string	No	Dirección del establecimiento.	src/lib/schema/viajes.ts	Av. Principal s/n	Opcional.
+establecimiento.contacto	string	No	Contacto del establecimiento.	src/lib/schema/viajes.ts	76543210	Opcional.
+
+
+Estación del viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+estaciones[]	object[]	Sí	Lista de estaciones configuradas para el viaje.	src/lib/schema/viajes.ts	[{}]	Cada tipo de estación solo puede seleccionarse una vez.
+estaciones[].tipo	enum	Sí	Tipo de estación del viaje.	src/lib/schema/viajes.ts	Anamnesis	Valores definidos en tiposEstacion.
+estaciones[].docenteEncargadoId	string	Sí	Usuario docente encargado de la estación.	src/lib/schema/viajes.ts	user_docente_01	En formulario se recibe como docenteEncargado y se persiste como docenteEncargadoId.
+estaciones[].estudiantesIds	string[]	Sí	Usuarios estudiantes asignados a la estación.	src/lib/schema/viajes.ts	["user_est_01"]	En formulario se recibe como estudiantes y se persiste como estudiantesIds.
+
+
+Paciente
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/pacientes.ts	paciente	Siempre "paciente".
+datosPersonales.nombres	string	Sí	Nombres del paciente.	src/lib/schema/pacientes.ts	Juan Carlos	Requerido.
+datosPersonales.apellidoPaterno	string	Sí	Apellido paterno del paciente.	src/lib/schema/pacientes.ts	Mamani	Requerido.
+datosPersonales.apellidoMaterno	string	Sí	Apellido materno del paciente.	src/lib/schema/pacientes.ts	Quispe	Requerido.
+datosPersonales.fechaNacimiento	Date	Sí	Fecha de nacimiento del paciente.	src/lib/schema/pacientes.ts	1995-03-18	Se coerciona a Date.
+datosPersonales.documentoIdentidad	enum	Sí	Tipo de documento de identidad.	src/lib/schema/pacientes.ts	CI	Valores: CI, Pasaporte.
+datosPersonales.numeroDocumentoIdentidad	string	Sí	Número de documento de identidad.	src/lib/schema/pacientes.ts	8308424	TODO en código indica regex pendiente; verificar en implementación.
+genero	enum	Sí	Género del paciente.	src/lib/schema/pacientes.ts	Femenino	Valores: Masculino, Femenino, Indeterminado.
+lugarNacimiento.pais	string	Sí	País de nacimiento.	src/lib/schema/pacientes.ts	Bolivia	Requerido.
+lugarNacimiento.departamento	string	Sí	Departamento de nacimiento.	src/lib/schema/pacientes.ts	La Paz	Requerido.
+lugarNacimiento.distrito	string	No	Distrito de nacimiento.	src/lib/schema/pacientes.ts	Viacha	Opcional.
+nacionalidad	string	Sí	Nacionalidad del paciente.	src/lib/schema/pacientes.ts	Boliviana	Requerido.
+etnia	string	No	Etnia declarada.	src/lib/schema/pacientes.ts	Aymara	Opcional.
+padres[]	object[]	No	Datos de padres/tutores asociados.	src/lib/schema/pacientes.ts	[{}]	Arreglo opcional.
+padres[].datosPersonales.nombres	string	Sí si existe padre/tutor	Nombres del padre/tutor.	src/lib/schema/pacientes.ts	María	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.apellidoPaterno	string	Sí si existe padre/tutor	Apellido paterno del padre/tutor.	src/lib/schema/pacientes.ts	Quispe	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.apellidoMaterno	string	Sí si existe padre/tutor	Apellido materno del padre/tutor.	src/lib/schema/pacientes.ts	López	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.fechaNacimiento	Date	Sí si existe padre/tutor	Fecha de nacimiento del padre/tutor.	src/lib/schema/pacientes.ts	1970-01-20	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.documentoIdentidad	enum	Sí si existe padre/tutor	Tipo de documento del padre/tutor.	src/lib/schema/pacientes.ts	CI	Valores: CI, Pasaporte.
+padres[].datosPersonales.numeroDocumentoIdentidad	string	Sí si existe padre/tutor	Número de documento del padre/tutor.	src/lib/schema/pacientes.ts	4567890	Verificar validación final de formato.
+padres[].relacion	string	Sí si existe padre/tutor	Relación con el paciente.	src/lib/schema/pacientes.ts	Madre	Obligatorio dentro de padres[].
+padres[].asumeSustento	boolean	Sí si existe padre/tutor	Indica si asume el sustento económico.	src/lib/schema/pacientes.ts	true	Se coerciona a boolean.
+padres[].numeroContacto	string	Sí si existe padre/tutor	Número de contacto del padre/tutor.	src/lib/schema/pacientes.ts	71234567	Verificar validación de teléfono en implementación.
+
+
+Historia clínica
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/historia.ts	historia	Siempre "historia".
+created_by	string	No	Usuario que creó la historia.	src/lib/schema/historia.ts	user_est_01	Campo de auditoría persistido cuando corresponde.
+pacienteId	string	Sí	Referencia al documento paciente.	src/lib/schema/historia.ts	paciente-ci-8308424	Requerido.
+viajeId	string	No	Referencia al viaje.	src/lib/schema/historia.ts	viaje-2026-tilata	El flujo espera viajeId para filtrar; aparece opcional en el tipo.
+examenesComplementariosSolicitados	object	No	Banderas de complementarios solicitados.	src/lib/schema/historia.ts	{}	Persistido en historia; controla estaciones complementarias.
+anamnesis	object	No	Bloque clínico de anamnesis.	src/lib/schema/historia.ts	{}	Se completa por estación.
+examenFisicoGeneral	object	No	Bloque de examen físico general.	src/lib/schema/historia.ts	{}	Se completa por estación.
+examenFisicoSegmentario	object	No	Bloque de examen físico segmentario.	src/lib/schema/historia.ts	{}	Se completa por estación.
+electrocardiograma	object	No	Bloque de electrocardiograma.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+espirometria	object	No	Bloque de espirometría.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+ecografia	object	No	Bloque de ecografía.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+laboratorios	object	No	Bloque de laboratorios.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+diagnostico	object	No	Bloque de diagnóstico.	src/lib/schema/historia.ts	{}	Al guardarse puede encolar reporte de historia.
+receta	object	No	Receta asociada a la historia.	src/lib/schema/historia.ts	{}	Tipo definido en farmacia.ts; verificar uso actual en implementación.
+reporteHistoria	object	No	Último archivo PDF de reporte de historia.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	{}	Persistido tras generación de reporte.
+reportesHistoria[]	object[]	No	Historial de archivos PDF generados.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	[{}]	Se acumula al generar nuevos reportes.
+*.created_by	string	No	Usuario que creó un bloque clínico.	src/lib/schema/historia.ts	user_est_01	Aplica a bloques con Partial<AuditFields>.
+*.updated_by	string	No	Usuario que actualizó un bloque clínico.	src/lib/schema/historia.ts	user_docente_01	Aplica a bloques con Partial<AuditFields>.
+
+
+Exámenes complementarios solicitados
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenesComplementariosSolicitados.ecografia	boolean	No	Indica si se solicitó ecografía.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Ecografía.
+examenesComplementariosSolicitados.laboratorios	boolean	No	Indica si se solicitaron laboratorios.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Laboratorios.
+examenesComplementariosSolicitados.espirometria	boolean	No	Indica si se solicitó espirometría.	src/lib/schema/historia.ts	false	Controla aparición/pendiente de estación Espirometría.
+examenesComplementariosSolicitados.electrocardiograma	boolean	No	Indica si se solicitó electrocardiograma.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Electrocardiograma.
+
+
+Anamnesis
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+anamnesis.estadoCivil	enum	Sí	Estado civil del paciente.	src/lib/schema/anamnesis.ts	Soltero	Valores definidos en estadosCiviles.
+anamnesis.nivelEducativo	enum	Sí	Nivel educativo alcanzado.	src/lib/schema/anamnesis.ts	Secundaria concluida	Valores definidos en nivelesEducativos.
+anamnesis.añosCursados	number	No	Años cursados.	src/lib/schema/anamnesis.ts	12	Opcional.
+anamnesis.situacionLaboral	string	No	Situación laboral declarada.	src/lib/schema/anamnesis.ts	Agricultor	Opcional.
+anamnesis.motivoConsulta	string	Sí	Motivo principal de consulta.	src/lib/schema/anamnesis.ts	Dolor abdominal	Requerido.
+anamnesis.historiaEnfermedadActual	string	Sí	Relato de la enfermedad actual.	src/lib/schema/anamnesis.ts	Dolor de 3 días de evolución	Requerido.
+anamnesis.antecedentesNoPatologicos.habitoTabaquico	enum	Sí	Hábito tabáquico.	src/lib/schema/anamnesis.ts	Nunca fumo	Valores definidos en habitosTabaco.
+anamnesis.antecedentesNoPatologicos.consumoAlcohol	enum	Sí	Consumo de alcohol.	src/lib/schema/anamnesis.ts	No consume alcohol	Valores definidos en consumosAlcohol.
+anamnesis.antecedentesNoPatologicos.realizaActividadFisica	boolean	Sí	Indica si realiza actividad física.	src/lib/schema/anamnesis.ts	true	Se coerciona a boolean.
+anamnesis.antecedentesNoPatologicos.consumoFrutasVerduras	enum	Sí	Consumo de frutas y verduras.	src/lib/schema/anamnesis.ts	3 - 4 porciones al día	Valores definidos en porcionesFrutasVerduras.
+anamnesis.antecedentesPatologicos.personales[]	object[]	Sí	Lista de antecedentes patológicos personales.	src/lib/schema/anamnesis.ts	[{}]	Arreglo requerido; puede estar vacío.
+anamnesis.antecedentesPatologicos.personales[].enfermedad	object	Sí	Enfermedad personal codificada.	src/lib/schema/anamnesis.ts	{"code":"5A11","title":"Diabetes mellitus"}	Usa ICDSchema: iNo, code, title.
+anamnesis.antecedentesPatologicos.personales[].fechaDiagnostico	Date	No	Fecha del diagnóstico personal.	src/lib/schema/anamnesis.ts	2020-05-01	Opcional.
+anamnesis.antecedentesPatologicos.personales[].tratamiento	string	No	Tratamiento del antecedente personal.	src/lib/schema/anamnesis.ts	Metformina	Opcional.
+anamnesis.antecedentesPatologicos.familiares[]	object[]	Sí	Lista de antecedentes familiares.	src/lib/schema/anamnesis.ts	[{}]	Arreglo requerido; puede estar vacío.
+anamnesis.antecedentesPatologicos.familiares[].parentesco	string	Sí	Parentesco del familiar.	src/lib/schema/anamnesis.ts	Padre	Obligatorio dentro de cada antecedente.
+anamnesis.antecedentesPatologicos.familiares[].enfermedad	object	Sí	Enfermedad familiar codificada.	src/lib/schema/anamnesis.ts	{"code":"BA00","title":"Hypertension"}	Usa ICDSchema: iNo, code, title.
+anamnesis.antecedentesPatologicos.familiares[].edadDiagnostico	number	Sí	Edad al diagnóstico del familiar.	src/lib/schema/anamnesis.ts	55	Obligatorio.
+anamnesis.antecedentesPatologicos.familiares[].fallecimiento	boolean	Sí	Indica si el familiar falleció.	src/lib/schema/anamnesis.ts	false	Se coerciona a boolean.
+anamnesis.antecedentesPatologicos.familiares[].edadFallecimiento	number	No	Edad de fallecimiento.	src/lib/schema/anamnesis.ts	70	Opcional; verificar regla condicional con fallecimiento.
+anamnesis.antecedentesGinecoObstetricos	object	No	Antecedentes gineco-obstétricos.	src/lib/schema/anamnesis.ts	{}	TODO indica validación opcional según género pendiente.
+anamnesis.antecedentesGinecoObstetricos.estadioTanner	string	Sí si existe bloque	Estadio Tanner.	src/lib/schema/anamnesis.ts	III	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.menarca	number	Sí si existe bloque	Edad de menarca.	src/lib/schema/anamnesis.ts	12	Entero.
+anamnesis.antecedentesGinecoObstetricos.ritmoMenstrual	string	Sí si existe bloque	Ritmo menstrual.	src/lib/schema/anamnesis.ts	Regular	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.gestaciones	number	Sí si existe bloque	Número de gestaciones.	src/lib/schema/anamnesis.ts	2	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.partos	number	Sí si existe bloque	Número de partos.	src/lib/schema/anamnesis.ts	1	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.abortos	number	Sí si existe bloque	Número de abortos.	src/lib/schema/anamnesis.ts	0	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.cesareas	number	Sí si existe bloque	Número de cesáreas.	src/lib/schema/anamnesis.ts	1	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimaGestacion	string	Sí si existe bloque	Fecha de última gestación.	src/lib/schema/anamnesis.ts	2023-04-01	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimoParto	string	Sí si existe bloque	Fecha de último parto.	src/lib/schema/anamnesis.ts	2023-12-10	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimoAborto	string	Sí si existe bloque	Fecha de último aborto.	src/lib/schema/anamnesis.ts	2021-02-15	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.fechaUltimaCesarea	string	Sí si existe bloque	Fecha de última cesárea.	src/lib/schema/anamnesis.ts	2023-12-10	Se persiste como string.
+anamnesis.antecedentesGinecoObstetricos.edadMenopausia	number	Sí si existe bloque	Edad de menopausia.	src/lib/schema/anamnesis.ts	50	Entero.
+anamnesis.antecedentesGinecoObstetricos.terapiaAnticonceptiva	boolean	Sí si existe bloque	Indica uso de terapia anticonceptiva.	src/lib/schema/anamnesis.ts	true	Se coerciona a boolean.
+anamnesis.antecedentesGinecoObstetricos.metodoAnticonceptivo	string	No	Método anticonceptivo usado.	src/lib/schema/anamnesis.ts	DIU	TODO indica validación condicional pendiente.
+anamnesis.antecedentesGinecoObstetricos.inicioVidaSexual	number	Sí si existe bloque	Edad de inicio de vida sexual.	src/lib/schema/anamnesis.ts	18	Entero.
+anamnesis.antecedentesGinecoObstetricos.numeroParejasSexuales	number	Sí si existe bloque	Número de parejas sexuales.	src/lib/schema/anamnesis.ts	2	Entero.
+anamnesis.antecedentesGinecoObstetricos.cirugiaPelviana	string	Sí si existe bloque	Cirugía pelviana referida.	src/lib/schema/anamnesis.ts	Ninguna	Obligatorio dentro del bloque.
+anamnesis.antecedentesGinecoObstetricos.fechaPapanicolau	Date	No	Fecha de Papanicolau.	src/lib/schema/anamnesis.ts	2025-05-12	Opcional; se coerciona a Date.
+anamnesis.antecedentesGinecoObstetricos.resultadoPapanicolau	string	No	Resultado de Papanicolau.	src/lib/schema/anamnesis.ts	Negativo	TODO indica validación condicional pendiente.
+anamnesis.antecedentesGinecoObstetricos.colposcopia	string	No	Resultado o nota de colposcopía.	src/lib/schema/anamnesis.ts	Normal	Opcional.
+anamnesis.antecedentesGinecoObstetricos.biopsiaCervical	string	No	Resultado o nota de biopsia cervical.	src/lib/schema/anamnesis.ts	No realizada	Opcional.
+
+
+Examen físico general
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenFisicoGeneral.presionArterial.derecha.min	number	Sí	Presión arterial derecha mínima/diastólica.	src/lib/schema/examenFisicoGeneral.ts	80	Verificar unidad en implementación; TODO menciona regex/unidad pendiente.
+examenFisicoGeneral.presionArterial.derecha.max	number	Sí	Presión arterial derecha máxima/sistólica.	src/lib/schema/examenFisicoGeneral.ts	120	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterial.izquierda.min	number	Sí	Presión arterial izquierda mínima/diastólica.	src/lib/schema/examenFisicoGeneral.ts	78	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterial.izquierda.max	number	Sí	Presión arterial izquierda máxima/sistólica.	src/lib/schema/examenFisicoGeneral.ts	118	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterialMedia	number	Sí	Presión arterial media.	src/lib/schema/examenFisicoGeneral.ts	93	Persistido; puede calcularse fuera del schema, verificar en formulario.
+examenFisicoGeneral.pulsos	number	Sí	Pulsos.	src/lib/schema/examenFisicoGeneral.ts	72	Requerido.
+examenFisicoGeneral.frecuenciaRespiratoria	number	Sí	Frecuencia respiratoria.	src/lib/schema/examenFisicoGeneral.ts	18	Requerido.
+examenFisicoGeneral.frecuenciaCardiaca	number	Sí	Frecuencia cardíaca.	src/lib/schema/examenFisicoGeneral.ts	76	Requerido.
+examenFisicoGeneral.temperaturaAxilar	number	Sí	Temperatura axilar.	src/lib/schema/examenFisicoGeneral.ts	36.5	Requerido.
+examenFisicoGeneral.peso	number	Sí	Peso del paciente.	src/lib/schema/examenFisicoGeneral.ts	70.5	Requerido.
+examenFisicoGeneral.talla	number	Sí	Talla del paciente.	src/lib/schema/examenFisicoGeneral.ts	1.68	Requerido.
+examenFisicoGeneral.imc	number	Sí	Índice de masa corporal.	src/lib/schema/examenFisicoGeneral.ts	24.98	Persistido; derivado clínicamente de peso/talla, pero guardado en documento.
+examenFisicoGeneral.perimetroCadera	number	Sí	Perímetro de cadera.	src/lib/schema/examenFisicoGeneral.ts	96	Requerido.
+examenFisicoGeneral.perimetroCintura	number	Sí	Perímetro de cintura.	src/lib/schema/examenFisicoGeneral.ts	82	Requerido.
+examenFisicoGeneral.indiceCinturaCadera	number	Sí	Índice cintura/cadera.	src/lib/schema/examenFisicoGeneral.ts	0.85	Persistido; derivado clínicamente de perímetros, pero guardado en documento.
+examenFisicoGeneral.diagnosticoIMC	enum	Sí	Clasificación del IMC.	src/lib/schema/examenFisicoGeneral.ts	No tiene desnutrición	Valores definidos en diagnosticosIMC.
+
+
+Examen físico segmentario
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenFisicoSegmentario.cabeza	string	Sí	Descripción del examen de cabeza.	src/lib/schema/examenFisicoSegmentario.ts	Normocéfalo	Requerido.
+examenFisicoSegmentario.cuello	string	Sí	Descripción del examen de cuello.	src/lib/schema/examenFisicoSegmentario.ts	Sin adenopatías	Requerido.
+examenFisicoSegmentario.aparatoRespiratorio	string	Sí	Descripción del aparato respiratorio.	src/lib/schema/examenFisicoSegmentario.ts	Murmullo vesicular conservado	Requerido.
+examenFisicoSegmentario.aparatoCardiovascular	string	Sí	Descripción del aparato cardiovascular.	src/lib/schema/examenFisicoSegmentario.ts	Ruidos cardíacos normofonéticos	Requerido.
+examenFisicoSegmentario.abdomenPelvis	string	Sí	Descripción de abdomen y pelvis.	src/lib/schema/examenFisicoSegmentario.ts	Blando, depresible	Requerido.
+examenFisicoSegmentario.aparatoGenitourinario	string	Sí	Descripción del aparato genitourinario.	src/lib/schema/examenFisicoSegmentario.ts	Sin particularidades	Requerido.
+examenFisicoSegmentario.pielFaneras	string	Sí	Descripción de piel y faneras.	src/lib/schema/examenFisicoSegmentario.ts	Piel hidratada	Requerido.
+examenFisicoSegmentario.sistemaHemolinfopoyetico	string	Sí	Descripción del sistema hemolinfopoyético.	src/lib/schema/examenFisicoSegmentario.ts	Sin adenomegalias	Requerido.
+examenFisicoSegmentario.aparatoOsteoartromuscular	string	Sí	Descripción del aparato osteoartromuscular.	src/lib/schema/examenFisicoSegmentario.ts	Movilidad conservada	Requerido.
+examenFisicoSegmentario.sistemaNerviosoCentral	string	Sí	Descripción del sistema nervioso central.	src/lib/schema/examenFisicoSegmentario.ts	Orientado en tiempo y espacio	Requerido.
+
+
+Laboratorios
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+laboratorios.glicemiaCapilar	string	Sí	Resultado de glicemia capilar.	src/lib/schema/laboratorios.ts	92 mg/dL	Se persiste como string.
+laboratorios.grupoSanguineo	enum	Sí	Grupo sanguíneo.	src/lib/schema/laboratorios.ts	O+	Valores: A+, A-, B+, B-, AB+, AB-, O+, O-.
+laboratorios.otrosEstudios[]	object[]	No	Otros estudios de laboratorio.	src/lib/schema/laboratorios.ts	[{}]	Arreglo opcional.
+laboratorios.otrosEstudios[].nombre	string	Sí si existe estudio	Nombre del estudio.	src/lib/schema/laboratorios.ts	Hemoglobina	Obligatorio dentro de otrosEstudios[].
+laboratorios.otrosEstudios[].resultado	string	Sí si existe estudio	Resultado del estudio.	src/lib/schema/laboratorios.ts	14 g/dL	Obligatorio dentro de otrosEstudios[].
+
+
+Electrocardiograma
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+electrocardiograma.ritmo	string	Sí	Ritmo cardíaco.	src/lib/schema/electrocardiograma.ts	Sinusal	Requerido.
+electrocardiograma.frecuenciaCardiaca	number	Sí	Frecuencia cardíaca registrada en ECG.	src/lib/schema/electrocardiograma.ts	75	Requerido.
+electrocardiograma.crecimientoAuriculaDerecha	boolean	Sí	Indica crecimiento de aurícula derecha.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.crecimientoAuriculaIzquierda	boolean	Sí	Indica crecimiento de aurícula izquierda.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.crecimientoVentriculoDerecho	boolean	Sí	Indica crecimiento de ventrículo derecho.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.crecimientoVentriculoIzquierdo	boolean	Sí	Indica crecimiento de ventrículo izquierdo.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.intervaloPR	number	Sí	Intervalo PR.	src/lib/schema/electrocardiograma.ts	160	Verificar unidad en implementación.
+electrocardiograma.intervaloQTc	number	Sí	Intervalo QTc.	src/lib/schema/electrocardiograma.ts	420	Verificar unidad en implementación.
+electrocardiograma.supraInfraDesnivelST	boolean	Sí	Indica supra/infra desnivel ST.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.derivacionSupraInfraDesnivelST	string	Sí	Derivación donde se observa supra/infra desnivel ST.	src/lib/schema/electrocardiograma.ts	DII	Actualmente requerido aunque supraInfraDesnivelST sea false; verificar regla condicional.
+electrocardiograma.duracionOndaP	number	Sí	Duración de onda P.	src/lib/schema/electrocardiograma.ts	100	Verificar unidad en implementación.
+electrocardiograma.duracionComplejoQRS	number	Sí	Duración del complejo QRS.	src/lib/schema/electrocardiograma.ts	90	Verificar unidad en implementación.
+electrocardiograma.duracionOndaT	number	Sí	Duración de onda T.	src/lib/schema/electrocardiograma.ts	160	Verificar unidad en implementación.
+electrocardiograma.extrasistoleSupraventricular	boolean	Sí	Indica extrasístole supraventricular.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.extrasistoleIntraventricular	boolean	Sí	Indica extrasístole intraventricular.	src/lib/schema/electrocardiograma.ts	false	Se coerciona a boolean.
+electrocardiograma.diagnostico	string	Sí	Diagnóstico o interpretación del ECG.	src/lib/schema/electrocardiograma.ts	ECG dentro de parámetros normales	Requerido.
+
+
+Espirometría
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+espirometria.FEV1	number	Sí	Volumen espiratorio forzado en el primer segundo.	src/lib/schema/espirometria.ts	2.8	Requerido.
+espirometria.porcentajeFEVteorico	number	Sí	Porcentaje teórico de FEV.	src/lib/schema/espirometria.ts	85	Nombre del campo en código: porcentajeFEVteorico.
+espirometria.FVC	number	Sí	Capacidad vital forzada.	src/lib/schema/espirometria.ts	3.4	Requerido.
+espirometria.porcentajeFVCteorico	number	Sí	Porcentaje teórico de FVC.	src/lib/schema/espirometria.ts	90	Requerido.
+espirometria.FEV1FVC	number	Sí	Relación FEV1/FVC.	src/lib/schema/espirometria.ts	0.82	Requerido.
+espirometria.porcentajeFEV1FVCteorico	number	Sí	Porcentaje teórico de la relación FEV1/FVC.	src/lib/schema/espirometria.ts	95	Requerido.
+espirometria.flujoEspiratorioPicoPEF	number	Sí	Flujo espiratorio pico.	src/lib/schema/espirometria.ts	450	Requerido.
+espirometria.porcentajePEFteorico	number	Sí	Porcentaje teórico de PEF.	src/lib/schema/espirometria.ts	88	Requerido.
+espirometria.fuenteDatosTeoricos	string	No	Fuente de los datos teóricos usados.	src/lib/schema/espirometria.ts	GLI 2012	Opcional.
+espirometria.observaciones[]	enum[]	Sí	Observaciones de calidad de maniobra.	src/lib/schema/espirometria.ts	["Buena maniobra"]	Valores: Buena maniobra, Comienzo lento, Poco esfuerzo.
+espirometria.diagnostico	string	Sí	Diagnóstico o interpretación de espirometría.	src/lib/schema/espirometria.ts	Patrón normal	Requerido.
+
+
+Ecografía
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+ecografia.imagen	object	No	Archivo de imagen asociado a ecografía.	src/lib/schema/ecografia.ts	{}	Opcional.
+ecografia.imagen.key	string	Sí si existe imagen	Clave de almacenamiento del archivo.	src/lib/schema/ecografia.ts	uploads/ecografias/img.jpg	Obligatorio dentro de imagen.
+ecografia.imagen.nombre	string	Sí si existe imagen	Nombre original o visible del archivo.	src/lib/schema/ecografia.ts	eco-abdomen.jpg	Obligatorio dentro de imagen.
+ecografia.imagen.tipo	string	Sí si existe imagen	Tipo MIME del archivo.	src/lib/schema/ecografia.ts	image/jpeg	Obligatorio dentro de imagen.
+ecografia.imagen.tamano	number	Sí si existe imagen	Tamaño del archivo.	src/lib/schema/ecografia.ts	245000	En bytes.
+ecografia.imagen.url	string	No	URL de acceso al archivo.	src/lib/schema/ecografia.ts	/archivos/uploads/ecografias/img.jpg	Opcional.
+ecografia.imagen.data	string	No	Datos embebidos del archivo.	src/lib/schema/ecografia.ts	data:image/jpeg;base64,...	Opcional.
+ecografia.higado.dimensiones	number	Sí	Dimensiones del hígado.	src/lib/schema/ecografia.ts	14.2	Verificar unidad en implementación.
+ecografia.higado.hepatomegalia	boolean	Sí	Indica hepatomegalia.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.higado.parenquima	enum	Sí	Parénquima hepático.	src/lib/schema/ecografia.ts	Homogeneo	Valores: Homogeneo, Heterogeneo.
+ecografia.higado.diagnostico	string	Sí	Diagnóstico del hígado.	src/lib/schema/ecografia.ts	Sin alteraciones	Requerido.
+ecografia.vesiculaBiliar.paredes	enum	Sí	Características de paredes vesiculares.	src/lib/schema/ecografia.ts	Regulares	Valores: Regulares, Irregulares, Engrosadas, Delgadas.
+ecografia.vesiculaBiliar.contenidoAnecoico	boolean	Sí	Indica contenido anecoico.	src/lib/schema/ecografia.ts	true	Se coerciona a boolean.
+ecografia.vesiculaBiliar.barroBiliar	boolean	Sí	Indica presencia de barro biliar.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.vesiculaBiliar.calculos	boolean	Sí	Indica presencia de cálculos.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.vesiculaBiliar.diagnostico	string	Sí	Diagnóstico de vesícula biliar.	src/lib/schema/ecografia.ts	Sin litiasis	Requerido.
+ecografia.riñones.derecho.longitud	number	Sí	Longitud del riñón derecho.	src/lib/schema/ecografia.ts	10.5	Verificar unidad en implementación.
+ecografia.riñones.derecho.parenquima	number	Sí	Parénquima del riñón derecho.	src/lib/schema/ecografia.ts	1.6	Verificar unidad en implementación.
+ecografia.riñones.izquierdo.longitud	number	Sí	Longitud del riñón izquierdo.	src/lib/schema/ecografia.ts	10.8	Verificar unidad en implementación.
+ecografia.riñones.izquierdo.parenquima	number	Sí	Parénquima del riñón izquierdo.	src/lib/schema/ecografia.ts	1.7	Verificar unidad en implementación.
+ecografia.riñones.ecogenicidad	enum	Sí	Ecogenicidad renal.	src/lib/schema/ecografia.ts	Conservada	Valores: Conservada, Aumentada, Disminuida.
+ecografia.riñones.relacionCorticoMedular	enum	Sí	Relación córtico-medular.	src/lib/schema/ecografia.ts	Conservada	Valores: Conservada, Aumentada, Disminuida.
+ecografia.riñones.diagnostico	string	Sí	Diagnóstico renal ecográfico.	src/lib/schema/ecografia.ts	Sin alteraciones	Requerido.
+
+
+Diagnóstico
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+diagnostico.principal	object	Sí	Diagnóstico principal codificado.	src/lib/schema/diagnostico.ts	{}	Usa DiagnosticoCie11.
+diagnostico.principal.code	string	Sí	Código CIE-11 del diagnóstico principal.	src/lib/schema/diagnostico.ts	BA00	Requerido como string.
+diagnostico.principal.iNo	string	Sí	Identificador interno CIE-11.	src/lib/schema/diagnostico.ts	123456	Requerido y mínimo 1 carácter.
+diagnostico.principal.title	string	Sí	Nombre del diagnóstico principal.	src/lib/schema/diagnostico.ts	Hypertension	Requerido y mínimo 1 carácter.
+diagnostico.secundarios[]	object[]	Sí	Diagnósticos secundarios codificados.	src/lib/schema/diagnostico.ts	[{}]	Arreglo requerido; puede estar vacío.
+diagnostico.secundarios[].code	string	Sí si existe secundario	Código CIE-11 del diagnóstico secundario.	src/lib/schema/diagnostico.ts	5A11	Obligatorio dentro del item.
+diagnostico.secundarios[].iNo	string	Sí si existe secundario	Identificador interno CIE-11 del secundario.	src/lib/schema/diagnostico.ts	78910	Obligatorio dentro del item.
+diagnostico.secundarios[].title	string	Sí si existe secundario	Nombre del diagnóstico secundario.	src/lib/schema/diagnostico.ts	Diabetes mellitus	Obligatorio dentro del item.
+diagnostico.planTrabajo	string	Sí	Plan de trabajo indicado.	src/lib/schema/diagnostico.ts	Control en 7 días	Requerido.
+diagnostico.recetaId	string	No	Referencia a receta asociada.	src/lib/schema/diagnostico.ts	receta-01	Opcional; verificar uso actual en implementación.
+
+
+Actividad/auditoría
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/actividad.ts	actividad	Siempre "actividad".
+action	enum	Sí	Acción registrada.	src/lib/schema/actividad.ts	updated	Valores: created, updated.
+actorId	string	Sí	Usuario que realizó la acción.	src/lib/schema/actividad.ts	user_est_01	Requerido.
+stationKey	enum/string	Sí	Clave interna de estación.	src/lib/schema/actividad.ts	anamnesis	Tipo StationKey en src/lib/station-histories.ts.
+viajeId	string	Sí	Viaje al que pertenece la actividad.	src/lib/schema/actividad.ts	viaje-2026-tilata	Requerido para filtros.
+viajeLabel	string	No	Etiqueta humana del viaje.	src/lib/schema/actividad.ts	Medicina / Centro de Salud Tilata	Facilita mostrar contexto sin resolver viaje.
+historiaId	string	No	Historia afectada por la acción.	src/lib/schema/actividad.ts	historia-01	Opcional; no aplica siempre a paciente.
+pacienteId	string	Sí	Paciente afectado por la acción.	src/lib/schema/actividad.ts	paciente-01	Requerido.
+subject	enum	Sí	Sujeto de la actividad.	src/lib/schema/actividad.ts	historia	Valores: historia, paciente.
+changedFields[]	string[]	Sí	Lista de campos modificados.	src/lib/schema/actividad.ts	["anamnesis.motivoConsulta"]	Generado por comparación before/after.
+changes[]	object[]	No	Detalle de cambios.	src/lib/schema/actividad.ts	[{}]	Opcional.
+changes[].field	string	Sí si existe cambio	Campo modificado.	src/lib/schema/actividad.ts	anamnesis.motivoConsulta	Obligatorio dentro de changes[].
+changes[].before	unknown	No	Valor anterior.	src/lib/schema/actividad.ts	Dolor	Admite cualquier tipo serializable.
+changes[].after	unknown	No	Valor nuevo.	src/lib/schema/actividad.ts	Dolor abdominal	Admite cualquier tipo serializable.
+createdAt	string	Sí	Fecha/hora del evento.	src/lib/schema/actividad.ts	2026-06-03T01:50:12.151Z	Usado para ordenamiento y trazabilidad.
+
+
+Reporte de historia
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+reporteHistoria.generatedAt	string	Sí si existe reporte	Fecha/hora de generación del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	2026-06-03T01:50:12.151Z	Persistido en historia.
+reporteHistoria.key	string	Sí si existe reporte	Clave de almacenamiento del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	reportes/historias/historia-01/reporte.pdf	Persistido en historia.
+reporteHistoria.nombre	string	Sí si existe reporte	Nombre del archivo PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	historia-clinica-8308424.pdf	Persistido en historia.
+reporteHistoria.tamano	number	Sí si existe reporte	Tamaño del PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	145000	En bytes.
+reporteHistoria.tipo	string	Sí si existe reporte	Tipo MIME del archivo.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	application/pdf	Persistido en historia.
+reporteHistoria.url	string	Sí si existe reporte	URL de acceso al PDF.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	/archivos/reportes/historias/historia-01/reporte.pdf	Persistido en historia.
+reportesHistoria[].generatedAt	string	Sí si existe item	Fecha/hora de un reporte histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	2026-06-03T01:50:12.151Z	Misma estructura que reporteHistoria.
+reportesHistoria[].key	string	Sí si existe item	Clave de almacenamiento histórica.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	reportes/historias/historia-01/reporte.pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].nombre	string	Sí si existe item	Nombre de archivo histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	historia-clinica-8308424.pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].tamano	number	Sí si existe item	Tamaño de archivo histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	145000	Misma estructura que reporteHistoria.
+reportesHistoria[].tipo	string	Sí si existe item	Tipo MIME histórico.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	application/pdf	Misma estructura que reporteHistoria.
+reportesHistoria[].url	string	Sí si existe item	URL histórica.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	/archivos/reportes/historias/historia-01/reporte.pdf	Misma estructura que reporteHistoria.
+paciente.nombreCompleto	string	Derivado	Nombre completo usado en reporte.	src/lib/reports/historia-carbone-report.ts	Juan Carlos Mamani Quispe	Derivado desde paciente.datosPersonales; no se persiste como campo de paciente.
+edad	number	Derivado	Edad usada en análisis/reportes.	docs/FLUJOS_DEL_SISTEMA.md; data-science/app/analytics/dataframe_builder.py	31	Calculada desde fechaNacimiento; no persistida en historia.
+grupoEdad	string	Derivado	Grupo etario usado en investigación.	docs/FLUJOS_DEL_SISTEMA.md; data-science/app/analytics/dataframe_builder.py	30-39	Calculado desde fechaNacimiento; no persistido en historia.
+
+
+Inventario de Farmacia por viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador del item de inventario.	src/lib/schema/farmacia.ts	inv-01	Documento type viajeInventarioItem.
+type	string literal	Sí	Tipo documental.	src/lib/schema/farmacia.ts	viajeInventarioItem	Siempre "viajeInventarioItem".
+viajeId	string	Sí	Viaje al que pertenece el item.	src/lib/schema/farmacia.ts	viaje-2026-tilata	Inventario ligado a viajeId.
+categoria	enum	Sí	Categoría del item.	src/lib/schema/farmacia.ts	medicamento	Valores: medicamento, insumo, equipo, otro.
+nombre	string	Sí	Nombre del item.	src/lib/schema/farmacia.ts	Paracetamol	Requerido y no vacío.
+unidad	string	Sí	Unidad de planificación.	src/lib/schema/farmacia.ts	comprimidos	Requerido y no vacío.
+cantidadPlanificada	number	Sí	Cantidad planificada para el viaje.	src/lib/schema/farmacia.ts	200	Mínimo 0.
+cantidadDisponible	number	No	Cantidad disponible.	src/lib/schema/farmacia.ts	150	Opcional; mínimo 0 si existe.
+catalogoId	string	No	Referencia al catálogo local de medicamentos.	src/lib/schema/farmacia.ts	med-cat-01	Opcional.
+fuente	enum	No	Fuente del registro.	src/lib/schema/farmacia.ts	agemed	Valores: agemed, manual.
+principioActivo	string	Condicional	Principio activo del medicamento.	src/lib/schema/farmacia.ts	Paracetamol	Requerido cuando categoria = medicamento.
+concentracion	string	Condicional	Concentración del medicamento.	src/lib/schema/farmacia.ts	500 mg	Requerido cuando categoria = medicamento.
+formaFarmaceutica	string	Condicional	Forma farmacéutica.	src/lib/schema/farmacia.ts	Comprimido	Requerido cuando categoria = medicamento.
+viaAdministracion	string	No	Vía de administración.	src/lib/schema/farmacia.ts	Oral	Opcional.
+registroSanitario	string	No	Registro sanitario.	src/lib/schema/farmacia.ts	NN-12345	Opcional.
+laboratorio	string	No	Laboratorio.	src/lib/schema/farmacia.ts	LAFAR	Opcional.
+titularRegistro	string	No	Titular del registro sanitario.	src/lib/schema/farmacia.ts	LAFAR S.A.	Opcional.
+nombreComercial	string	No	Nombre comercial.	src/lib/schema/farmacia.ts	Paracetamol MK	Opcional.
+atcCode	string	No	Código ATC.	src/lib/schema/farmacia.ts	N02BE01	Opcional.
+lote	string	No	Lote del item.	src/lib/schema/farmacia.ts	LT-2026-01	Opcional.
+fechaVencimiento	string	No	Fecha de vencimiento.	src/lib/schema/farmacia.ts	2027-12-31	Opcional; se persiste como string.
+observaciones	string	No	Observaciones del item.	src/lib/schema/farmacia.ts	Stock para campaña	Opcional.
+createdAt	string	Sí	Fecha/hora de creación del item.	src/lib/schema/farmacia.ts	2026-06-01T10:00:00.000Z	Persistido.
+createdBy	string	No	Usuario que creó el item.	src/lib/schema/farmacia.ts	user_est_01	Opcional.
+updatedAt	string	Sí	Fecha/hora de actualización del item.	src/lib/schema/farmacia.ts	2026-06-02T10:00:00.000Z	Persistido.
+updatedBy	string	No	Usuario que actualizó el item.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.
+
+
+Catálogo local de medicamentos
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador del medicamento en catálogo.	src/lib/schema/farmacia.ts	med-cat-01	Documento type medicamentoCatalogo.
+type	string literal	Sí	Tipo documental.	src/lib/schema/farmacia.ts	medicamentoCatalogo	Siempre "medicamentoCatalogo".
+principioActivo	string	Sí	Principio activo normalizado.	src/lib/schema/farmacia.ts	Paracetamol	Requerido.
+fuente	enum	Sí	Fuente del dato del catálogo.	src/lib/schema/farmacia.ts	agemed	Valores: agemed, manual.
+concentracion	string	No	Concentración normalizada.	src/lib/schema/farmacia.ts	500 mg	Opcional en tipo de catálogo.
+formaFarmaceutica	string	No	Forma farmacéutica normalizada.	src/lib/schema/farmacia.ts	Comprimido	Opcional en tipo de catálogo.
+viaAdministracion	string	No	Vía de administración.	src/lib/schema/farmacia.ts	Oral	Opcional.
+registroSanitario	string	No	Registro sanitario.	src/lib/schema/farmacia.ts	NN-12345	Opcional.
+laboratorio	string	No	Laboratorio.	src/lib/schema/farmacia.ts	LAFAR	Opcional.
+titularRegistro	string	No	Titular del registro.	src/lib/schema/farmacia.ts	LAFAR S.A.	Opcional.
+nombreComercial	string	No	Nombre comercial.	src/lib/schema/farmacia.ts	Paracetamol MK	Opcional.
+atcCode	string	No	Código ATC.	src/lib/schema/farmacia.ts	N02BE01	Opcional.
+createdAt	string	Sí	Fecha/hora de creación en catálogo.	src/lib/schema/farmacia.ts	2026-06-01T10:00:00.000Z	Persistido.
+createdBy	string	No	Usuario que creó el registro.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.
+updatedAt	string	Sí	Fecha/hora de actualización del catálogo.	src/lib/schema/farmacia.ts	2026-06-02T10:00:00.000Z	Persistido.
+updatedBy	string	No	Usuario que actualizó el registro.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.
+
+
+Receta
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+receta.type	string literal	Sí si existe receta	Tipo de receta.	src/lib/schema/farmacia.ts	receta	La historia tiene receta?: Receta; verificar flujo actual.
+receta.medicamentos[]	object[]	Sí si existe receta	Lista de medicamentos recetados.	src/lib/schema/farmacia.ts	[{}]	Arreglo dentro de receta.
+receta.medicamentos[].nombre	string	Sí si existe medicamento	Nombre del medicamento recetado.	src/lib/schema/farmacia.ts	Paracetamol	Obligatorio dentro del item.
+receta.medicamentos[].dosis	string	Sí si existe medicamento	Dosis indicada.	src/lib/schema/farmacia.ts	500 mg	Obligatorio dentro del item.
+receta.medicamentos[].frecuencia	string	Sí si existe medicamento	Frecuencia indicada.	src/lib/schema/farmacia.ts	Cada 8 horas	Obligatorio dentro del item.
+receta.medicamentos[].duracion	string	Sí si existe medicamento	Duración del tratamiento.	src/lib/schema/farmacia.ts	5 días	Obligatorio dentro del item.

@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Diagrama de contexto - sistema de gestion de historias medicas
+
+LAYOUT_WITH_LEGEND()
+
+Person(usuarios, "Usuarios", "Admin, docentes, investigador y estudiantes")
+System(sistemaPortable, "Sistema portable en Raspberry Pi", "Servidor local para operar el viaje, registrar historias y trabajar sin internet")
+System(sistemaReplicacion, "Sistema de replicacion", "Intercambio de datos entre Raspberry Pi y nube")
+System(sistemaNube, "Sistema en la nube", "Administracion, reportes, dashboard e investigacion")
+
+Rel_D(usuarios, sistemaPortable, "Operan durante el viaje", "LAN local")
+Rel_D(usuarios, sistemaNube, "Gestionan y consultan informacion consolidada", "Internet")
+Rel_R(sistemaPortable, sistemaReplicacion, "Replica cambios locales", "Sincronizacion")
+Rel_R(sistemaReplicacion, sistemaNube, "Consolida datos", "Internet disponible")
+Rel_L(sistemaNube, sistemaReplicacion, "Publica actualizaciones", "Sincronizacion")
+Rel_L(sistemaReplicacion, sistemaPortable, "Actualiza datos locales", "LAN/Internet")
+
+Lay_D(usuarios, sistemaPortable)
+Lay_D(usuarios, sistemaNube)
+Lay_R(sistemaPortable, sistemaReplicacion)
+Lay_R(sistemaReplicacion, sistemaNube)
+
+@enduml

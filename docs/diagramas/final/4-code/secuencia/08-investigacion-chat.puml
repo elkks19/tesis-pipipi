@@ -1,0 +1,43 @@
+@startuml
+title
+Secuencia - Consulta de investigacion
+Roles: docente-investigador y admin
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Investigador o admin" as Usuario
+participant "Chat de investigacion" as Chat
+participant "API interna Next" as NextApi
+participant "Servicio de investigacion" as FastAPI
+participant "Herramientas controladas" as Tools
+database "Base de datos central" as DB
+database "Indice de busqueda clinica" as Rag
+participant "Motor de IA" as Ollama
+
+Usuario -> Chat: Selecciona viajes y escribe consulta
+Chat -> NextApi: Envia mensaje y filtros
+NextApi -> FastAPI: Reenvia con token interno
+
+FastAPI -> Tools: Decide consultas permitidas
+Tools -> DB: Lee historias y pacientes filtrados
+DB --> Tools: Datos agregados
+Tools -> Rag: Busca contexto narrativo si aplica
+Rag --> Tools: Contexto relevante
+
+FastAPI -> Ollama: Solicita respuesta asistida
+Ollama --> FastAPI: Texto y posible uso de herramientas
+FastAPI --> NextApi: Respuesta y artifacts
+NextApi --> Chat: Resultado para la interfaz
+Chat --> Usuario: Muestra analisis y graficos
+
+@enduml

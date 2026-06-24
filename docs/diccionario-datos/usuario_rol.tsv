@@ -1,0 +1,9 @@
+Usuario/rol
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador interno del usuario autenticado.	src/lib/auth-users.ts	user_01	Persistido en tabla "user" de Better Auth.
+name	string	Sí	Nombre del usuario.	src/lib/auth-users.ts	Brayan Navarro	Se captura en registro o se deriva del correo al invitar.
+email	string	Sí	Correo electrónico usado para autenticación.	src/lib/auth-users.ts; src/app/register/register-form.tsx	brayan@example.com	Debe tener formato de email en el formulario.
+role	enum	Sí	Rol de autorización del usuario.	src/lib/auth-role-values.ts	docente	Valores: docente, docente-organizador, docente-investigador, admin, estudiante.
+createdAt	string | null	No	Fecha de creación del usuario.	src/lib/auth-users.ts	2026-06-01T10:30:00.000Z	Campo persistido por Better Auth; puede venir nulo.
+updatedAt	string	No	Fecha de última actualización del usuario.	src/app/admin/actions.ts	2026-06-05T14:10:00.000Z	Se actualiza al cambiar el rol; verificar campos completos generados por Better Auth.
+providers	string[]	Derivado	Proveedores de autenticación vinculados.	src/lib/auth-users.ts	google	Derivado con GROUP_CONCAT desde tabla account; no es campo directo de user.

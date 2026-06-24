@@ -1,0 +1,80 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Contenedores - sistema en la nube expandido
+
+skinparam linetype ortho
+LAYOUT_WITH_LEGEND()
+
+Person(usuarios, "Usuarios", "Admin, docentes, investigador y estudiantes")
+System_Ext(sistemaPortable, "Sistema portable en Raspberry Pi", "Servidor local usado durante el viaje.")
+System_Ext(sistemaReplicacion, "Sistema de replicacion", "Sincroniza datos entre Raspberry Pi y nube.")
+
+System_Boundary(nube, "Sistema en la nube") {
+  Container(nextApp, "Aplicacion web", "Next.js 16, React, App Router", "Interfaz web, API interna, permisos, dashboards y reportes.")
+  ContainerDb(authDb, "Base de datos de autenticacion", "SQLite, Better Auth", "Usuarios, sesiones, cuentas y roles.")
+  ContainerDb(couchdb, "Base de datos central", "CouchDB", "Viajes, pacientes, historias, actividad, inventario y conversaciones.")
+  ContainerDb(objectStorage, "Almacenamiento de archivos", "Flydrive, S3 o FS", "Ecografias, adjuntos y PDFs generados.")
+
+  Container(dataScienceApi, "Servicio de investigacion", "FastAPI, Python", "Chat, estadisticas, reportes analiticos y busqueda RAG.")
+  ContainerDb(ragDb, "Indice de busqueda clinica", "SQLite", "Chunks y vectores para busqueda narrativa.")
+  Container(ollama, "Motor de IA", "Ollama, qwen3:4b", "Genera respuestas asistidas para investigacion.")
+
+  ContainerQueue(redis, "Cola de reportes", "Redis, BullMQ", "Trabajos pendientes para generar PDF.")
+  Container(reportWorker, "Procesador de reportes", "Node.js, BullMQ, Carbone SDK", "Genera reportes PDF en segundo plano.")
+  Container(carbone, "Generador de PDF", "Carbone v5", "Renderiza plantillas de historias y viajes.")
+}
+
+UpdateElementStyle(nextApp, $bgColor="#DCEBFA", $fontColor="#172033", $borderColor="#7AA7D9")
+UpdateBoundaryStyle(nube, $bgColor="#F8FAFC", $fontColor="#334155", $borderColor="#CBD5E1")
+UpdateElementStyle(authDb, $bgColor="#F2F5F8", $fontColor="#172033", $borderColor="#A9B7C5")
+UpdateElementStyle(couchdb, $bgColor="#E7F0FA", $fontColor="#172033", $borderColor="#7AA7D9")
+UpdateElementStyle(dataScienceApi, $bgColor="#E9F6EF", $fontColor="#172033", $borderColor="#7BBE95")
+UpdateElementStyle(ragDb, $bgColor="#F2F8F4", $fontColor="#172033", $borderColor="#93C9A5")
+UpdateElementStyle(ollama, $bgColor="#F2F8F4", $fontColor="#172033", $borderColor="#93C9A5")
+UpdateElementStyle(redis, $bgColor="#FFF3DC", $fontColor="#172033", $borderColor="#D9A84F")
+UpdateElementStyle(reportWorker, $bgColor="#FFF7E8", $fontColor="#172033", $borderColor="#D9A84F")
+UpdateElementStyle(carbone, $bgColor="#F8F4EF", $fontColor="#172033", $borderColor="#C9A77E")
+UpdateElementStyle(objectStorage, $bgColor="#F0F5FA", $fontColor="#172033", $borderColor="#9DB0C2")
+
+Rel_D(usuarios, sistemaPortable, "Operan durante el viaje", "LAN local")
+Rel_D(usuarios, nextApp, "Gestionan y consultan", "HTTPS")
+
+Rel_R(sistemaPortable, sistemaReplicacion, "Entrega cambios", "Sincronizacion")
+Rel_R(sistemaReplicacion, couchdb, "Replica documentos", "HTTP/CouchDB")
+Rel_U(couchdb, sistemaReplicacion, "Devuelve cambios", "HTTP/CouchDB")
+Rel_L(sistemaReplicacion, sistemaPortable, "Actualiza datos", "Sincronizacion")
+
+Rel_L(nextApp, authDb, "Autentica usuarios", "Better Auth")
+Rel_D(nextApp, couchdb, "Lee y guarda datos", "PouchDB Find")
+Rel_D(nextApp, dataScienceApi, "Consulta investigacion", "HTTP interno")
+Rel_D(nextApp, redis, "Encola reportes", "BullMQ")
+Rel_R(nextApp, objectStorage, "Gestiona archivos", "Flydrive")
+
+Rel_U(dataScienceApi, couchdb, "Consulta datos clinicos", "HTTP/_find")
+Rel_D(dataScienceApi, ragDb, "Busca contexto", "SQLite")
+Rel_R(dataScienceApi, ollama, "Pide respuestas", "HTTP")
+
+Rel_L(redis, reportWorker, "Entrega jobs", "BullMQ")
+Rel_U(reportWorker, couchdb, "Carga datos de reporte", "HTTP/CouchDB")
+Rel_D(reportWorker, carbone, "Renderiza PDF", "Carbone")
+Rel_R(reportWorker, objectStorage, "Guarda PDF", "Flydrive")
+
+Lay_D(usuarios, sistemaPortable)
+Lay_R(sistemaPortable, sistemaReplicacion)
+Lay_R(sistemaReplicacion, nextApp)
+
+Lay_D(nextApp, couchdb)
+Lay_L(authDb, couchdb)
+Lay_R(couchdb, objectStorage)
+
+Lay_D(authDb, dataScienceApi)
+Lay_D(dataScienceApi, ragDb)
+Lay_R(dataScienceApi, ollama)
+
+Lay_D(couchdb, reportWorker)
+Lay_R(reportWorker, redis)
+Lay_D(reportWorker, carbone)
+Lay_R(reportWorker, objectStorage)
+
+@enduml

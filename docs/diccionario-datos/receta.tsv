@@ -1,0 +1,8 @@
+Receta
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+receta.type	string literal	Sí si existe receta	Tipo de receta.	src/lib/schema/farmacia.ts	receta	La historia tiene receta?: Receta; verificar flujo actual.
+receta.medicamentos[]	object[]	Sí si existe receta	Lista de medicamentos recetados.	src/lib/schema/farmacia.ts	[{}]	Arreglo dentro de receta.
+receta.medicamentos[].nombre	string	Sí si existe medicamento	Nombre del medicamento recetado.	src/lib/schema/farmacia.ts	Paracetamol	Obligatorio dentro del item.
+receta.medicamentos[].dosis	string	Sí si existe medicamento	Dosis indicada.	src/lib/schema/farmacia.ts	500 mg	Obligatorio dentro del item.
+receta.medicamentos[].frecuencia	string	Sí si existe medicamento	Frecuencia indicada.	src/lib/schema/farmacia.ts	Cada 8 horas	Obligatorio dentro del item.
+receta.medicamentos[].duracion	string	Sí si existe medicamento	Duración del tratamiento.	src/lib/schema/farmacia.ts	5 días	Obligatorio dentro del item.

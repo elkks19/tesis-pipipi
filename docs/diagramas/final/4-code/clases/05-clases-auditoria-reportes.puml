@@ -1,0 +1,84 @@
+@startuml
+title Clases - auditoria y reportes
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+class Viaje {
+  +id: string
+  +servicio: string
+}
+
+class Paciente {
+  +type: "paciente"
+  +nombreCompleto(): string
+}
+
+class Historia {
+  +type: "historia"
+  +pacienteId: string
+  +viajeId?: string
+  +reporteHistoria?: ReporteHistoriaFile
+  +reportesHistoria?: ReporteHistoriaFile[]
+}
+
+class Actividad {
+  +type: "actividad"
+  +action: ActividadAction
+  +changes?: ActividadChange[]
+  +actorId: string
+  +changedFields: string[]
+  +createdAt: string
+  +historiaId?: string
+  +pacienteId: string
+  +stationKey: StationKey
+  +subject: ActividadSubject
+  +viajeId: string
+  +viajeLabel?: string
+  +registrarCambio(): void
+}
+
+class ActividadChange {
+  +after?: unknown
+  +before?: unknown
+  +field: string
+}
+
+class ReporteHistoriaFile {
+  +generatedAt: string
+  +key: string
+  +nombre: string
+  +tamano: number
+  +tipo: string
+  +url: string
+  +urlPrivada(): string
+}
+
+enum ActividadAction {
+  created
+  updated
+}
+
+enum ActividadSubject {
+  historia
+  paciente
+}
+
+class StationKey <<enum>>
+
+Actividad --> Viaje
+Actividad --> Paciente
+Actividad --> Historia
+Actividad *-- "0..*" ActividadChange
+Historia *-- "0..*" ReporteHistoriaFile
+Historia --> Paciente
+Historia --> Viaje
+
+@enduml

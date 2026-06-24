@@ -1,0 +1,40 @@
+@startuml
+title
+Secuencia - Registro por estacion
+Roles: estudiante y docente
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Estudiante o docente" as Usuario
+participant "Formulario de estacion" as Form
+participant "Server action" as Action
+participant "Validacion de acceso" as Access
+database "Base de datos central" as DB
+participant "Vista de estacion" as UI
+
+Usuario -> Form: Completa bloque clinico
+Form -> Action: Envia datos de la estacion
+
+Action -> Access: Verifica rol, viaje y estacion
+Access -> DB: Consulta viaje e historia
+DB --> Access: Datos actuales
+Access --> Action: Acceso autorizado
+
+Action -> DB: Guarda bloque de historia
+Action -> DB: Registra actividad
+DB --> Action: Cambios persistidos
+
+Action --> UI: Resultado actualizado
+UI --> Usuario: Muestra historia guardada
+
+@enduml

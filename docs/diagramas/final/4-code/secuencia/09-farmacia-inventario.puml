@@ -1,0 +1,40 @@
+@startuml
+title
+Secuencia - Inventario de farmacia
+Roles: estudiante de farmacia y docente de farmacia
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Usuario de farmacia" as Usuario
+participant "Pagina de planeacion" as Page
+participant "Acciones de farmacia" as Actions
+participant "Servicio de farmacia" as Service
+database "Base de datos central" as DB
+
+Usuario -> Page: Ingresa a planeacion
+Page -> Service: Resolver viaje permitido
+Service -> DB: Busca viaje activo o futuro con farmacia
+DB --> Service: Viaje y asignacion
+Service --> Page: Inventario actual
+
+Usuario -> Page: Agrega medicamento o cantidad
+Page -> Actions: Envia item de inventario
+Actions -> Service: Valida acceso y normaliza datos
+Service -> DB: Lee catalogo local
+Service -> DB: Guarda inventario por viaje
+DB --> Service: Item persistido
+
+Service --> Page: Inventario actualizado
+Page --> Usuario: Muestra planeacion guardada
+
+@enduml

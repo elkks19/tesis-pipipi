@@ -1,0 +1,621 @@
+@startuml
+title Clases - modelo de dominio completo
+
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+package "Viajes y usuarios" {
+  class Viaje {
+    +id: string
+    +type: "viaje"
+    +servicio: string
+    +fechaEntrada: string
+    +fechaSalida: string
+    +establecimiento: Establecimiento
+    +estaciones: EstacionViaje[]
+    +estaActivo(fecha: string): boolean
+    +tieneEstacion(tipo: TipoEstacion): boolean
+  }
+
+  class Establecimiento {
+    +nombre: string
+    +direccion?: string
+    +contacto?: string
+  }
+
+  class EstacionViaje {
+    +tipo: TipoEstacion
+    +docenteEncargadoId: string
+    +estudiantesIds: string[]
+    +tieneDocente(userId: string): boolean
+    +tieneEstudiante(userId: string): boolean
+  }
+
+  enum TipoEstacion {
+    Anamnesis
+    ExamenFisicoGeneral
+    ExamenFisicoSegmentario
+    Farmacia
+    Laboratorios
+    Electrocardiograma
+    Espirometria
+    Ecografia
+    RecoleccionDeDatos
+    Diagnostico
+  }
+}
+
+package "Paciente" {
+  class Paciente {
+    +type: "paciente"
+    +datosPersonales: DatosPersonales
+    +genero: Genero
+    +lugarNacimiento: LugarNacimiento
+    +nacionalidad: string
+    +etnia?: string
+    +padres?: PadreTutor[]
+    +nombreCompleto(): string
+    +edad(fecha: Date): number
+  }
+
+  class DatosPersonales {
+    +nombres: string
+    +apellidoPaterno: string
+    +apellidoMaterno: string
+    +fechaNacimiento: Date
+    +documentoIdentidad: TipoDocumentoIdentidad
+    +numeroDocumentoIdentidad: string
+    +nombreCompleto(): string
+  }
+
+  class LugarNacimiento {
+    +pais: string
+    +departamento: string
+    +distrito?: string
+  }
+
+  class PadreTutor {
+    +datosPersonales: DatosPersonales
+    +relacion: string
+    +asumeSustento: boolean
+    +numeroContacto: string
+  }
+
+  enum TipoDocumentoIdentidad {
+    CI
+    Pasaporte
+  }
+
+  enum Genero {
+    Masculino
+    Femenino
+    Indeterminado
+  }
+}
+
+package "Historia clinica" {
+  class Historia {
+    +type: "historia"
+    +created_by?: string
+    +pacienteId: string
+    +viajeId?: string
+    +reporteHistoria?: ReporteHistoriaFile
+    +reportesHistoria?: ReporteHistoriaFile[]
+    +examenesComplementariosSolicitados?: ExamenesComplementariosSolicitados
+    +anamnesis?: Anamnesis
+    +examenFisicoGeneral?: ExamenFisicoGeneral
+    +examenFisicoSegmentario?: ExamenFisicoSegmentario
+    +electrocardiograma?: Electrocardiograma
+    +espirometria?: Espirometria
+    +ecografia?: Ecografia
+    +laboratorios?: Laboratorios
+    +diagnostico?: Diagnostico
+    +receta?: Receta
+    +estaCompleta(): boolean
+    +registrarBloque(estacion: TipoEstacion): void
+    +solicitarComplementario(estacion: TipoEstacion): void
+  }
+
+  class AuditFields {
+    +created_by: string
+    +updated_by: string
+  }
+
+  class ExamenesComplementariosSolicitados {
+    +ecografia: boolean
+    +laboratorios: boolean
+    +espirometria: boolean
+    +electrocardiograma: boolean
+  }
+
+  class ReporteHistoriaFile {
+    +generatedAt: string
+    +key: string
+    +nombre: string
+    +tamano: number
+    +tipo: string
+    +url: string
+    +urlPrivada(): string
+  }
+}
+
+package "Bloques clinicos" {
+  class Anamnesis {
+    +estadoCivil: EstadoCivil
+    +nivelEducativo: NivelEducativo
+    +aniosCursados?: number
+    +situacionLaboral?: string
+    +motivoConsulta: string
+    +historiaEnfermedadActual: string
+    +antecedentesNoPatologicos: AntecedentesNoPatologicos
+    +antecedentesPatologicos: AntecedentesPatologicos
+    +antecedentesGinecoObstetricos?: AntecedentesGinecoObstetricos
+  }
+
+  class AntecedentesNoPatologicos {
+    +habitoTabaquico: HabitoTabaco
+    +consumoAlcohol: ConsumoAlcohol
+    +realizaActividadFisica: boolean
+    +consumoFrutasVerduras: PorcionFrutasVerduras
+  }
+
+  class AntecedentesPatologicos {
+    +personales: AntecedentePersonal[]
+    +familiares: AntecedenteFamiliar[]
+  }
+
+  class AntecedentePersonal {
+    +enfermedad: Enfermedad
+    +fechaDiagnostico?: Date
+    +tratamiento?: string
+  }
+
+  class AntecedenteFamiliar {
+    +parentesco: string
+    +enfermedad: Enfermedad
+    +edadDiagnostico: number
+    +fallecimiento: boolean
+    +edadFallecimiento?: number
+  }
+
+  class AntecedentesGinecoObstetricos {
+    +estadioTanner: string
+    +menarca: number
+    +ritmoMenstrual: string
+    +gestaciones: number
+    +partos: number
+    +abortos: number
+    +cesareas: number
+    +fechaUltimaGestacion: string
+    +fechaUltimoParto: string
+    +fechaUltimoAborto: string
+    +fechaUltimaCesarea: string
+    +edadMenopausia: number
+    +terapiaAnticonceptiva: boolean
+    +metodoAnticonceptivo?: string
+    +inicioVidaSexual: number
+    +numeroParejasSexuales: number
+    +cirugiaPelviana: string
+    +fechaPapanicolau?: string
+    +resultadoPapanicolau?: string
+    +colposcopia?: string
+    +biopsiaCervical?: string
+  }
+
+  class Enfermedad {
+    +code: string
+    +title: string
+  }
+
+  class ExamenFisicoGeneral {
+    +presionArterial: PresionArterial
+    +presionArterialMedia: number
+    +pulsos: number
+    +frecuenciaRespiratoria: number
+    +frecuenciaCardiaca: number
+    +temperaturaAxilar: number
+    +peso: number
+    +talla: number
+    +imc: number
+    +perimetroCadera: number
+    +perimetroCintura: number
+    +indiceCinturaCadera: number
+    +diagnosticoIMC: DiagnosticoIMC
+  }
+
+  class PresionArterial {
+    +derecha: PresionLado
+    +izquierda: PresionLado
+  }
+
+  class PresionLado {
+    +min: number
+    +max: number
+  }
+
+  class ExamenFisicoSegmentario {
+    +cabeza: string
+    +cuello: string
+    +aparatoRespiratorio: string
+    +aparatoCardiovascular: string
+    +abdomenPelvis: string
+    +aparatoGenitourinario: string
+    +pielFaneras: string
+    +sistemaHemolinfopoyetico: string
+    +aparatoOsteoartromuscular: string
+    +sistemaNerviosoCentral: string
+  }
+
+  class Electrocardiograma {
+    +ritmo: string
+    +frecuenciaCardiaca: number
+    +crecimientoAuriculaDerecha: boolean
+    +crecimientoAuriculaIzquierda: boolean
+    +crecimientoVentriculoDerecho: boolean
+    +crecimientoVentriculoIzquierdo: boolean
+    +intervaloPR: number
+    +intervaloQTc: number
+    +supraInfraDesnivelST: boolean
+    +derivacionSupraInfraDesnivelST: string
+    +duracionOndaP: number
+    +duracionComplejoQRS: number
+    +duracionOndaT: number
+    +extrasistoleSupraventricular: boolean
+    +extrasistoleIntraventricular: boolean
+    +diagnostico: string
+  }
+
+  class Espirometria {
+    +FEV1: number
+    +porcentajeFEVteorico: number
+    +FVC: number
+    +porcentajeFVCteorico: number
+    +FEV1FVC: number
+    +porcentajeFEV1FVCteorico: number
+    +flujoEspiratorioPicoPEF: number
+    +porcentajePEFteorico: number
+    +fuenteDatosTeoricos?: string
+    +observaciones: TipoObservacion[]
+    +diagnostico: string
+  }
+
+  class Ecografia {
+    +imagen?: ImagenEcografia
+    +higado: HigadoEcografia
+    +vesiculaBiliar: VesiculaBiliar
+    +rinones: RinonesEcografia
+  }
+
+  class ImagenEcografia {
+    +key: string
+    +nombre: string
+    +tipo: string
+    +tamano: number
+    +url?: string
+    +data?: string
+  }
+
+  class HigadoEcografia {
+    +dimensiones: number
+    +hepatomegalia: boolean
+    +parenquima: TipoParenquima
+    +diagnostico: string
+  }
+
+  class VesiculaBiliar {
+    +paredes: TipoPared
+    +contenidoAnecoico: boolean
+    +barroBiliar: boolean
+    +calculos: boolean
+    +diagnostico: string
+  }
+
+  class RinonesEcografia {
+    +derecho: RinonMedicion
+    +izquierdo: RinonMedicion
+    +ecogenicidad: TipoEcogenicidad
+    +relacionCorticoMedular: TipoEcogenicidad
+    +diagnostico: string
+  }
+
+  class RinonMedicion {
+    +longitud: number
+    +parenquima: number
+  }
+
+  class Laboratorios {
+    +glicemiaCapilar: string
+    +grupoSanguineo: GrupoSanguineo
+    +otrosEstudios?: EstudioLaboratorio[]
+  }
+
+  class EstudioLaboratorio {
+    +nombre: string
+    +resultado: string
+  }
+
+  class Diagnostico {
+    +principal: DiagnosticoCie11
+    +secundarios: DiagnosticoCie11[]
+    +planTrabajo: string
+    +recetaId?: string
+  }
+
+  class DiagnosticoCie11 {
+    +code: string
+    +iNo: string
+    +title: string
+  }
+
+  class Receta {
+    +type: "receta"
+    +medicamentos: RecetaMedicamento[]
+  }
+
+  class RecetaMedicamento {
+    +nombre: string
+    +dosis: string
+    +frecuencia: string
+    +duracion: string
+  }
+}
+
+package "Farmacia" {
+  class MedicamentoCatalogo {
+    +id: string
+    +type: "medicamentoCatalogo"
+    +atcCode?: string
+    +concentracion?: string
+    +createdAt: string
+    +createdBy?: string
+    +formaFarmaceutica?: string
+    +fuente: FuenteInventario
+    +laboratorio?: string
+    +nombreComercial?: string
+    +principioActivo: string
+    +registroSanitario?: string
+    +titularRegistro?: string
+    +updatedAt: string
+    +updatedBy?: string
+    +viaAdministracion?: string
+  }
+
+  class ViajeInventarioItem {
+    +id: string
+    +type: "viajeInventarioItem"
+    +atcCode?: string
+    +cantidadDisponible?: number
+    +cantidadPlanificada: number
+    +catalogoId?: string
+    +categoria: CategoriaInventario
+    +concentracion?: string
+    +createdAt: string
+    +createdBy?: string
+    +fechaVencimiento?: string
+    +formaFarmaceutica?: string
+    +fuente?: FuenteInventario
+    +laboratorio?: string
+    +lote?: string
+    +nombre: string
+    +nombreComercial?: string
+    +observaciones?: string
+    +principioActivo?: string
+    +registroSanitario?: string
+    +titularRegistro?: string
+    +unidad: string
+    +updatedAt: string
+    +updatedBy?: string
+    +viaAdministracion?: string
+    +viajeId: string
+    +esMedicamento(): boolean
+    +estaDisponible(): boolean
+  }
+
+  enum CategoriaInventario {
+    medicamento
+    insumo
+    equipo
+    otro
+  }
+
+  enum FuenteInventario {
+    agemed
+    manual
+  }
+}
+
+package "Auditoria y reportes" {
+  class Actividad {
+    +type: "actividad"
+    +action: ActividadAction
+    +changes?: ActividadChange[]
+    +actorId: string
+    +changedFields: string[]
+    +createdAt: string
+    +historiaId?: string
+    +pacienteId: string
+    +stationKey: StationKey
+    +subject: ActividadSubject
+    +viajeId: string
+    +viajeLabel?: string
+    +registrarCambio(): void
+  }
+
+  class ActividadChange {
+    +after?: unknown
+    +before?: unknown
+    +field: string
+  }
+
+  enum ActividadAction {
+    created
+    updated
+  }
+
+  enum ActividadSubject {
+    historia
+    paciente
+  }
+
+  enum StationKey {
+    anamnesis
+    examenFisicoGeneral
+    examenFisicoSegmentario
+    farmacia
+    laboratorios
+    electrocardiograma
+    espirometria
+    ecografia
+    diagnostico
+  }
+}
+
+enum EstadoCivil {
+  Soltero
+  Casado
+  Viudo
+  UnionLibre
+  Divorciado
+}
+
+enum NivelEducativo {
+  SinEducacionFormal
+  PrimariaConcluida
+  SecundariaConcluida
+  LicenciaturaConcluida
+  EspecialidadConcluida
+  MaestriaConcluida
+  DoctoradoConcluido
+}
+
+enum HabitoTabaco {
+  NuncaFumo
+  ExFumador
+  FumadorPasivo
+  FumadorLigero
+  FumadorModerado
+  FumadorPesado
+  FumadorOcasional
+}
+
+enum ConsumoAlcohol {
+  NoConsume
+  BajoRiesgo
+  Riesgo
+  ExcesivoEpisodico
+  Perjudicial
+  Dependencia
+  Compulsivo
+}
+
+enum PorcionFrutasVerduras {
+  NoConsume
+  UnaADos
+  TresACuatro
+  CincoOMas
+}
+
+enum DiagnosticoIMC {
+  SinDesnutricion
+  RiesgoDesnutricion
+  DesnutricionModerada
+  DesnutricionGrave
+  Sobrepeso
+  Obesidad
+}
+
+enum TipoObservacion {
+  BuenaManiobra
+  ComienzoLento
+  PocoEsfuerzo
+}
+
+enum TipoParenquima {
+  Homogeneo
+  Heterogeneo
+}
+
+enum TipoPared {
+  Regulares
+  Irregulares
+  Engrosadas
+  Delgadas
+}
+
+enum TipoEcogenicidad {
+  Conservada
+  Aumentada
+  Disminuida
+}
+
+enum GrupoSanguineo {
+  APositivo
+  ANegativo
+  BPositivo
+  BNegativo
+  ABPositivo
+  ABNegativo
+  OPositivo
+  ONegativo
+}
+
+Viaje *-- Establecimiento
+Viaje *-- "1..*" EstacionViaje
+EstacionViaje --> TipoEstacion
+Viaje "1" o-- "0..*" Historia
+Viaje "1" o-- "0..*" ViajeInventarioItem
+
+Paciente *-- DatosPersonales
+Paciente *-- LugarNacimiento
+Paciente *-- "0..*" PadreTutor
+PadreTutor *-- DatosPersonales
+
+Historia --> Paciente
+Historia --> Viaje
+Historia *-- ExamenesComplementariosSolicitados
+Historia *-- "0..*" ReporteHistoriaFile
+Historia *-- Anamnesis
+Historia *-- ExamenFisicoGeneral
+Historia *-- ExamenFisicoSegmentario
+Historia *-- Electrocardiograma
+Historia *-- Espirometria
+Historia *-- Ecografia
+Historia *-- Laboratorios
+Historia *-- Diagnostico
+Historia *-- Receta
+Historia ..> AuditFields
+
+Anamnesis *-- AntecedentesNoPatologicos
+Anamnesis *-- AntecedentesPatologicos
+Anamnesis *-- AntecedentesGinecoObstetricos
+AntecedentesPatologicos *-- "0..*" AntecedentePersonal
+AntecedentesPatologicos *-- "0..*" AntecedenteFamiliar
+AntecedentePersonal --> Enfermedad
+AntecedenteFamiliar --> Enfermedad
+ExamenFisicoGeneral *-- PresionArterial
+PresionArterial *-- PresionLado
+Ecografia *-- ImagenEcografia
+Ecografia *-- HigadoEcografia
+Ecografia *-- VesiculaBiliar
+Ecografia *-- RinonesEcografia
+RinonesEcografia *-- RinonMedicion
+Laboratorios *-- "0..*" EstudioLaboratorio
+Diagnostico *-- DiagnosticoCie11
+Receta *-- "0..*" RecetaMedicamento
+
+Actividad --> Viaje
+Actividad --> Paciente
+Actividad --> Historia
+Actividad *-- "0..*" ActividadChange
+
+ViajeInventarioItem --> Viaje
+ViajeInventarioItem --> MedicamentoCatalogo
+
+@enduml

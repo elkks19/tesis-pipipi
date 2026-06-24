@@ -1,0 +1,12 @@
+Examen físico segmentario
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenFisicoSegmentario.cabeza	string	Sí	Descripción del examen de cabeza.	src/lib/schema/examenFisicoSegmentario.ts	Normocéfalo	Requerido.
+examenFisicoSegmentario.cuello	string	Sí	Descripción del examen de cuello.	src/lib/schema/examenFisicoSegmentario.ts	Sin adenopatías	Requerido.
+examenFisicoSegmentario.aparatoRespiratorio	string	Sí	Descripción del aparato respiratorio.	src/lib/schema/examenFisicoSegmentario.ts	Murmullo vesicular conservado	Requerido.
+examenFisicoSegmentario.aparatoCardiovascular	string	Sí	Descripción del aparato cardiovascular.	src/lib/schema/examenFisicoSegmentario.ts	Ruidos cardíacos normofonéticos	Requerido.
+examenFisicoSegmentario.abdomenPelvis	string	Sí	Descripción de abdomen y pelvis.	src/lib/schema/examenFisicoSegmentario.ts	Blando, depresible	Requerido.
+examenFisicoSegmentario.aparatoGenitourinario	string	Sí	Descripción del aparato genitourinario.	src/lib/schema/examenFisicoSegmentario.ts	Sin particularidades	Requerido.
+examenFisicoSegmentario.pielFaneras	string	Sí	Descripción de piel y faneras.	src/lib/schema/examenFisicoSegmentario.ts	Piel hidratada	Requerido.
+examenFisicoSegmentario.sistemaHemolinfopoyetico	string	Sí	Descripción del sistema hemolinfopoyético.	src/lib/schema/examenFisicoSegmentario.ts	Sin adenomegalias	Requerido.
+examenFisicoSegmentario.aparatoOsteoartromuscular	string	Sí	Descripción del aparato osteoartromuscular.	src/lib/schema/examenFisicoSegmentario.ts	Movilidad conservada	Requerido.
+examenFisicoSegmentario.sistemaNerviosoCentral	string	Sí	Descripción del sistema nervioso central.	src/lib/schema/examenFisicoSegmentario.ts	Orientado en tiempo y espacio	Requerido.

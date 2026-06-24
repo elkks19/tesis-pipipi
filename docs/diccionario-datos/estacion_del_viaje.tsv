@@ -1,0 +1,6 @@
+Estación del viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+estaciones[]	object[]	Sí	Lista de estaciones configuradas para el viaje.	src/lib/schema/viajes.ts	[{}]	Cada tipo de estación solo puede seleccionarse una vez.
+estaciones[].tipo	enum	Sí	Tipo de estación del viaje.	src/lib/schema/viajes.ts	Anamnesis	Valores definidos en tiposEstacion.
+estaciones[].docenteEncargadoId	string	Sí	Usuario docente encargado de la estación.	src/lib/schema/viajes.ts	user_docente_01	En formulario se recibe como docenteEncargado y se persiste como docenteEncargadoId.
+estaciones[].estudiantesIds	string[]	Sí	Usuarios estudiantes asignados a la estación.	src/lib/schema/viajes.ts	["user_est_01"]	En formulario se recibe como estudiantes y se persiste como estudiantesIds.

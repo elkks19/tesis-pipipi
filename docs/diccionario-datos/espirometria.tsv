@@ -1,0 +1,13 @@
+Espirometría
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+espirometria.FEV1	number	Sí	Volumen espiratorio forzado en el primer segundo.	src/lib/schema/espirometria.ts	2.8	Requerido.
+espirometria.porcentajeFEVteorico	number	Sí	Porcentaje teórico de FEV.	src/lib/schema/espirometria.ts	85	Nombre del campo en código: porcentajeFEVteorico.
+espirometria.FVC	number	Sí	Capacidad vital forzada.	src/lib/schema/espirometria.ts	3.4	Requerido.
+espirometria.porcentajeFVCteorico	number	Sí	Porcentaje teórico de FVC.	src/lib/schema/espirometria.ts	90	Requerido.
+espirometria.FEV1FVC	number	Sí	Relación FEV1/FVC.	src/lib/schema/espirometria.ts	0.82	Requerido.
+espirometria.porcentajeFEV1FVCteorico	number	Sí	Porcentaje teórico de la relación FEV1/FVC.	src/lib/schema/espirometria.ts	95	Requerido.
+espirometria.flujoEspiratorioPicoPEF	number	Sí	Flujo espiratorio pico.	src/lib/schema/espirometria.ts	450	Requerido.
+espirometria.porcentajePEFteorico	number	Sí	Porcentaje teórico de PEF.	src/lib/schema/espirometria.ts	88	Requerido.
+espirometria.fuenteDatosTeoricos	string	No	Fuente de los datos teóricos usados.	src/lib/schema/espirometria.ts	GLI 2012	Opcional.
+espirometria.observaciones[]	enum[]	Sí	Observaciones de calidad de maniobra.	src/lib/schema/espirometria.ts	["Buena maniobra"]	Valores: Buena maniobra, Comienzo lento, Poco esfuerzo.
+espirometria.diagnostico	string	Sí	Diagnóstico o interpretación de espirometría.	src/lib/schema/espirometria.ts	Patrón normal	Requerido.

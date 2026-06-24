@@ -1,0 +1,18 @@
+Examen físico general
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenFisicoGeneral.presionArterial.derecha.min	number	Sí	Presión arterial derecha mínima/diastólica.	src/lib/schema/examenFisicoGeneral.ts	80	Verificar unidad en implementación; TODO menciona regex/unidad pendiente.
+examenFisicoGeneral.presionArterial.derecha.max	number	Sí	Presión arterial derecha máxima/sistólica.	src/lib/schema/examenFisicoGeneral.ts	120	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterial.izquierda.min	number	Sí	Presión arterial izquierda mínima/diastólica.	src/lib/schema/examenFisicoGeneral.ts	78	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterial.izquierda.max	number	Sí	Presión arterial izquierda máxima/sistólica.	src/lib/schema/examenFisicoGeneral.ts	118	Verificar unidad en implementación.
+examenFisicoGeneral.presionArterialMedia	number	Sí	Presión arterial media.	src/lib/schema/examenFisicoGeneral.ts	93	Persistido; puede calcularse fuera del schema, verificar en formulario.
+examenFisicoGeneral.pulsos	number	Sí	Pulsos.	src/lib/schema/examenFisicoGeneral.ts	72	Requerido.
+examenFisicoGeneral.frecuenciaRespiratoria	number	Sí	Frecuencia respiratoria.	src/lib/schema/examenFisicoGeneral.ts	18	Requerido.
+examenFisicoGeneral.frecuenciaCardiaca	number	Sí	Frecuencia cardíaca.	src/lib/schema/examenFisicoGeneral.ts	76	Requerido.
+examenFisicoGeneral.temperaturaAxilar	number	Sí	Temperatura axilar.	src/lib/schema/examenFisicoGeneral.ts	36.5	Requerido.
+examenFisicoGeneral.peso	number	Sí	Peso del paciente.	src/lib/schema/examenFisicoGeneral.ts	70.5	Requerido.
+examenFisicoGeneral.talla	number	Sí	Talla del paciente.	src/lib/schema/examenFisicoGeneral.ts	1.68	Requerido.
+examenFisicoGeneral.imc	number	Sí	Índice de masa corporal.	src/lib/schema/examenFisicoGeneral.ts	24.98	Persistido; derivado clínicamente de peso/talla, pero guardado en documento.
+examenFisicoGeneral.perimetroCadera	number	Sí	Perímetro de cadera.	src/lib/schema/examenFisicoGeneral.ts	96	Requerido.
+examenFisicoGeneral.perimetroCintura	number	Sí	Perímetro de cintura.	src/lib/schema/examenFisicoGeneral.ts	82	Requerido.
+examenFisicoGeneral.indiceCinturaCadera	number	Sí	Índice cintura/cadera.	src/lib/schema/examenFisicoGeneral.ts	0.85	Persistido; derivado clínicamente de perímetros, pero guardado en documento.
+examenFisicoGeneral.diagnosticoIMC	enum	Sí	Clasificación del IMC.	src/lib/schema/examenFisicoGeneral.ts	No tiene desnutrición	Valores definidos en diagnosticosIMC.

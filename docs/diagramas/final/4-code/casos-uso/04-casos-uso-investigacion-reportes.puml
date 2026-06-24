@@ -1,0 +1,53 @@
+@startuml
+title Casos de uso - investigacion y reportes
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+actor Admin
+actor "Docente investigador" as Investigador
+actor Docente
+
+rectangle "Analisis y reportes" {
+  usecase "Seleccionar viajes" as UCSeleccionarViajes
+  usecase "Consultar investigacion" as UCInvestigacion
+  usecase "Generar graficos" as UCGraficos
+  usecase "Guardar conversacion" as UCConversacion
+  usecase "Generar reporte analitico" as UCReporteAnalitico
+  usecase "Ver rendimiento por estacion" as UCRendimiento
+  usecase "Generar reporte PDF" as UCPdf
+  usecase "Consultar actividad" as UCActividad
+}
+
+Admin --> UCSeleccionarViajes
+Admin --> UCInvestigacion
+Admin --> UCGraficos
+Admin --> UCReporteAnalitico
+Admin --> UCRendimiento
+Admin --> UCPdf
+Admin --> UCActividad
+
+Investigador --> UCSeleccionarViajes
+Investigador --> UCInvestigacion
+Investigador --> UCGraficos
+Investigador --> UCConversacion
+Investigador --> UCReporteAnalitico
+
+Docente --> UCRendimiento
+Docente --> UCPdf
+Docente --> UCActividad
+
+UCInvestigacion .> UCSeleccionarViajes : usa filtros
+UCInvestigacion .> UCGraficos : produce
+UCInvestigacion .> UCConversacion : registra
+UCReporteAnalitico .> UCInvestigacion : resume
+UCPdf .> UCRendimiento : exporta
+
+@enduml

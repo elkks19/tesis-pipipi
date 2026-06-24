@@ -1,0 +1,41 @@
+@startuml
+title
+Secuencia - Inicio de sesion
+Roles: admin, docente-organizador, docente-investigador, docente y estudiante
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor Usuario
+participant "Formulario de login" as Login
+participant "Cliente de auth" as Client
+participant "Better Auth" as Auth
+database "Base de datos de autenticacion" as AuthDb
+participant "Aplicacion web" as App
+
+Usuario -> Login: Escribe email y contrasena
+Login -> Client: Enviar credenciales
+Client -> Auth: signIn.email
+Auth -> AuthDb: Verificar usuario y sesion
+
+alt Credenciales validas
+  AuthDb --> Auth: Usuario autenticado
+  Auth --> Client: Sesion creada
+  Client --> Login: Login correcto
+  Login -> App: Redirige al inicio
+else Credenciales invalidas
+  AuthDb --> Auth: Sin coincidencia
+  Auth --> Client: Error de autenticacion
+  Client --> Login: Mostrar mensaje
+end
+
+@enduml

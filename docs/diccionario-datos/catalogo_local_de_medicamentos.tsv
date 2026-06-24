@@ -1,0 +1,18 @@
+Catálogo local de medicamentos
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador del medicamento en catálogo.	src/lib/schema/farmacia.ts	med-cat-01	Documento type medicamentoCatalogo.
+type	string literal	Sí	Tipo documental.	src/lib/schema/farmacia.ts	medicamentoCatalogo	Siempre "medicamentoCatalogo".
+principioActivo	string	Sí	Principio activo normalizado.	src/lib/schema/farmacia.ts	Paracetamol	Requerido.
+fuente	enum	Sí	Fuente del dato del catálogo.	src/lib/schema/farmacia.ts	agemed	Valores: agemed, manual.
+concentracion	string	No	Concentración normalizada.	src/lib/schema/farmacia.ts	500 mg	Opcional en tipo de catálogo.
+formaFarmaceutica	string	No	Forma farmacéutica normalizada.	src/lib/schema/farmacia.ts	Comprimido	Opcional en tipo de catálogo.
+viaAdministracion	string	No	Vía de administración.	src/lib/schema/farmacia.ts	Oral	Opcional.
+registroSanitario	string	No	Registro sanitario.	src/lib/schema/farmacia.ts	NN-12345	Opcional.
+laboratorio	string	No	Laboratorio.	src/lib/schema/farmacia.ts	LAFAR	Opcional.
+titularRegistro	string	No	Titular del registro.	src/lib/schema/farmacia.ts	LAFAR S.A.	Opcional.
+nombreComercial	string	No	Nombre comercial.	src/lib/schema/farmacia.ts	Paracetamol MK	Opcional.
+atcCode	string	No	Código ATC.	src/lib/schema/farmacia.ts	N02BE01	Opcional.
+createdAt	string	Sí	Fecha/hora de creación en catálogo.	src/lib/schema/farmacia.ts	2026-06-01T10:00:00.000Z	Persistido.
+createdBy	string	No	Usuario que creó el registro.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.
+updatedAt	string	Sí	Fecha/hora de actualización del catálogo.	src/lib/schema/farmacia.ts	2026-06-02T10:00:00.000Z	Persistido.
+updatedBy	string	No	Usuario que actualizó el registro.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.

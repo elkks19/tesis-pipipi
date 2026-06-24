@@ -1,0 +1,10 @@
+Viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador lógico del viaje.	src/lib/schema/viajes.ts	viaje-2026-tilata	El documento CouchDB también puede tener _id/_rev.
+type	string literal	Sí	Tipo documental.	src/lib/schema/viajes.ts	viaje	Siempre "viaje".
+servicio	string	Sí	Servicio o campaña del viaje.	src/lib/schema/viajes.ts	Medicina Familiar	Requerido y no vacío en CreateViajeSchema.
+fechaEntrada	string	Sí	Fecha inicial del viaje.	src/lib/schema/viajes.ts	2026-07-01	Al crear debe ser hoy o futura.
+fechaSalida	string	Sí	Fecha final del viaje.	src/lib/schema/viajes.ts	2026-07-05	Debe ser posterior o igual a fechaEntrada.
+establecimiento.nombre	string	Sí	Nombre del establecimiento de salud.	src/lib/schema/viajes.ts	Centro de Salud Tilata	Requerido y no vacío.
+establecimiento.direccion	string	No	Dirección del establecimiento.	src/lib/schema/viajes.ts	Av. Principal s/n	Opcional.
+establecimiento.contacto	string	No	Contacto del establecimiento.	src/lib/schema/viajes.ts	76543210	Opcional.

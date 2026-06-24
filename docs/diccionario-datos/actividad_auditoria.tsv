@@ -1,0 +1,17 @@
+Actividad/auditoría
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/actividad.ts	actividad	Siempre "actividad".
+action	enum	Sí	Acción registrada.	src/lib/schema/actividad.ts	updated	Valores: created, updated.
+actorId	string	Sí	Usuario que realizó la acción.	src/lib/schema/actividad.ts	user_est_01	Requerido.
+stationKey	enum/string	Sí	Clave interna de estación.	src/lib/schema/actividad.ts	anamnesis	Tipo StationKey en src/lib/station-histories.ts.
+viajeId	string	Sí	Viaje al que pertenece la actividad.	src/lib/schema/actividad.ts	viaje-2026-tilata	Requerido para filtros.
+viajeLabel	string	No	Etiqueta humana del viaje.	src/lib/schema/actividad.ts	Medicina / Centro de Salud Tilata	Facilita mostrar contexto sin resolver viaje.
+historiaId	string	No	Historia afectada por la acción.	src/lib/schema/actividad.ts	historia-01	Opcional; no aplica siempre a paciente.
+pacienteId	string	Sí	Paciente afectado por la acción.	src/lib/schema/actividad.ts	paciente-01	Requerido.
+subject	enum	Sí	Sujeto de la actividad.	src/lib/schema/actividad.ts	historia	Valores: historia, paciente.
+changedFields[]	string[]	Sí	Lista de campos modificados.	src/lib/schema/actividad.ts	["anamnesis.motivoConsulta"]	Generado por comparación before/after.
+changes[]	object[]	No	Detalle de cambios.	src/lib/schema/actividad.ts	[{}]	Opcional.
+changes[].field	string	Sí si existe cambio	Campo modificado.	src/lib/schema/actividad.ts	anamnesis.motivoConsulta	Obligatorio dentro de changes[].
+changes[].before	unknown	No	Valor anterior.	src/lib/schema/actividad.ts	Dolor	Admite cualquier tipo serializable.
+changes[].after	unknown	No	Valor nuevo.	src/lib/schema/actividad.ts	Dolor abdominal	Admite cualquier tipo serializable.
+createdAt	string	Sí	Fecha/hora del evento.	src/lib/schema/actividad.ts	2026-06-03T01:50:12.151Z	Usado para ordenamiento y trazabilidad.

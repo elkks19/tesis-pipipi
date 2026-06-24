@@ -1,0 +1,6 @@
+Exámenes complementarios solicitados
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+examenesComplementariosSolicitados.ecografia	boolean	No	Indica si se solicitó ecografía.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Ecografía.
+examenesComplementariosSolicitados.laboratorios	boolean	No	Indica si se solicitaron laboratorios.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Laboratorios.
+examenesComplementariosSolicitados.espirometria	boolean	No	Indica si se solicitó espirometría.	src/lib/schema/historia.ts	false	Controla aparición/pendiente de estación Espirometría.
+examenesComplementariosSolicitados.electrocardiograma	boolean	No	Indica si se solicitó electrocardiograma.	src/lib/schema/historia.ts	true	Controla aparición/pendiente de estación Electrocardiograma.

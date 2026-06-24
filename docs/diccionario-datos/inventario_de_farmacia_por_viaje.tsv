@@ -1,0 +1,28 @@
+Inventario de Farmacia por viaje
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+id	string	Sí	Identificador del item de inventario.	src/lib/schema/farmacia.ts	inv-01	Documento type viajeInventarioItem.
+type	string literal	Sí	Tipo documental.	src/lib/schema/farmacia.ts	viajeInventarioItem	Siempre "viajeInventarioItem".
+viajeId	string	Sí	Viaje al que pertenece el item.	src/lib/schema/farmacia.ts	viaje-2026-tilata	Inventario ligado a viajeId.
+categoria	enum	Sí	Categoría del item.	src/lib/schema/farmacia.ts	medicamento	Valores: medicamento, insumo, equipo, otro.
+nombre	string	Sí	Nombre del item.	src/lib/schema/farmacia.ts	Paracetamol	Requerido y no vacío.
+unidad	string	Sí	Unidad de planificación.	src/lib/schema/farmacia.ts	comprimidos	Requerido y no vacío.
+cantidadPlanificada	number	Sí	Cantidad planificada para el viaje.	src/lib/schema/farmacia.ts	200	Mínimo 0.
+cantidadDisponible	number	No	Cantidad disponible.	src/lib/schema/farmacia.ts	150	Opcional; mínimo 0 si existe.
+catalogoId	string	No	Referencia al catálogo local de medicamentos.	src/lib/schema/farmacia.ts	med-cat-01	Opcional.
+fuente	enum	No	Fuente del registro.	src/lib/schema/farmacia.ts	agemed	Valores: agemed, manual.
+principioActivo	string	Condicional	Principio activo del medicamento.	src/lib/schema/farmacia.ts	Paracetamol	Requerido cuando categoria = medicamento.
+concentracion	string	Condicional	Concentración del medicamento.	src/lib/schema/farmacia.ts	500 mg	Requerido cuando categoria = medicamento.
+formaFarmaceutica	string	Condicional	Forma farmacéutica.	src/lib/schema/farmacia.ts	Comprimido	Requerido cuando categoria = medicamento.
+viaAdministracion	string	No	Vía de administración.	src/lib/schema/farmacia.ts	Oral	Opcional.
+registroSanitario	string	No	Registro sanitario.	src/lib/schema/farmacia.ts	NN-12345	Opcional.
+laboratorio	string	No	Laboratorio.	src/lib/schema/farmacia.ts	LAFAR	Opcional.
+titularRegistro	string	No	Titular del registro sanitario.	src/lib/schema/farmacia.ts	LAFAR S.A.	Opcional.
+nombreComercial	string	No	Nombre comercial.	src/lib/schema/farmacia.ts	Paracetamol MK	Opcional.
+atcCode	string	No	Código ATC.	src/lib/schema/farmacia.ts	N02BE01	Opcional.
+lote	string	No	Lote del item.	src/lib/schema/farmacia.ts	LT-2026-01	Opcional.
+fechaVencimiento	string	No	Fecha de vencimiento.	src/lib/schema/farmacia.ts	2027-12-31	Opcional; se persiste como string.
+observaciones	string	No	Observaciones del item.	src/lib/schema/farmacia.ts	Stock para campaña	Opcional.
+createdAt	string	Sí	Fecha/hora de creación del item.	src/lib/schema/farmacia.ts	2026-06-01T10:00:00.000Z	Persistido.
+createdBy	string	No	Usuario que creó el item.	src/lib/schema/farmacia.ts	user_est_01	Opcional.
+updatedAt	string	Sí	Fecha/hora de actualización del item.	src/lib/schema/farmacia.ts	2026-06-02T10:00:00.000Z	Persistido.
+updatedBy	string	No	Usuario que actualizó el item.	src/lib/schema/farmacia.ts	user_docente_01	Opcional.

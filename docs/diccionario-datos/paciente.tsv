@@ -1,0 +1,25 @@
+Paciente
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/pacientes.ts	paciente	Siempre "paciente".
+datosPersonales.nombres	string	Sí	Nombres del paciente.	src/lib/schema/pacientes.ts	Juan Carlos	Requerido.
+datosPersonales.apellidoPaterno	string	Sí	Apellido paterno del paciente.	src/lib/schema/pacientes.ts	Mamani	Requerido.
+datosPersonales.apellidoMaterno	string	Sí	Apellido materno del paciente.	src/lib/schema/pacientes.ts	Quispe	Requerido.
+datosPersonales.fechaNacimiento	Date	Sí	Fecha de nacimiento del paciente.	src/lib/schema/pacientes.ts	1995-03-18	Se coerciona a Date.
+datosPersonales.documentoIdentidad	enum	Sí	Tipo de documento de identidad.	src/lib/schema/pacientes.ts	CI	Valores: CI, Pasaporte.
+datosPersonales.numeroDocumentoIdentidad	string	Sí	Número de documento de identidad.	src/lib/schema/pacientes.ts	8308424	TODO en código indica regex pendiente; verificar en implementación.
+genero	enum	Sí	Género del paciente.	src/lib/schema/pacientes.ts	Femenino	Valores: Masculino, Femenino, Indeterminado.
+lugarNacimiento.pais	string	Sí	País de nacimiento.	src/lib/schema/pacientes.ts	Bolivia	Requerido.
+lugarNacimiento.departamento	string	Sí	Departamento de nacimiento.	src/lib/schema/pacientes.ts	La Paz	Requerido.
+lugarNacimiento.distrito	string	No	Distrito de nacimiento.	src/lib/schema/pacientes.ts	Viacha	Opcional.
+nacionalidad	string	Sí	Nacionalidad del paciente.	src/lib/schema/pacientes.ts	Boliviana	Requerido.
+etnia	string	No	Etnia declarada.	src/lib/schema/pacientes.ts	Aymara	Opcional.
+padres[]	object[]	No	Datos de padres/tutores asociados.	src/lib/schema/pacientes.ts	[{}]	Arreglo opcional.
+padres[].datosPersonales.nombres	string	Sí si existe padre/tutor	Nombres del padre/tutor.	src/lib/schema/pacientes.ts	María	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.apellidoPaterno	string	Sí si existe padre/tutor	Apellido paterno del padre/tutor.	src/lib/schema/pacientes.ts	Quispe	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.apellidoMaterno	string	Sí si existe padre/tutor	Apellido materno del padre/tutor.	src/lib/schema/pacientes.ts	López	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.fechaNacimiento	Date	Sí si existe padre/tutor	Fecha de nacimiento del padre/tutor.	src/lib/schema/pacientes.ts	1970-01-20	Obligatorio dentro de cada item de padres[].
+padres[].datosPersonales.documentoIdentidad	enum	Sí si existe padre/tutor	Tipo de documento del padre/tutor.	src/lib/schema/pacientes.ts	CI	Valores: CI, Pasaporte.
+padres[].datosPersonales.numeroDocumentoIdentidad	string	Sí si existe padre/tutor	Número de documento del padre/tutor.	src/lib/schema/pacientes.ts	4567890	Verificar validación final de formato.
+padres[].relacion	string	Sí si existe padre/tutor	Relación con el paciente.	src/lib/schema/pacientes.ts	Madre	Obligatorio dentro de padres[].
+padres[].asumeSustento	boolean	Sí si existe padre/tutor	Indica si asume el sustento económico.	src/lib/schema/pacientes.ts	true	Se coerciona a boolean.
+padres[].numeroContacto	string	Sí si existe padre/tutor	Número de contacto del padre/tutor.	src/lib/schema/pacientes.ts	71234567	Verificar validación de teléfono en implementación.

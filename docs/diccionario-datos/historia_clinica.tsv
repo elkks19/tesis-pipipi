@@ -1,0 +1,20 @@
+Historia clínica
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+type	string literal	Sí	Tipo documental.	src/lib/schema/historia.ts	historia	Siempre "historia".
+created_by	string	No	Usuario que creó la historia.	src/lib/schema/historia.ts	user_est_01	Campo de auditoría persistido cuando corresponde.
+pacienteId	string	Sí	Referencia al documento paciente.	src/lib/schema/historia.ts	paciente-ci-8308424	Requerido.
+viajeId	string	No	Referencia al viaje.	src/lib/schema/historia.ts	viaje-2026-tilata	El flujo espera viajeId para filtrar; aparece opcional en el tipo.
+examenesComplementariosSolicitados	object	No	Banderas de complementarios solicitados.	src/lib/schema/historia.ts	{}	Persistido en historia; controla estaciones complementarias.
+anamnesis	object	No	Bloque clínico de anamnesis.	src/lib/schema/historia.ts	{}	Se completa por estación.
+examenFisicoGeneral	object	No	Bloque de examen físico general.	src/lib/schema/historia.ts	{}	Se completa por estación.
+examenFisicoSegmentario	object	No	Bloque de examen físico segmentario.	src/lib/schema/historia.ts	{}	Se completa por estación.
+electrocardiograma	object	No	Bloque de electrocardiograma.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+espirometria	object	No	Bloque de espirometría.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+ecografia	object	No	Bloque de ecografía.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+laboratorios	object	No	Bloque de laboratorios.	src/lib/schema/historia.ts	{}	Solo debería aparecer si fue solicitado.
+diagnostico	object	No	Bloque de diagnóstico.	src/lib/schema/historia.ts	{}	Al guardarse puede encolar reporte de historia.
+receta	object	No	Receta asociada a la historia.	src/lib/schema/historia.ts	{}	Tipo definido en farmacia.ts; verificar uso actual en implementación.
+reporteHistoria	object	No	Último archivo PDF de reporte de historia.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	{}	Persistido tras generación de reporte.
+reportesHistoria[]	object[]	No	Historial de archivos PDF generados.	src/lib/schema/historia.ts; src/lib/reports/historia-carbone-report.ts	[{}]	Se acumula al generar nuevos reportes.
+*.created_by	string	No	Usuario que creó un bloque clínico.	src/lib/schema/historia.ts	user_est_01	Aplica a bloques con Partial<AuditFields>.
+*.updated_by	string	No	Usuario que actualizó un bloque clínico.	src/lib/schema/historia.ts	user_docente_01	Aplica a bloques con Partial<AuditFields>.

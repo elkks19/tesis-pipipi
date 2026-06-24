@@ -1,0 +1,25 @@
+Ecografía
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+ecografia.imagen	object	No	Archivo de imagen asociado a ecografía.	src/lib/schema/ecografia.ts	{}	Opcional.
+ecografia.imagen.key	string	Sí si existe imagen	Clave de almacenamiento del archivo.	src/lib/schema/ecografia.ts	uploads/ecografias/img.jpg	Obligatorio dentro de imagen.
+ecografia.imagen.nombre	string	Sí si existe imagen	Nombre original o visible del archivo.	src/lib/schema/ecografia.ts	eco-abdomen.jpg	Obligatorio dentro de imagen.
+ecografia.imagen.tipo	string	Sí si existe imagen	Tipo MIME del archivo.	src/lib/schema/ecografia.ts	image/jpeg	Obligatorio dentro de imagen.
+ecografia.imagen.tamano	number	Sí si existe imagen	Tamaño del archivo.	src/lib/schema/ecografia.ts	245000	En bytes.
+ecografia.imagen.url	string	No	URL de acceso al archivo.	src/lib/schema/ecografia.ts	/archivos/uploads/ecografias/img.jpg	Opcional.
+ecografia.imagen.data	string	No	Datos embebidos del archivo.	src/lib/schema/ecografia.ts	data:image/jpeg;base64,...	Opcional.
+ecografia.higado.dimensiones	number	Sí	Dimensiones del hígado.	src/lib/schema/ecografia.ts	14.2	Verificar unidad en implementación.
+ecografia.higado.hepatomegalia	boolean	Sí	Indica hepatomegalia.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.higado.parenquima	enum	Sí	Parénquima hepático.	src/lib/schema/ecografia.ts	Homogeneo	Valores: Homogeneo, Heterogeneo.
+ecografia.higado.diagnostico	string	Sí	Diagnóstico del hígado.	src/lib/schema/ecografia.ts	Sin alteraciones	Requerido.
+ecografia.vesiculaBiliar.paredes	enum	Sí	Características de paredes vesiculares.	src/lib/schema/ecografia.ts	Regulares	Valores: Regulares, Irregulares, Engrosadas, Delgadas.
+ecografia.vesiculaBiliar.contenidoAnecoico	boolean	Sí	Indica contenido anecoico.	src/lib/schema/ecografia.ts	true	Se coerciona a boolean.
+ecografia.vesiculaBiliar.barroBiliar	boolean	Sí	Indica presencia de barro biliar.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.vesiculaBiliar.calculos	boolean	Sí	Indica presencia de cálculos.	src/lib/schema/ecografia.ts	false	Se coerciona a boolean.
+ecografia.vesiculaBiliar.diagnostico	string	Sí	Diagnóstico de vesícula biliar.	src/lib/schema/ecografia.ts	Sin litiasis	Requerido.
+ecografia.riñones.derecho.longitud	number	Sí	Longitud del riñón derecho.	src/lib/schema/ecografia.ts	10.5	Verificar unidad en implementación.
+ecografia.riñones.derecho.parenquima	number	Sí	Parénquima del riñón derecho.	src/lib/schema/ecografia.ts	1.6	Verificar unidad en implementación.
+ecografia.riñones.izquierdo.longitud	number	Sí	Longitud del riñón izquierdo.	src/lib/schema/ecografia.ts	10.8	Verificar unidad en implementación.
+ecografia.riñones.izquierdo.parenquima	number	Sí	Parénquima del riñón izquierdo.	src/lib/schema/ecografia.ts	1.7	Verificar unidad en implementación.
+ecografia.riñones.ecogenicidad	enum	Sí	Ecogenicidad renal.	src/lib/schema/ecografia.ts	Conservada	Valores: Conservada, Aumentada, Disminuida.
+ecografia.riñones.relacionCorticoMedular	enum	Sí	Relación córtico-medular.	src/lib/schema/ecografia.ts	Conservada	Valores: Conservada, Aumentada, Disminuida.
+ecografia.riñones.diagnostico	string	Sí	Diagnóstico renal ecográfico.	src/lib/schema/ecografia.ts	Sin alteraciones	Requerido.

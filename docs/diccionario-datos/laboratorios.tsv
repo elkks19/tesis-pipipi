@@ -1,0 +1,7 @@
+Laboratorios
+Campo	Tipo de dato	Obligatorio	Descripción	Origen o archivo fuente	Ejemplo de valor	Observaciones/reglas
+laboratorios.glicemiaCapilar	string	Sí	Resultado de glicemia capilar.	src/lib/schema/laboratorios.ts	92 mg/dL	Se persiste como string.
+laboratorios.grupoSanguineo	enum	Sí	Grupo sanguíneo.	src/lib/schema/laboratorios.ts	O+	Valores: A+, A-, B+, B-, AB+, AB-, O+, O-.
+laboratorios.otrosEstudios[]	object[]	No	Otros estudios de laboratorio.	src/lib/schema/laboratorios.ts	[{}]	Arreglo opcional.
+laboratorios.otrosEstudios[].nombre	string	Sí si existe estudio	Nombre del estudio.	src/lib/schema/laboratorios.ts	Hemoglobina	Obligatorio dentro de otrosEstudios[].
+laboratorios.otrosEstudios[].resultado	string	Sí si existe estudio	Resultado del estudio.	src/lib/schema/laboratorios.ts	14 g/dL	Obligatorio dentro de otrosEstudios[].

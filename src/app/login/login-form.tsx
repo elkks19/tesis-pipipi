@@ -50,6 +50,19 @@ export function LoginForm() {
       return;
     }
 
+    const url = new URL(window.location.href);
+    const sensitiveParams = ["password", "passwordConfirmation"];
+    const hasSensitiveParam = sensitiveParams.some((param) =>
+      url.searchParams.has(param),
+    );
+
+    if (hasSensitiveParam) {
+      for (const param of sensitiveParams) {
+        url.searchParams.delete(param);
+      }
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
     if (session) {
       router.replace(loginRedirectPath);
     }
@@ -74,6 +87,12 @@ export function LoginForm() {
 
       toast.success("Sesion iniciada correctamente.");
       router.replace(loginRedirectPath);
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? loginError.message
+          : "No se pudo iniciar sesion.",
+      );
     } finally {
       setIsEmailPending(false);
     }
@@ -110,7 +129,12 @@ export function LoginForm() {
           <CardTitle>Iniciar sesion</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-6" onSubmit={handleEmailLogin}>
+          <form
+            action="/login"
+            className="flex flex-col gap-6"
+            method="post"
+            onSubmit={handleEmailLogin}
+          >
             <FieldGroup>
               <Field data-invalid={Boolean(error)}>
                 <FieldLabel htmlFor="email">Correo electronico</FieldLabel>

@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -19,6 +20,8 @@ type ThemeContextValue = {
 
 const STORAGE_KEY = "tesis-theme";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function ThemeProvider({
   children,
@@ -27,29 +30,32 @@ export function ThemeProvider({
   children: ReactNode;
   defaultTheme?: Theme;
 }) {
-  const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") {
+      return defaultTheme;
+    }
 
-  useEffect(() => {
-    window.setTimeout(() => {
-      const storedTheme = readStoredTheme();
-      if (storedTheme) {
-        setThemeState(storedTheme);
-      }
-    }, 0);
-  }, []);
+    return readStoredTheme() ?? defaultTheme;
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
 
-  useEffect(() => {
+    return resolveTheme(readStoredTheme() ?? defaultTheme);
+  });
+
+  useIsomorphicLayoutEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
 
     function syncTheme() {
-      const nextResolvedTheme =
-        theme === "system" ? (media.matches ? "dark" : "light") : theme;
+      const nextResolvedTheme = resolveTheme(theme);
 
       document.documentElement.classList.toggle(
         "dark",
         nextResolvedTheme === "dark",
       );
+      document.documentElement.style.colorScheme = nextResolvedTheme;
       setResolvedTheme(nextResolvedTheme);
     }
 
@@ -88,6 +94,16 @@ export function useTheme() {
 function readStoredTheme() {
   const value = window.localStorage.getItem(STORAGE_KEY);
   return isTheme(value) ? value : null;
+}
+
+function resolveTheme(theme: Theme): "light" | "dark" {
+  if (theme !== "system") {
+    return theme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function isTheme(value: string | null): value is Theme {

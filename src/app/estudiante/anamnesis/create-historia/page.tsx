@@ -32,6 +32,7 @@ export default async function CreateHistoriaPage({
     searchPacientes(query),
     getPacienteById(pacienteId),
   ]);
+  const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes;
 
   return (
     <div className="flex flex-col gap-6">
@@ -46,11 +47,12 @@ export default async function CreateHistoriaPage({
           </p>
         </div>
 
-        <PacienteSearchInput initialValue={query} />
+        <PacienteSearchInput initialValue={query} key={query} />
       </section>
 
       <PacienteSearchResults
-        pacientes={pacientes}
+        hideCreateHistoriaAction={Boolean(selectedPaciente)}
+        pacientes={visiblePacientes}
         query={query}
         selectedPacienteId={selectedPaciente?.id}
         newPacienteRoute="/estudiante/anamnesis/create-paciente"

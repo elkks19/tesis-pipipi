@@ -36,6 +36,11 @@ async def chat(
     repository = TesisRepository(couch)
     chat_repository = ChatRepository(couch)
     ollama = OllamaClient(settings.ollama_url, settings.chat_model)
+    owner_id = request.scope.user_id or "anonymous"
+    history = await chat_repository.get_recent_messages(
+        request.conversation_id,
+        owner_id,
+    )
 
     def build_retriever() -> RagRetriever:
         embeddings = EmbeddingService(settings.embedding_model)
@@ -51,7 +56,7 @@ async def chat(
     agent = ResearchAgent(ollama, tools)
 
     try:
-        agent_response = await agent.answer(request.message)
+        agent_response = await agent.answer(request.message, history=history)
         answer = agent_response.answer
         artifacts = agent_response.artifacts
         sources = agent_response.sources
@@ -65,6 +70,7 @@ async def chat(
                 repository=repository,
                 retriever_factory=build_retriever,
                 ollama=ollama,
+                history=history,
                 top_k=request.top_k,
             )
             response_intent = intent
@@ -77,6 +83,7 @@ async def chat(
             repository=repository,
             retriever_factory=build_retriever,
             ollama=ollama,
+            history=history,
             top_k=request.top_k,
         )
         response_intent = intent
@@ -86,7 +93,7 @@ async def chat(
         artifacts=[artifact.model_dump() for artifact in artifacts],
         conversation_id=request.conversation_id,
         intent=response_intent,
-        owner_id=request.scope.user_id or "anonymous",
+        owner_id=owner_id,
         question=request.message,
         role=request.scope.role,
         scope=request.scope.model_dump(by_alias=True),
@@ -112,6 +119,7 @@ async def legacy_answer(
     repository: TesisRepository,
     retriever_factory: Callable[[], RagRetriever],
     ollama: OllamaClient,
+    history: list[dict[str, str]] | None,
     top_k: int,
 ) -> tuple[str, list[Artifact], list[Source]]:
     if intent in {"chart", "statistic"}:
@@ -132,6 +140,6 @@ async def legacy_answer(
             [],
         )
 
-    messages = build_rag_messages(message, contexts)
+    messages = build_rag_messages(message, contexts, history=history)
     answer = await ollama.chat(messages)
     return answer, [], [context.to_source() for context in contexts]

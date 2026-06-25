@@ -10,13 +10,21 @@ No entregues identificadores personales innecesarios.
 """.strip()
 
 
-def build_rag_messages(question: str, contexts: list[RetrievedChunk]) -> list[dict[str, str]]:
+def build_rag_messages(
+    question: str,
+    contexts: list[RetrievedChunk],
+    *,
+    history: list[dict[str, str]] | None = None,
+) -> list[dict[str, str]]:
     context_text = "\n\n".join(
         f"[Fuente {index}] {context.title}\n{context.text}"
         for index, context in enumerate(contexts, start=1)
     )
-    return [
+    messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
+    ]
+    messages.extend(history or [])
+    messages.append(
         {
             "role": "user",
             "content": (
@@ -25,5 +33,6 @@ def build_rag_messages(question: str, contexts: list[RetrievedChunk]) -> list[di
                 f"Pregunta: {question}\n\n"
                 "Respuesta:"
             ),
-        },
-    ]
+        }
+    )
+    return messages

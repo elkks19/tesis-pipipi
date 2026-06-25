@@ -42,11 +42,17 @@ class ResearchAgent:
         self.ollama = ollama
         self.tools = tools
 
-    async def answer(self, question: str) -> AgentAnswer:
+    async def answer(
+        self,
+        question: str,
+        *,
+        history: list[dict[str, str]] | None = None,
+    ) -> AgentAnswer:
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question},
         ]
+        messages.extend(history or [])
+        messages.append({"role": "user", "content": question})
         artifacts: list[Artifact] = []
         sources: dict[str, Source] = {}
 
@@ -112,4 +118,3 @@ def assistant_text(message: dict[str, Any]) -> str:
     content = str(message.get("content") or "").strip()
     content = strip_thinking(content)
     return content or "No encontre informacion suficiente para responder eso."
-

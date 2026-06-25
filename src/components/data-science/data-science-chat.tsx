@@ -19,6 +19,7 @@ import {
   PlusIcon,
   SearchIcon,
   SendIcon,
+  SlidersHorizontalIcon,
   XIcon,
 } from "lucide-react";
 import {
@@ -234,6 +235,240 @@ export function DataScienceChat() {
         ? `${selectedTrips[0]?.secondaryLabel} · ${selectedTrips[0]?.dateLabel}`
         : selectedTrips.map((trip) => trip.label).join(", ");
   const hiddenSelectedTrips = Math.max(0, selectedTrips.length - 3);
+
+  function renderTripPicker() {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">
+        Viajes
+      </span>
+      <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            aria-expanded={tripPickerOpen}
+            className="h-auto min-h-10 justify-between px-3 py-2 text-left font-normal"
+            role="combobox"
+            variant="outline"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate">{tripScopeLabel}</span>
+            </span>
+            <ChevronsUpDownIcon aria-hidden="true" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[min(680px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
+        >
+          <PopoverHeader className="border-b p-4">
+            <PopoverTitle>Buscar viajes</PopoverTitle>
+            <PopoverDescription>
+              Escribe un lugar, servicio o fecha. La lista carga más resultados al bajar.
+            </PopoverDescription>
+          </PopoverHeader>
+
+          <div className="flex flex-col gap-3 border-b p-3">
+            <InputGroup>
+              <InputGroupAddon align="inline-start">
+                <SearchIcon aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                aria-label="Buscar viajes"
+                onChange={(event) => setTripSearch(event.target.value)}
+                placeholder="Buscar por lugar, servicio o fecha"
+                value={tripSearch}
+              />
+            </InputGroup>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={clearTrips}
+                size="sm"
+                type="button"
+                variant={selectedTripIds.length === 0 ? "default" : "outline"}
+              >
+                {selectedTripIds.length === 0 ? (
+                  <CheckIcon aria-hidden="true" data-icon="inline-start" />
+                ) : null}
+                Incluir todos
+              </Button>
+              {selectedTripIds.length > 0 ? (
+                <Button
+                  onClick={clearTrips}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <XIcon aria-hidden="true" data-icon="inline-start" />
+                  Limpiar
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div
+            className="max-h-80 overflow-y-auto p-2"
+            onScroll={handleTripListScroll}
+          >
+            {tripOptions.length > 0 ? (
+              tripOptions.map((trip) => {
+                const selected = selectedTripIds.includes(trip.id);
+
+                return (
+                  <button
+                    className={cn(
+                      "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
+                      selected && "bg-muted",
+                    )}
+                    key={trip.id}
+                    onClick={() => toggleTrip(trip)}
+                    type="button"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-background",
+                      )}
+                    >
+                      {selected ? <CheckIcon aria-hidden="true" /> : null}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="truncate text-sm font-medium">
+                        {trip.label}
+                      </span>
+                      <span className="line-clamp-2 text-xs text-muted-foreground">
+                        {trip.secondaryLabel} · {trip.dateLabel}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            ) : !isTripsPending ? (
+              <div className="p-5 text-center text-sm text-muted-foreground">
+                No hay viajes que coincidan con la busqueda.
+              </div>
+            ) : null}
+            {isTripsPending ? (
+              <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+                <LoaderCircleIcon
+                  aria-hidden="true"
+                  className="animate-spin"
+                  data-icon="inline-start"
+                />
+                Cargando viajes
+              </div>
+            ) : null}
+            {!isTripsPending && tripOptions.length > 0 && !tripHasMore ? (
+              <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                No hay más viajes para esta búsqueda.
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 border-t p-3">
+            <span className="text-xs text-muted-foreground">
+              {selectedTripIds.length === 0
+                ? "Se analizaran todos los viajes."
+                : `${selectedTripIds.length} viajes incluidos en el analisis.`}
+            </span>
+            <Button
+              onClick={() => setTripPickerOpen(false)}
+              size="sm"
+              type="button"
+            >
+              <CheckIcon aria-hidden="true" data-icon="inline-start" />
+              Listo
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {selectedTrips.length > 0 ? (
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          {selectedTrips.slice(0, 3).map((trip) => (
+            <Button
+              className="h-6 max-w-48 gap-1 px-2 text-xs"
+              key={trip.id}
+              onClick={() => toggleTrip(trip)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              <span className="truncate">{trip.label}</span>
+              <XIcon aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          ))}
+          {hiddenSelectedTrips > 0 ? (
+            <span className="self-center text-xs text-muted-foreground">
+              +{hiddenSelectedTrips} más
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        <span className="truncate text-xs text-muted-foreground">
+          {tripScopeDescription}
+        </span>
+      )}
+      </div>
+    );
+  }
+
+  function renderStationPicker() {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">
+        Estacion
+      </span>
+      <Select onValueChange={setStationKey} value={stationKey}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Estacion" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {stationOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <span className="truncate text-xs text-muted-foreground">
+        {selectedStation?.label ?? "Todas las estaciones"}
+      </span>
+      </div>
+    );
+  }
+
+  function renderResultPicker() {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">
+        Resultado
+      </span>
+      <Select
+        onValueChange={(value) => setChartType(value as ChartType)}
+        value={chartType}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {chartTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <span className="truncate text-xs text-muted-foreground">
+        El asistente usara este formato cuando aplique.
+      </span>
+      </div>
+    );
+  }
 
   const loadTripOptions = useCallback(
     async ({
@@ -595,21 +830,50 @@ export function DataScienceChat() {
   }
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-background shadow-sm">
-      <header className="flex flex-col gap-4 border-b p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
+      <header className="flex shrink-0 flex-col gap-3 border-b px-3 py-2.5 sm:px-4">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="text-lg font-semibold">Asistente de investigacion</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="truncate text-base font-semibold sm:text-lg">
+              Asistente de investigacion
+            </h2>
+            <p className="hidden text-sm text-muted-foreground sm:block">
               Elige el alcance y consulta las historias con lenguaje natural.
             </p>
+            <p className="truncate text-xs text-muted-foreground sm:hidden">
+              {tripScopeLabel} · {selectedStation?.label ?? "Todas las estaciones"}
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Sheet>
               <SheetTrigger asChild>
                 <Button size="sm" variant="outline">
+                  <SlidersHorizontalIcon
+                    aria-hidden="true"
+                    data-icon="inline-start"
+                  />
+                  Alcance
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[min(420px,100vw)]" side="bottom">
+                <SheetHeader className="border-b">
+                  <SheetTitle>Alcance del analisis</SheetTitle>
+                  <SheetDescription>
+                    Ajusta viajes, estacion y formato de respuesta.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-4 overflow-y-auto p-4">
+                  {renderTripPicker()}
+                  {renderStationPicker()}
+                  {renderResultPicker()}
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button className="px-2 sm:px-3" size="sm" variant="outline">
                   <HistoryIcon aria-hidden="true" data-icon="inline-start" />
-                  Conversaciones
+                  <span className="hidden sm:inline">Conversaciones</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
@@ -660,6 +924,7 @@ export function DataScienceChat() {
               </SheetContent>
             </Sheet>
             <Button
+              className="px-2 sm:px-3"
               disabled={reportPending}
               onClick={() => void generateReport()}
               size="sm"
@@ -674,238 +939,14 @@ export function DataScienceChat() {
               ) : (
                 <FileTextIcon aria-hidden="true" data-icon="inline-start" />
               )}
-              Generar y descargar reporte
+              <span className="hidden sm:inline">Generar y descargar reporte</span>
             </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_240px_220px]">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Viajes
-            </span>
-            <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  aria-expanded={tripPickerOpen}
-                  className="h-auto min-h-10 justify-between px-3 py-2 text-left font-normal"
-                  role="combobox"
-                  variant="outline"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 truncate">{tripScopeLabel}</span>
-                  </span>
-                  <ChevronsUpDownIcon aria-hidden="true" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                className="w-[min(680px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
-              >
-                <PopoverHeader className="border-b p-4">
-                  <PopoverTitle>Buscar viajes</PopoverTitle>
-                  <PopoverDescription>
-                    Escribe un lugar, servicio o fecha. La lista carga más resultados al bajar.
-                  </PopoverDescription>
-                </PopoverHeader>
-
-                <div className="flex flex-col gap-3 border-b p-3">
-                  <InputGroup>
-                    <InputGroupAddon align="inline-start">
-                      <SearchIcon aria-hidden="true" />
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      aria-label="Buscar viajes"
-                      onChange={(event) => setTripSearch(event.target.value)}
-                      placeholder="Buscar por lugar, servicio o fecha"
-                      value={tripSearch}
-                    />
-                  </InputGroup>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      onClick={clearTrips}
-                      size="sm"
-                      type="button"
-                      variant={selectedTripIds.length === 0 ? "default" : "outline"}
-                    >
-                      {selectedTripIds.length === 0 ? (
-                        <CheckIcon aria-hidden="true" data-icon="inline-start" />
-                      ) : null}
-                      Incluir todos
-                    </Button>
-                    {selectedTripIds.length > 0 ? (
-                      <Button
-                        onClick={clearTrips}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <XIcon aria-hidden="true" data-icon="inline-start" />
-                        Limpiar
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div
-                  className="max-h-80 overflow-y-auto p-2"
-                  onScroll={handleTripListScroll}
-                >
-                  {tripOptions.length > 0 ? (
-                    tripOptions.map((trip) => {
-                      const selected = selectedTripIds.includes(trip.id);
-
-                      return (
-                        <button
-                          className={cn(
-                            "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
-                            selected && "bg-muted",
-                          )}
-                          key={trip.id}
-                          onClick={() => toggleTrip(trip)}
-                          type="button"
-                        >
-                          <span
-                            className={cn(
-                              "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
-                              selected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-input bg-background",
-                            )}
-                          >
-                            {selected ? <CheckIcon aria-hidden="true" /> : null}
-                          </span>
-                          <span className="flex min-w-0 flex-1 flex-col gap-1">
-                            <span className="truncate text-sm font-medium">
-                              {trip.label}
-                            </span>
-                            <span className="line-clamp-2 text-xs text-muted-foreground">
-                              {trip.secondaryLabel} · {trip.dateLabel}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })
-                  ) : !isTripsPending ? (
-                    <div className="p-5 text-center text-sm text-muted-foreground">
-                      No hay viajes que coincidan con la busqueda.
-                    </div>
-                  ) : null}
-                  {isTripsPending ? (
-                    <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-                      <LoaderCircleIcon
-                        aria-hidden="true"
-                        className="animate-spin"
-                        data-icon="inline-start"
-                      />
-                      Cargando viajes
-                    </div>
-                  ) : null}
-                  {!isTripsPending && tripOptions.length > 0 && !tripHasMore ? (
-                    <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                      No hay más viajes para esta búsqueda.
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 border-t p-3">
-                  <span className="text-xs text-muted-foreground">
-                    {selectedTripIds.length === 0
-                      ? "Se analizaran todos los viajes."
-                      : `${selectedTripIds.length} viajes incluidos en el analisis.`}
-                  </span>
-                  <Button
-                    onClick={() => setTripPickerOpen(false)}
-                    size="sm"
-                    type="button"
-                  >
-                    <CheckIcon aria-hidden="true" data-icon="inline-start" />
-                    Listo
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-            {selectedTrips.length > 0 ? (
-              <div className="flex min-w-0 flex-wrap gap-1.5">
-                {selectedTrips.slice(0, 3).map((trip) => (
-                  <Button
-                    className="h-6 max-w-48 gap-1 px-2 text-xs"
-                    key={trip.id}
-                    onClick={() => toggleTrip(trip)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    <span className="truncate">{trip.label}</span>
-                    <XIcon aria-hidden="true" data-icon="inline-end" />
-                  </Button>
-                ))}
-                {hiddenSelectedTrips > 0 ? (
-                  <span className="self-center text-xs text-muted-foreground">
-                    +{hiddenSelectedTrips} más
-                  </span>
-                ) : null}
-              </div>
-            ) : (
-              <span className="truncate text-xs text-muted-foreground">
-                {tripScopeDescription}
-              </span>
-            )}
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Estacion
-            </span>
-            <Select onValueChange={setStationKey} value={stationKey}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Estacion" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {stationOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <span className="truncate text-xs text-muted-foreground">
-              {selectedStation?.label ?? "Todas las estaciones"}
-            </span>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Resultado
-            </span>
-            <Select
-              onValueChange={(value) => setChartType(value as ChartType)}
-              value={chartType}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {chartTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <span className="truncate text-xs text-muted-foreground">
-              El asistente usara este formato cuando aplique.
-            </span>
           </div>
         </div>
       </header>
 
       <div
-        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4"
         ref={chatScrollRef}
       >
         {messages.length === 0 ? (
@@ -923,11 +964,11 @@ export function DataScienceChat() {
         )}
       </div>
 
-      <footer className="border-t p-4">
+      <footer className="shrink-0 border-t p-2.5 sm:p-4">
         <InputGroup>
           <InputGroupTextarea
             aria-label="Pregunta para investigacion"
-            className="min-h-24"
+            className="min-h-20 sm:min-h-24"
             onChange={(event) => setMessage(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -939,8 +980,8 @@ export function DataScienceChat() {
             ref={messageRef}
             value={message}
           />
-          <InputGroupAddon align="block-end" className="justify-between">
-            <span>
+          <InputGroupAddon align="block-end" className="justify-between gap-3">
+            <span className="truncate text-xs sm:text-sm">
               {pending ? "Procesando consulta" : "Ctrl/⌘ + Enter para enviar"}
             </span>
             <InputGroupButton
@@ -985,10 +1026,12 @@ function EmptyConversation({
   onPickPrompt: (prompt: string) => void;
 }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-5 rounded-xl bg-muted/25 p-6">
+    <div className="flex flex-1 flex-col justify-center gap-4 rounded-xl bg-muted/20 p-4 sm:gap-5 sm:p-6">
       <div className="flex flex-col gap-2">
-        <h3 className="text-xl font-semibold">Haz una consulta investigativa</h3>
-        <p className="max-w-2xl text-sm text-muted-foreground">
+        <h3 className="text-lg font-semibold sm:text-xl">
+          Haz una consulta investigativa
+        </h3>
+        <p className="hidden max-w-2xl text-sm text-muted-foreground sm:block">
           Puedes pedir conteos, resumenes clinicos, distribuciones o datos para
           comparaciones. Usa filtros de viaje y estacion cuando quieras acotar
           la revision.
@@ -1022,10 +1065,10 @@ function ConversationMessage({
 }) {
   return (
     <article className="flex flex-col gap-3">
-      <div className="ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground">
+      <div className="ml-auto max-w-[92%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[85%]">
         {message.question}
       </div>
-      <div className="max-w-[92%] rounded-2xl border bg-muted/25 px-4 py-3">
+      <div className="max-w-full rounded-2xl border bg-muted/25 px-4 py-3 sm:max-w-[92%]">
         <div className="flex flex-col gap-3">
           <p className="whitespace-pre-wrap text-sm leading-6">{message.answer}</p>
           {message.intent === "report" && message.artifacts.length > 0 ? (

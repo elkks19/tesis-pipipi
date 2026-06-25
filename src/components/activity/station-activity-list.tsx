@@ -28,12 +28,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import type { ActivityListItem } from "@/lib/activity-queries";
-
-type ActivityListRow = ActivityListItem & {
-  editHref?: string;
-  reportHref?: string;
-};
+import type { ActivityListRow } from "@/components/activity/station-activity-links";
 
 type StationActivityListProps = {
   mode: "docente" | "estudiante";

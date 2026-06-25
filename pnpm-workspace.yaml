@@ -1,3 +1,10 @@
+allowBuilds:
+  better-sqlite3: true
+  leveldown: true
+  msgpackr-extract: true
+  msw: true
+  sharp: true
+  unrs-resolver: true
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

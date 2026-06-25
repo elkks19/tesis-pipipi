@@ -1,17 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
+  CalendarIcon,
   FilePlus2Icon,
+  GlobeIcon,
   IdCardIcon,
   InfoIcon,
   MapPinIcon,
   PencilIcon,
+  PhoneIcon,
   PlusIcon,
   SearchIcon,
   UserRoundIcon,
+  UsersIcon,
 } from "lucide-react";
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +25,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Item,
@@ -30,11 +35,20 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
 type PacienteSearchResultsProps = {
   createHistoriaRoute?: string;
   editPacienteRoute?: string;
+  hideCreateHistoriaAction?: boolean;
   pacientes: PacienteSearchResult[];
   query: string;
   newPacienteRoute: string;
@@ -64,11 +78,149 @@ function createHistoriaHref(
   return `${createHistoriaRoute}?${params.toString()}`;
 }
 
-function DetailRow({ label, value }: { label: string; value?: string }) {
+function getInitials(paciente: PacienteSearchResult) {
+  const { nombres, apellidoPaterno } = paciente.datosPersonales;
+  const first = nombres?.charAt(0) ?? "";
+  const last = apellidoPaterno?.charAt(0) ?? "";
+
+  return (first + last).toUpperCase() || "?";
+}
+
+function DetailField({ label, value }: { label: string; value?: string }) {
+  const isEmpty = !value || value === "Sin registro";
+
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-muted/50 px-3 py-2">
+    <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value || "Sin registro"}</span>
+      <span className={`text-sm leading-snug ${isEmpty ? "text-muted-foreground/60 italic" : "font-medium"}`}>
+        {isEmpty ? "Sin registro" : value}
+      </span>
+    </div>
+  );
+}
+
+function PacienteDetailContent({
+  paciente,
+}: {
+  paciente: PacienteSearchResult;
+}) {
+  const datos = paciente.datosPersonales;
+  const name = getPacienteName(paciente);
+  const lugarNacimiento = [
+    paciente.lugarNacimiento.distrito,
+    paciente.lugarNacimiento.departamento,
+    paciente.lugarNacimiento.pais,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Patient identity header */}
+      <div className="flex items-center gap-3">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+          {getInitials(paciente)}
+        </div>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="truncate text-base font-semibold">{name}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {datos.documentoIdentidad} {datos.numeroDocumentoIdentidad}
+          </p>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Personal data section */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <IdCardIcon className="size-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Datos personales</h3>
+        </div>
+        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          <DetailField label="Fecha de nacimiento" value={datos.fechaNacimiento} />
+          <DetailField label="Genero" value={paciente.genero} />
+          <DetailField label="Nacionalidad" value={paciente.nacionalidad} />
+          <DetailField label="Etnia" value={paciente.etnia} />
+        </div>
+      </section>
+
+      {/* Location section */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <MapPinIcon className="size-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Lugar de nacimiento</h3>
+        </div>
+        {lugarNacimiento ? (
+          <p className="text-sm">{lugarNacimiento}</p>
+        ) : (
+          <p className="text-sm italic text-muted-foreground/60">Sin registro</p>
+        )}
+      </section>
+
+      <Separator />
+
+      {/* Parents/guardians section */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <UsersIcon className="size-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Padres o responsables</h3>
+          {paciente.padres?.length ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {paciente.padres.length}
+            </span>
+          ) : null}
+        </div>
+        {paciente.padres?.length ? (
+          <div className="flex flex-col gap-3">
+            {paciente.padres.map((padre, index) => {
+              const padreName = [
+                padre.datosPersonales.nombres,
+                padre.datosPersonales.apellidoPaterno,
+                padre.datosPersonales.apellidoMaterno,
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return (
+                <div
+                  className="flex flex-col gap-3 rounded-2xl border p-3"
+                  key={`${padre.relacion}-${index}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-medium">{padreName || "Sin nombre"}</p>
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      {padre.relacion || "Responsable"}
+                    </span>
+                  </div>
+                  <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    <DetailField
+                      label="Documento"
+                      value={
+                        padre.datosPersonales.numeroDocumentoIdentidad
+                          ? `${padre.datosPersonales.documentoIdentidad} ${padre.datosPersonales.numeroDocumentoIdentidad}`
+                          : undefined
+                      }
+                    />
+                    <DetailField label="Contacto" value={padre.numeroContacto} />
+                    <DetailField
+                      label="Asume sustento"
+                      value={padre.asumeSustento ? "Si" : "No"}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed py-4 text-center">
+            <UsersIcon className="size-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              No hay responsables registrados.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -78,85 +230,48 @@ function PacienteDetailDialog({
 }: {
   paciente: PacienteSearchResult;
 }) {
-  const datos = paciente.datosPersonales;
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
   const name = getPacienteName(paciente);
 
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button size="sm" type="button" variant="outline">
+  if (isMobile) {
+    return (
+      <>
+        <Button onClick={() => setOpen(true)} size="sm" type="button" variant="outline">
           <InfoIcon data-icon="inline-start" />
           Detalle
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <Sheet onOpenChange={setOpen} open={open}>
+          <SheetContent className="overflow-y-auto" side="bottom">
+            <SheetHeader>
+              <SheetTitle>{name}</SheetTitle>
+              <SheetDescription>
+                Informacion registrada del paciente.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-6 pb-6">
+              <PacienteDetailContent paciente={paciente} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <Dialog onOpenChange={setOpen} open={open}>
+      <Button onClick={() => setOpen(true)} size="sm" type="button" variant="outline">
+        <InfoIcon data-icon="inline-start" />
+        Detalle
+      </Button>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>
-            Informacion completa registrada para este paciente.
+            Informacion registrada del paciente.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <DetailRow
-            label="Documento"
-            value={`${datos.documentoIdentidad} ${datos.numeroDocumentoIdentidad}`}
-          />
-          <DetailRow label="Fecha de nacimiento" value={datos.fechaNacimiento} />
-          <DetailRow label="Genero" value={paciente.genero} />
-          <DetailRow label="Nacionalidad" value={paciente.nacionalidad} />
-          <DetailRow
-            label="Lugar de nacimiento"
-            value={[
-              paciente.lugarNacimiento.distrito,
-              paciente.lugarNacimiento.departamento,
-              paciente.lugarNacimiento.pais,
-            ]
-              .filter(Boolean)
-              .join(", ")}
-          />
-          <DetailRow label="Etnia" value={paciente.etnia} />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium">Padres o responsables</h3>
-          {paciente.padres?.length ? (
-            <div className="grid gap-3">
-              {paciente.padres.map((padre, index) => {
-                const padreName = [
-                  padre.datosPersonales.nombres,
-                  padre.datosPersonales.apellidoPaterno,
-                  padre.datosPersonales.apellidoMaterno,
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-
-                return (
-                  <div
-                    className="grid gap-3 rounded-3xl border bg-background p-3 sm:grid-cols-2"
-                    key={`${padre.relacion}-${index}`}
-                  >
-                    <DetailRow label="Nombre" value={padreName} />
-                    <DetailRow label="Relacion" value={padre.relacion} />
-                    <DetailRow
-                      label="Documento"
-                      value={`${padre.datosPersonales.documentoIdentidad} ${padre.datosPersonales.numeroDocumentoIdentidad}`}
-                    />
-                    <DetailRow label="Contacto" value={padre.numeroContacto} />
-                    <DetailRow
-                      label="Asume sustento"
-                      value={padre.asumeSustento ? "Si" : "No"}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="rounded-2xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-              No hay responsables registrados.
-            </p>
-          )}
-        </div>
+        <PacienteDetailContent paciente={paciente} />
       </DialogContent>
     </Dialog>
   );
@@ -165,12 +280,13 @@ function PacienteDetailDialog({
 export function PacienteSearchResults({
   createHistoriaRoute = "/estudiante/anamnesis/create-historia",
   editPacienteRoute = "/estudiante/anamnesis/pacientes",
+  hideCreateHistoriaAction = false,
   pacientes,
   query,
   selectedPacienteId,
   newPacienteRoute,
 }: PacienteSearchResultsProps) {
-  if (!query) {
+  if (!query && pacientes.length === 0) {
     return (
       <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border border-dashed bg-background px-6 py-8 text-center">
         <SearchIcon className="text-muted-foreground" />
@@ -253,18 +369,20 @@ export function PacienteSearchResults({
                   Editar
                 </Link>
               </Button>
-              <Button asChild size="sm">
-                <Link
-                  href={createHistoriaHref(
-                    paciente.id,
-                    query,
-                    createHistoriaRoute,
-                  )}
-                >
-                  <FilePlus2Icon data-icon="inline-start" />
-                  Crear historia
-                </Link>
-              </Button>
+              {!hideCreateHistoriaAction ? (
+                <Button asChild size="sm">
+                  <Link
+                    href={createHistoriaHref(
+                      paciente.id,
+                      query,
+                      createHistoriaRoute,
+                    )}
+                  >
+                    <FilePlus2Icon data-icon="inline-start" />
+                    Crear historia
+                  </Link>
+                </Button>
+              ) : null}
             </ItemActions>
           </Item>
         );

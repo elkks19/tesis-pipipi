@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import { fakerES_MX as faker } from "@faker-js/faker";
 
 const DEFAULT_COUNT = 1000;
+const DEFAULT_PATIENT_COUNT = 600;
 const DEFAULT_VIAJE_COUNT = 6;
 const DEFAULT_SEED = 20260515;
 const PASSWORD_SEED_NOTICE =
@@ -285,14 +286,23 @@ function getStationAssignments(usersByEmail) {
   });
 }
 
-function stationRandomStudent(assignments, tipo) {
+function stationRandomStudentForViaje(assignments, tipo, viaje) {
   const station = assignments.find((item) => item.tipo === tipo);
+  const viajeStation = viaje.estaciones.find((item) => item.tipo === tipo);
 
-  if (!station) {
+  if (!station || !viajeStation) {
     throw new Error(`No existe asignacion para ${tipo}.`);
   }
 
-  return pick(station.estudiantes);
+  const assignedStudents = station.estudiantes.filter((student) =>
+    viajeStation.estudiantesIds.includes(student.id),
+  );
+
+  if (assignedStudents.length === 0) {
+    throw new Error(`No hay estudiantes asignados a ${tipo} en ${viaje._id}.`);
+  }
+
+  return pick(assignedStudents);
 }
 
 function stationAssignment(assignments, tipo) {
@@ -305,12 +315,56 @@ function stationAssignment(assignments, tipo) {
   return station;
 }
 
-function buildViaje(assignments, index) {
+function getViajeDates(index, viajeCount) {
   const today = new Date();
+  const activeIndex = Math.max(0, viajeCount - 2);
+  const futureIndex = Math.max(1, viajeCount - 1);
+
+  if (index === activeIndex) {
+    const startDate = addDays(today, -3);
+
+    return {
+      endDate: addDays(today, 3),
+      startDate,
+    };
+  }
+
+  if (index === futureIndex) {
+    const startDate = addDays(today, 2);
+
+    return {
+      endDate: addDays(startDate, 6),
+      startDate,
+    };
+  }
+
+  const startDate = addDays(today, -96 + index * 18);
+
+  return {
+    endDate: addDays(startDate, 6),
+    startDate,
+  };
+}
+
+function studentsForViaje(station, index, viajeCount) {
+  const activeIndex = Math.max(0, viajeCount - 2);
+  const futureIndex = Math.max(1, viajeCount - 1);
+
+  if (index === activeIndex) {
+    return station.estudiantes.slice(0, 2);
+  }
+
+  if (index === futureIndex) {
+    return station.estudiantes.slice(2, 4);
+  }
+
+  return station.estudiantes;
+}
+
+function buildViaje(assignments, index, viajeCount) {
   const viajeNumber = index + 1;
   const viajeId = `viaje:seed:historias:${String(viajeNumber).padStart(2, "0")}`;
-  const startDate = addDays(today, index * 18 - 36);
-  const endDate = addDays(startDate, faker.number.int({ max: 9, min: 4 }));
+  const { endDate, startDate } = getViajeDates(index, viajeCount);
   const establecimiento = establecimientos[index % establecimientos.length];
 
   return {
@@ -324,23 +378,58 @@ function buildViaje(assignments, index) {
     estaciones: assignments.map((station) => ({
       tipo: station.tipo,
       docenteEncargadoId: station.docente.id,
-      estudiantesIds: station.estudiantes.map((student) => student.id),
+      estudiantesIds: studentsForViaje(station, index, viajeCount).map(
+        (student) => student.id,
+      ),
     })),
   };
 }
 
 function buildViajes(assignments, viajeCount) {
   return Array.from({ length: viajeCount }, (_, index) =>
-    buildViaje(assignments, index),
+    buildViaje(assignments, index, viajeCount),
   );
 }
 
-function viajeForIndex(viajes, index) {
-  return viajes[(index - 1) % viajes.length];
+function viajeForHistoriaIndex(viajes, index, totalCount) {
+  const viajesConHistorias = Math.max(1, viajes.length - 1);
+  const historiasPorViaje = Math.ceil(totalCount / viajesConHistorias);
+  const viajeIndex = Math.min(
+    viajesConHistorias - 1,
+    Math.floor((index - 1) / historiasPorViaje),
+  );
+
+  return viajes[viajeIndex];
+}
+
+function pacienteForHistoriaIndex(pacientes, index) {
+  return pacientes[(index - 1) % pacientes.length];
 }
 
 function viajeLabel(viaje) {
   return `${viaje.servicio} / ${viaje.establecimiento.nombre}`;
+}
+
+function viajeDemoState(index, viajeCount) {
+  if (index === viajeCount - 2) {
+    return "en-curso";
+  }
+
+  if (index === viajeCount - 1) {
+    return "futuro";
+  }
+
+  return "pasado";
+}
+
+function stationStudentEmails(viaje, tipo, usersById) {
+  const station = viaje.estaciones.find((item) => item.tipo === tipo);
+
+  return (
+    station?.estudiantesIds.map((studentId) =>
+      usersById.get(studentId)?.email ?? studentId,
+    ) ?? []
+  );
 }
 
 function buildPaciente(index) {
@@ -982,6 +1071,10 @@ async function createPouchDb() {
 loadEnvFile(path.join(process.cwd(), ".env"));
 
 const count = Number.parseInt(getArg("count", String(DEFAULT_COUNT)), 10);
+const patientCount = Number.parseInt(
+  getArg("patients", String(DEFAULT_PATIENT_COUNT)),
+  10,
+);
 const viajeCount = Number.parseInt(
   getArg("viajes", String(DEFAULT_VIAJE_COUNT)),
   10,
@@ -994,12 +1087,26 @@ if (!Number.isFinite(count) || count < 1) {
   throw new Error("--count debe ser un entero mayor a 0.");
 }
 
+if (!Number.isFinite(patientCount) || patientCount < 1) {
+  throw new Error("--patients debe ser un entero mayor a 0.");
+}
+
+if (patientCount > count) {
+  throw new Error("--patients no puede ser mayor a --count.");
+}
+
 if (!Number.isFinite(viajeCount) || viajeCount < 1) {
   throw new Error("--viajes debe ser un entero mayor a 0.");
 }
 
-if (count < viajeCount * 100) {
-  throw new Error("Cada viaje debe tener al menos 100 historias.");
+if (viajeCount < 2) {
+  throw new Error(
+    "--viajes debe ser al menos 2 para reservar un viaje futuro sin historias.",
+  );
+}
+
+if (count < (viajeCount - 1) * 100) {
+  throw new Error("Cada viaje con historias debe tener al menos 100 historias.");
 }
 
 if (!dryRun && !process.env.COUCHDB_URL) {
@@ -1009,8 +1116,14 @@ if (!dryRun && !process.env.COUCHDB_URL) {
 faker.seed(seed);
 
 const usersByEmail = getUsersByEmail();
+const usersById = new Map(
+  [...usersByEmail.values()].map((user) => [user.id, user]),
+);
 const assignments = getStationAssignments(usersByEmail);
 const viajes = buildViajes(assignments, viajeCount);
+const pacientes = Array.from({ length: patientCount }, (_, index) =>
+  buildPaciente(index + 1),
+);
 const variationIndexes = getRandomIndexes(count, 0.05);
 const complementaryIndexes = getRandomIndexes(count, 0.2);
 const updateIndexes = getRandomIndexes(count, 0.0235);
@@ -1018,25 +1131,65 @@ const multiUpdateIndexes = getRandomSubset(
   updateIndexes,
   Math.max(1, Math.round(count * 0.002)),
 );
-const docs = [...viajes];
+const docs = [...viajes, ...pacientes];
 const variationSummary = [];
 const viajeCounts = new Map(viajes.map((viaje) => [viaje._id, 0]));
+const historiesByPaciente = new Map(
+  pacientes.map((paciente) => [paciente._id, 0]),
+);
+const patientCreationActivityById = new Set();
 let activityCount = 0;
 let updateActivityCount = 0;
 
 for (let index = 1; index <= count; index += 1) {
-  const viaje = viajeForIndex(viajes, index);
+  const viaje = viajeForHistoriaIndex(viajes, index, count);
   const currentViajeLabel = viajeLabel(viaje);
   viajeCounts.set(viaje._id, (viajeCounts.get(viaje._id) ?? 0) + 1);
-  const paciente = buildPaciente(index);
-  const anamnesisUser = stationRandomStudent(assignments, "Anamnesis");
-  const efgUser = stationRandomStudent(assignments, "Examen Físico General");
-  const efsUser = stationRandomStudent(assignments, "Examen Físico Segmentario");
-  const ecografiaUser = stationRandomStudent(assignments, "Ecografía");
-  const electroUser = stationRandomStudent(assignments, "Electrocardiograma");
-  const espiroUser = stationRandomStudent(assignments, "Espirometría");
-  const labUser = stationRandomStudent(assignments, "Laboratorios");
-  const diagnosticoUser = stationRandomStudent(assignments, "Diagnóstico");
+  const paciente = pacienteForHistoriaIndex(pacientes, index);
+  historiesByPaciente.set(
+    paciente._id,
+    (historiesByPaciente.get(paciente._id) ?? 0) + 1,
+  );
+  const anamnesisUser = stationRandomStudentForViaje(
+    assignments,
+    "Anamnesis",
+    viaje,
+  );
+  const efgUser = stationRandomStudentForViaje(
+    assignments,
+    "Examen Físico General",
+    viaje,
+  );
+  const efsUser = stationRandomStudentForViaje(
+    assignments,
+    "Examen Físico Segmentario",
+    viaje,
+  );
+  const ecografiaUser = stationRandomStudentForViaje(
+    assignments,
+    "Ecografía",
+    viaje,
+  );
+  const electroUser = stationRandomStudentForViaje(
+    assignments,
+    "Electrocardiograma",
+    viaje,
+  );
+  const espiroUser = stationRandomStudentForViaje(
+    assignments,
+    "Espirometría",
+    viaje,
+  );
+  const labUser = stationRandomStudentForViaje(
+    assignments,
+    "Laboratorios",
+    viaje,
+  );
+  const diagnosticoUser = stationRandomStudentForViaje(
+    assignments,
+    "Diagnóstico",
+    viaje,
+  );
   const anamnesisAssignment = stationAssignment(assignments, "Anamnesis");
   const complementaryRequests = buildComplementaryRequests(
     complementaryIndexes.has(index),
@@ -1134,23 +1287,26 @@ for (let index = 1; index <= count; index += 1) {
     : [];
   const pacienteCreatedAt = seedTimestamp(viaje, index, 1);
 
-  docs.push(
-    buildActivity({
-      action: "created",
-      actorId: anamnesisUser.id,
-      after: paciente,
-      before: undefined,
-      createdAt: pacienteCreatedAt,
-      historia,
-      id: activityId(index, "anamnesis", "created-paciente", 1),
-      pacienteId: paciente._id,
-      stationKey: "anamnesis",
-      subject: "paciente",
-      viajeId: viaje._id,
-      viajeLabel: currentViajeLabel,
-    }),
-  );
-  activityCount += 1;
+  if (!patientCreationActivityById.has(paciente._id)) {
+    docs.push(
+      buildActivity({
+        action: "created",
+        actorId: anamnesisUser.id,
+        after: paciente,
+        before: undefined,
+        createdAt: pacienteCreatedAt,
+        historia,
+        id: activityId(index, "anamnesis", "created-paciente", 1),
+        pacienteId: paciente._id,
+        stationKey: "anamnesis",
+        subject: "paciente",
+        viajeId: viaje._id,
+        viajeLabel: currentViajeLabel,
+      }),
+    );
+    patientCreationActivityById.add(paciente._id);
+    activityCount += 1;
+  }
 
   stationActivities.forEach((station, stationIndex) => {
     const stationValue = historia[station.field];
@@ -1210,7 +1366,7 @@ for (let index = 1; index <= count; index += 1) {
     updateActivityCount += 1;
   });
 
-  docs.push(paciente, historia);
+  docs.push(historia);
 }
 
 const outOfRangeActivities = docs
@@ -1258,8 +1414,31 @@ console.log(
       variationCount: variationIndexes.size,
       variationPercent: `${Math.round((variationIndexes.size / count) * 100)}%`,
       variationSummary,
+      patientCount,
+      patientHistoryDistribution: {
+        max: Math.max(...historiesByPaciente.values()),
+        min: Math.min(...historiesByPaciente.values()),
+        patientsWithOneHistory: [...historiesByPaciente.values()].filter(
+          (value) => value === 1,
+        ).length,
+        patientsWithTwoHistories: [...historiesByPaciente.values()].filter(
+          (value) => value === 2,
+        ).length,
+      },
       viajeCount,
       viajeCounts: Object.fromEntries(viajeCounts),
+      viajeSummaries: viajes.map((viaje, index) => ({
+        estadoDemo: viajeDemoState(index, viajeCount),
+        estudiantesAnamnesis: stationStudentEmails(
+          viaje,
+          "Anamnesis",
+          usersById,
+        ),
+        fechaEntrada: viaje.fechaEntrada,
+        fechaSalida: viaje.fechaSalida,
+        historias: viajeCounts.get(viaje._id) ?? 0,
+        id: viaje._id,
+      })),
       insertedDocs: docs.length,
       outOfRangeActivities: outOfRangeActivities.length,
       seededActivities: activityCount,

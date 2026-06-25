@@ -9,8 +9,14 @@
     "lint": "eslint",
     "tunnel": "ngrok http 5173 --url integral-lemming-lately.ngrok-free.app",
     "worker:reportes": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/reporte-historia-worker.mjs",
+    "seed": "pnpm run seed:users && pnpm run seed:historias",
     "seed:historias": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/seed-historias.mjs",
-    "seed:users": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/seed-users.mjs"
+    "seed:reset": "pnpm run seed:users && pnpm run seed:historias -- --reset-db",
+    "seed:users": "NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/seed-users.mjs",
+    "test:coverage": "node --experimental-test-coverage --test tests/unit/*.test.ts",
+    "test:unit": "pnpm run test:unit:ts && pnpm run test:unit:py",
+    "test:unit:py": "PYTHONPATH=data-science data-science/venv/bin/python -m unittest discover -s data-science/tests -p '*_test.py'",
+    "test:unit:ts": "node --test tests/unit/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",

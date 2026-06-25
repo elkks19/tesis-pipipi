@@ -25,6 +25,27 @@ class ChatRepository:
             return None
         return doc
 
+    async def get_recent_messages(
+        self,
+        conversation_id: str | None,
+        owner_id: str,
+        *,
+        limit: int = 8,
+    ) -> list[dict[str, str]]:
+        chat = await self.get_chat(conversation_id, owner_id) if conversation_id else None
+        if not chat:
+            return []
+
+        history: list[dict[str, str]] = []
+        for message in list(chat.get("messages") or [])[-limit:]:
+            role = str(message.get("role") or "")
+            content = " ".join(str(message.get("content") or "").split())
+            if role not in {"user", "assistant"} or not content:
+                continue
+            history.append({"role": role, "content": truncate_memory_content(content)})
+
+        return history
+
     async def append_exchange(
         self,
         *,
@@ -149,3 +170,9 @@ def make_exchange_summary(question: str, answer: str) -> str:
     cleaned_answer = " ".join(answer.split())
     summary = f"{cleaned_question} - {cleaned_answer}" if cleaned_answer else cleaned_question
     return summary[:180] or "Consulta de investigacion"
+
+
+def truncate_memory_content(content: str, limit: int = 900) -> str:
+    if len(content) <= limit:
+        return content
+    return f"{content[:limit].rstrip()}..."

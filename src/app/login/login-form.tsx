@@ -11,7 +11,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Field,
@@ -126,7 +125,9 @@ export function LoginForm() {
     <main className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Iniciar sesion</CardTitle>
+          <h1 className="font-heading text-base font-medium">
+            Iniciar sesion
+          </h1>
         </CardHeader>
         <CardContent>
           <form

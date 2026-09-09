@@ -1,26 +1,26 @@
-from collections.abc import Callable
-
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
-from app.agent.orchestrator import ResearchAgent
+from app.agent.orchestrator import ResearchAgent, ResearchAgentStreamer
 from app.agent.tools import ResearchTools
 from app.analytics.dataframe_builder import build_story_rows
 from app.analytics.intent import detect_intent
 from app.analytics.stats import answer_with_statistics
 from app.core.config import Settings, get_settings
+from app.core.logging import get_logger
 from app.core.security import require_internal_token
 from app.db.chat_repository import ChatRepository
 from app.db.couch import CouchClient
 from app.db.repositories import TesisRepository
-from app.llm.ollama_client import OllamaClient
-from app.llm.prompts import build_rag_messages
+from app.llm.client import build_chat_client
 from app.models.requests import ChatRequest
-from app.models.responses import Artifact, ChatResponse, Source
+from app.models.responses import ChatResponse
 from app.rag.embeddings import EmbeddingService
 from app.rag.retrieval import RagRetriever
 from app.rag.vector_store import SQLiteVectorStore
 
 router = APIRouter(tags=["chat"])
+logger = get_logger(__name__)
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -29,15 +29,14 @@ async def chat(
     _: None = Depends(require_internal_token),
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
-    intent = detect_intent(request.message)
     filters = request.scope.to_filters()
 
     couch = CouchClient(settings.couchdb_url)
     repository = TesisRepository(couch)
     chat_repository = ChatRepository(couch)
-    ollama = OllamaClient(settings.ollama_url, settings.chat_model)
+    chat_client = build_chat_client(settings)
     owner_id = request.scope.user_id or "anonymous"
-    history = await chat_repository.get_recent_messages(
+    history = await chat_repository.get_context_messages(
         request.conversation_id,
         owner_id,
     )
@@ -53,93 +52,160 @@ async def chat(
         chart_type=request.chart_type,
         retriever_factory=build_retriever,
     )
-    agent = ResearchAgent(ollama, tools)
+    agent = ResearchAgent(chat_client, tools)
 
-    try:
-        agent_response = await agent.answer(request.message, history=history)
-        answer = agent_response.answer
-        artifacts = agent_response.artifacts
-        sources = agent_response.sources
-        response_intent = "agent"
-        if intent in {"chart", "statistic"} and not artifacts:
-            answer, artifacts, sources = await legacy_answer(
-                message=request.message,
-                intent=intent,
-                chart_type=request.chart_type,
-                filters=filters,
-                repository=repository,
-                retriever_factory=build_retriever,
-                ollama=ollama,
-                history=history,
-                top_k=request.top_k,
-            )
-            response_intent = intent
-    except Exception:
-        answer, artifacts, sources = await legacy_answer(
-            message=request.message,
-            intent=intent,
-            chart_type=request.chart_type,
-            filters=filters,
-            repository=repository,
-            retriever_factory=build_retriever,
-            ollama=ollama,
-            history=history,
-            top_k=request.top_k,
-        )
-        response_intent = intent
+    agent_response = await agent.answer(request.message, history=history)
 
     saved_chat = await chat_repository.append_exchange(
-        answer=answer,
-        artifacts=[artifact.model_dump() for artifact in artifacts],
+        answer=agent_response.answer,
+        artifacts=[artifact.model_dump() for artifact in agent_response.artifacts],
         conversation_id=request.conversation_id,
-        intent=response_intent,
+        intent="agent",
         owner_id=owner_id,
         question=request.message,
         role=request.scope.role,
         scope=request.scope.model_dump(by_alias=True),
-        sources=[source.model_dump() for source in sources],
+        sources=[source.model_dump() for source in agent_response.sources],
     )
 
     return ChatResponse(
-        answer=answer,
+        answer=agent_response.answer,
         assistant_message_index=saved_chat.get("_assistantMessageIndex"),
         conversation_id=saved_chat.get("_id"),
-        intent=response_intent,
-        artifacts=artifacts,
-        sources=sources,
+        intent="agent",
+        artifacts=agent_response.artifacts,
+        sources=agent_response.sources,
     )
 
 
-async def legacy_answer(
-    *,
-    message: str,
-    intent: str,
-    chart_type: str,
-    filters: dict[str, str | list[str] | None],
-    repository: TesisRepository,
-    retriever_factory: Callable[[], RagRetriever],
-    ollama: OllamaClient,
-    history: list[dict[str, str]] | None,
-    top_k: int,
-) -> tuple[str, list[Artifact], list[Source]]:
-    if intent in {"chart", "statistic"}:
-        historias = await repository.fetch_historias(**filters)
-        pacientes = await repository.fetch_pacientes_for_historias(historias)
-        rows = build_story_rows(historias, pacientes)
-        analytics_response = answer_with_statistics(message, rows, intent, chart_type)
-        return analytics_response.answer, analytics_response.artifacts, []
+@router.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    _: None = Depends(require_internal_token),
+    settings: Settings = Depends(get_settings),
+) -> StreamingResponse:
+    import json as _json
 
-    contexts = retriever_factory().search(message, filters=filters, limit=top_k)
-    if not contexts:
-        return (
-            (
-                "No encontre informacion suficiente para responder eso. "
-                "Prueba ajustando los viajes o la estacion seleccionada."
-            ),
-            [],
-            [],
-        )
+    filters = request.scope.to_filters()
+    couch = CouchClient(settings.couchdb_url)
+    repository = TesisRepository(couch)
+    chat_repository = ChatRepository(couch)
+    chat_client = build_chat_client(settings)
+    logger.info(
+        "Chat stream request provider=%s model=%s user=%s role=%s",
+        settings.llm_provider,
+        settings.chat_model,
+        request.scope.user_id or "anonymous",
+        request.scope.role or "unknown",
+    )
+    owner_id = request.scope.user_id or "anonymous"
+    history = await chat_repository.get_context_messages(
+        request.conversation_id,
+        owner_id,
+    )
 
-    messages = build_rag_messages(message, contexts, history=history)
-    answer = await ollama.chat(messages)
-    return answer, [], [context.to_source() for context in contexts]
+    def build_retriever() -> RagRetriever:
+        embeddings = EmbeddingService(settings.embedding_model)
+        store = SQLiteVectorStore(settings.vector_db_path)
+        return RagRetriever(embeddings, store)
+
+    tools = ResearchTools(
+        repository,
+        filters=filters,
+        chart_type=request.chart_type,
+        retriever_factory=build_retriever,
+    )
+    streamer = ResearchAgentStreamer(chat_client, tools)
+
+    async def event_stream():
+        try:
+            yield f"data: {_json.dumps({'type': 'status', 'data': f'LLM: {settings.llm_provider} / {settings.chat_model}'}, ensure_ascii=False)}\n\n"
+            yield f"data: {_json.dumps({'type': 'status', 'data': 'Preparando consulta y herramientas...'}, ensure_ascii=False)}\n\n"
+
+            intent = detect_intent(request.message)
+            if intent in {"chart", "statistic"}:
+                historias = await repository.fetch_historias(**filters)
+                pacientes = await repository.fetch_pacientes_for_historias(historias)
+                rows = build_story_rows(historias, pacientes)
+                deterministic = answer_with_statistics(
+                    request.message,
+                    rows,
+                    intent,
+                    request.chart_type,
+                )
+                if deterministic.artifacts:
+                    yield f"data: {_json.dumps({'type': 'artifacts', 'data': [a.model_dump() for a in deterministic.artifacts]}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'token', 'data': deterministic.answer}, ensure_ascii=False)}\n\n"
+                saved_chat = await chat_repository.append_exchange(
+                    answer=deterministic.answer,
+                    artifacts=[a.model_dump() for a in deterministic.artifacts],
+                    conversation_id=request.conversation_id,
+                    intent=intent,
+                    owner_id=owner_id,
+                    question=request.message,
+                    role=request.scope.role,
+                    scope=request.scope.model_dump(by_alias=True),
+                    sources=[],
+                )
+                yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': intent}}, ensure_ascii=False)}\n\n"
+                return
+
+            preamble = await streamer.prepare(request.message, history=history)
+
+            # Send artifacts/sources before streaming text
+            if preamble.artifacts:
+                yield f"data: {_json.dumps({'type': 'artifacts', 'data': [a.model_dump() for a in preamble.artifacts]}, ensure_ascii=False)}\n\n"
+            if preamble.sources:
+                yield f"data: {_json.dumps({'type': 'sources', 'data': [s.model_dump() for s in preamble.sources]}, ensure_ascii=False)}\n\n"
+
+            # Check if the last message already has the answer (no tools called)
+            last_msg = preamble.messages[-1] if preamble.messages else {}
+            if last_msg.get("role") == "assistant" and last_msg.get("content"):
+                from app.llm.ollama_client import strip_thinking as _strip
+                text = _strip(str(last_msg.get("content") or "")).strip()
+                if text:
+                    yield f"data: {_json.dumps({'type': 'token', 'data': text}, ensure_ascii=False)}\n\n"
+                    full_answer = text
+                else:
+                    full_answer = ""
+            else:
+                # Stream the final answer
+                yield f"data: {_json.dumps({'type': 'status', 'data': 'Redactando respuesta...'}, ensure_ascii=False)}\n\n"
+                full_answer = ""
+                async for token in streamer.stream_answer(preamble):
+                    full_answer += token
+                    yield f"data: {_json.dumps({'type': 'token', 'data': token}, ensure_ascii=False)}\n\n"
+
+            if not full_answer:
+                full_answer = "No encontre informacion suficiente para responder eso."
+                yield f"data: {_json.dumps({'type': 'token', 'data': full_answer}, ensure_ascii=False)}\n\n"
+
+            # Save to chat history
+            saved_chat = await chat_repository.append_exchange(
+                answer=full_answer,
+                artifacts=[a.model_dump() for a in preamble.artifacts],
+                conversation_id=request.conversation_id,
+                intent="agent",
+                owner_id=owner_id,
+                question=request.message,
+                role=request.scope.role,
+                scope=request.scope.model_dump(by_alias=True),
+                sources=[s.model_dump() for s in preamble.sources],
+            )
+
+            # Send final metadata
+            yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': 'agent'}}, ensure_ascii=False)}\n\n"
+
+        except Exception as exc:
+            import logging
+            logging.exception("Stream error: %s", exc)
+            yield f"data: {_json.dumps({'type': 'error', 'data': str(exc)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

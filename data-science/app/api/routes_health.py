@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.core.config import Settings, get_settings
 from app.core.security import require_internal_token
 from app.db.couch import CouchClient
-from app.llm.ollama_client import OllamaClient
+from app.llm.client import build_chat_client
 from app.models.responses import HealthResponse, ModelStatusResponse
 
 router = APIRouter(tags=["health"])
@@ -15,7 +15,7 @@ async def health(
     settings: Settings = Depends(get_settings),
 ) -> HealthResponse:
     couch = CouchClient(settings.couchdb_url)
-    ollama = OllamaClient(settings.ollama_url, settings.chat_model)
+    chat_client = build_chat_client(settings)
 
     couch_ok, couch_detail = await couch.check()
     indexes_ok = False
@@ -28,7 +28,7 @@ async def health(
         except Exception as exc:
             indexes_detail = str(exc)
 
-    ollama_ok, ollama_detail = await ollama.check()
+    ollama_ok, ollama_detail = await chat_client.check()
 
     return HealthResponse(
         ok=couch_ok and indexes_ok,
@@ -46,8 +46,8 @@ async def model_status(
     _: None = Depends(require_internal_token),
     settings: Settings = Depends(get_settings),
 ) -> ModelStatusResponse:
-    ollama = OllamaClient(settings.ollama_url, settings.chat_model)
-    ok, detail = await ollama.check()
+    chat_client = build_chat_client(settings)
+    ok, detail = await chat_client.check()
     return ModelStatusResponse(
         ok=ok,
         provider=settings.llm_provider,

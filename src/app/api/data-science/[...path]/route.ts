@@ -75,13 +75,31 @@ async function proxyDataScienceRequest(
   if (request.method !== "GET" && request.method !== "HEAD") {
     const rawBody = await request.text();
     init.body =
-      pathname === "chat" || pathname === "reports"
+      pathname === "chat" || pathname === "chat/stream" || pathname === "reports"
         ? JSON.stringify(mergeSessionScope(rawBody, session.user, role))
         : rawBody;
   }
 
   try {
     const response = await fetch(targetUrl, init);
+
+    // Stream SSE responses directly
+    if (
+      pathname === "chat/stream" &&
+      response.body &&
+      response.headers.get("content-type")?.includes("text/event-stream")
+    ) {
+      return new Response(response.body, {
+        headers: {
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "Content-Type": "text/event-stream",
+          "X-Accel-Buffering": "no",
+        },
+        status: response.status,
+      });
+    }
+
     const contentType = response.headers.get("content-type") ?? "";
     const body = contentType.includes("application/json")
       ? await response.json()

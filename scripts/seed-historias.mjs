@@ -52,6 +52,11 @@ const stationDefinitions = [
     studentPrefix: "estudiante-diagnostico",
     tipo: "Diagnóstico",
   },
+  {
+    docenteEmail: "docente-farmacia@tesis.com",
+    studentPrefix: "estudiante-farmacia",
+    tipo: "Farmacia",
+  },
 ];
 
 const stationFieldByTipo = {
@@ -62,6 +67,7 @@ const stationFieldByTipo = {
   Espirometría: "espirometria",
   "Examen Físico General": "examenFisicoGeneral",
   "Examen Físico Segmentario": "examenFisicoSegmentario",
+  Farmacia: "farmacia",
   Laboratorios: "laboratorios",
 };
 
@@ -73,8 +79,85 @@ const stationKeyByTipo = {
   Espirometría: "espirometria",
   "Examen Físico General": "examenFisicoGeneral",
   "Examen Físico Segmentario": "examenFisicoSegmentario",
+  Farmacia: "farmacia",
   Laboratorios: "laboratorios",
 };
+
+const medicamentosFarmacia = [
+  {
+    atcCode: "N02BE01",
+    concentracion: "500 mg",
+    formaFarmaceutica: "Tableta",
+    laboratorio: "Laboratorio local",
+    nombre: "Paracetamol 500 mg tableta",
+    principioActivo: "Paracetamol",
+    registroSanitario: "AGEMED-SEED-001",
+    unidad: "tabletas",
+    viaAdministracion: "Oral",
+  },
+  {
+    atcCode: "M01AE01",
+    concentracion: "400 mg",
+    formaFarmaceutica: "Tableta",
+    laboratorio: "Laboratorio local",
+    nombre: "Ibuprofeno 400 mg tableta",
+    principioActivo: "Ibuprofeno",
+    registroSanitario: "AGEMED-SEED-002",
+    unidad: "tabletas",
+    viaAdministracion: "Oral",
+  },
+  {
+    atcCode: "A02BC01",
+    concentracion: "20 mg",
+    formaFarmaceutica: "Capsula",
+    laboratorio: "Laboratorio local",
+    nombre: "Omeprazol 20 mg capsula",
+    principioActivo: "Omeprazol",
+    registroSanitario: "AGEMED-SEED-003",
+    unidad: "capsulas",
+    viaAdministracion: "Oral",
+  },
+  {
+    atcCode: "J01CA04",
+    concentracion: "500 mg",
+    formaFarmaceutica: "Capsula",
+    laboratorio: "Laboratorio local",
+    nombre: "Amoxicilina 500 mg capsula",
+    principioActivo: "Amoxicilina",
+    registroSanitario: "AGEMED-SEED-004",
+    unidad: "capsulas",
+    viaAdministracion: "Oral",
+  },
+  {
+    atcCode: "A10BA02",
+    concentracion: "850 mg",
+    formaFarmaceutica: "Tableta",
+    laboratorio: "Laboratorio local",
+    nombre: "Metformina 850 mg tableta",
+    principioActivo: "Metformina",
+    registroSanitario: "AGEMED-SEED-005",
+    unidad: "tabletas",
+    viaAdministracion: "Oral",
+  },
+  {
+    atcCode: "C09AA03",
+    concentracion: "10 mg",
+    formaFarmaceutica: "Tableta",
+    laboratorio: "Laboratorio local",
+    nombre: "Lisinopril 10 mg tableta",
+    principioActivo: "Lisinopril",
+    registroSanitario: "AGEMED-SEED-006",
+    unidad: "tabletas",
+    viaAdministracion: "Oral",
+  },
+];
+
+const insumosFarmacia = [
+  { categoria: "insumo", nombre: "Guantes de exploracion", unidad: "pares" },
+  { categoria: "insumo", nombre: "Gasas esteriles", unidad: "paquetes" },
+  { categoria: "insumo", nombre: "Jeringas descartables 5 ml", unidad: "unidades" },
+  { categoria: "equipo", nombre: "Tensiometro manual", unidad: "unidades" },
+];
 
 const enfermedades = [
   { code: "5A11", iNo: "http://id.who.int/icd/entity/1720186636", title: "Diabetes mellitus tipo 2" },
@@ -410,6 +493,13 @@ function viajeLabel(viaje) {
   return `${viaje.servicio} / ${viaje.establecimiento.nombre}`;
 }
 
+function seedDateTime(date, hour = 8, minute = 0) {
+  const next = new Date(date);
+  next.setHours(hour, minute, 0, 0);
+
+  return next.toISOString();
+}
+
 function viajeDemoState(index, viajeCount) {
   if (index === viajeCount - 2) {
     return "en-curso";
@@ -430,6 +520,83 @@ function stationStudentEmails(viaje, tipo, usersById) {
       usersById.get(studentId)?.email ?? studentId,
     ) ?? []
   );
+}
+
+function buildSeedFarmaciaDocs(viajes, assignments) {
+  const farmaciaAssignment = stationAssignment(assignments, "Farmacia");
+  const catalogoDocs = medicamentosFarmacia.map((medicamento, index) => {
+    const id = `medicamentoCatalogo:seed:${index + 1}`;
+
+    return {
+      _id: id,
+      ...medicamento,
+      createdAt: new Date(0).toISOString(),
+      createdBy: farmaciaAssignment.docente.id,
+      fuente: "agemed",
+      id,
+      titularRegistro: medicamento.laboratorio,
+      type: "medicamentoCatalogo",
+      updatedAt: new Date(0).toISOString(),
+      updatedBy: farmaciaAssignment.docente.id,
+    };
+  });
+  const inventarioByViaje = new Map();
+  const inventarioDocs = viajes.flatMap((viaje, viajeIndex) => {
+    const plannedAt = seedDateTime(
+      addDays(new Date(`${viaje.fechaEntrada}T00:00:00.000-04:00`), -1),
+    );
+    const medicamentoDocs = medicamentosFarmacia.map((medicamento, index) => {
+      const catalogoId = `medicamentoCatalogo:seed:${index + 1}`;
+      const id = `viajeInventarioItem:seed:${viajeIndex + 1}:${index + 1}`;
+      const cantidadPlanificada = faker.number.int({ max: 240, min: 80 });
+
+      return {
+        _id: id,
+        ...medicamento,
+        cantidadDisponible: cantidadPlanificada - faker.number.int({ max: 12, min: 0 }),
+        cantidadPlanificada,
+        catalogoId,
+        categoria: "medicamento",
+        createdAt: plannedAt,
+        createdBy: farmaciaAssignment.docente.id,
+        fuente: "agemed",
+        id,
+        lote: `L-${viajeIndex + 1}${String(index + 1).padStart(2, "0")}`,
+        observaciones: "Inventario base para la jornada.",
+        titularRegistro: medicamento.laboratorio,
+        type: "viajeInventarioItem",
+        updatedAt: plannedAt,
+        updatedBy: farmaciaAssignment.docente.id,
+        viajeId: viaje._id,
+      };
+    });
+    const insumoDocs = insumosFarmacia.map((insumo, index) => {
+      const id = `viajeInventarioItem:seed:${viajeIndex + 1}:i${index + 1}`;
+      const cantidadPlanificada = faker.number.int({ max: 120, min: 20 });
+
+      return {
+        _id: id,
+        ...insumo,
+        cantidadDisponible: cantidadPlanificada,
+        cantidadPlanificada,
+        createdAt: plannedAt,
+        createdBy: farmaciaAssignment.docente.id,
+        fuente: "manual",
+        id,
+        observaciones: "Material de apoyo para el viaje.",
+        type: "viajeInventarioItem",
+        updatedAt: plannedAt,
+        updatedBy: farmaciaAssignment.docente.id,
+        viajeId: viaje._id,
+      };
+    });
+    const docs = [...medicamentoDocs, ...insumoDocs];
+    inventarioByViaje.set(viaje._id, medicamentoDocs);
+
+    return docs;
+  });
+
+  return { catalogoDocs, inventarioByViaje, inventarioDocs };
 }
 
 function buildPaciente(index) {
@@ -816,7 +983,7 @@ function buildLaboratorios(user) {
   };
 }
 
-function buildDiagnostico(user) {
+function buildDiagnostico(user, recetaId) {
   const principal = pick(enfermedades);
   const secundarios = faker.helpers.arrayElements(
     enfermedades.filter((enfermedad) => enfermedad.code !== principal.code),
@@ -826,12 +993,53 @@ function buildDiagnostico(user) {
   return {
     ...audit(user),
     principal,
+    recetaId,
     secundarios,
     planTrabajo: pick([
       "Educacion sanitaria, control por consulta externa y seguimiento en centro de salud.",
       "Medidas higienico dieteticas, control de signos de alarma y reevaluacion.",
       "Solicitar control complementario segun disponibilidad y seguimiento medico.",
     ]),
+  };
+}
+
+function buildReceta({ createdAt, historiaId, inventarioItems, pacienteId, recetaId, user, viajeId }) {
+  const medicamentos = faker.helpers
+    .arrayElements(inventarioItems, { max: 3, min: 1 })
+    .map((item) => ({
+      cantidad: faker.number.int({ max: 20, min: 6 }),
+      catalogoId: item.catalogoId,
+      concentracion: item.concentracion,
+      dosis: pick(["1 tableta", "1 capsula", "500 mg", "Segun tolerancia"]),
+      duracion: pick(["3 dias", "5 dias", "7 dias", "30 dias"]),
+      formaFarmaceutica: item.formaFarmaceutica,
+      frecuencia: pick(["Cada 8 horas", "Cada 12 horas", "Cada 24 horas"]),
+      indicaciones: pick([
+        "Tomar despues de alimentos.",
+        "Suspender si presenta reaccion adversa.",
+        "Controlar signos de alarma.",
+      ]),
+      inventarioItemId: item.id,
+      nombre: item.nombre,
+      principioActivo: item.principioActivo,
+      unidad: item.unidad,
+      viaAdministracion: item.viaAdministracion,
+    }));
+
+  return {
+    _id: recetaId,
+    createdAt,
+    createdBy: user.id,
+    historiaId,
+    id: recetaId,
+    indicacionesGenerales:
+      "Receta generada durante la jornada; explicar dosis y signos de alarma al paciente.",
+    medicamentos,
+    pacienteId,
+    type: "receta",
+    updatedAt: createdAt,
+    updatedBy: user.id,
+    viajeId,
   };
 }
 
@@ -987,8 +1195,11 @@ async function deleteSeedDocs(db) {
   const seedGroups = [
     { prefix: "actividad:seed:", type: "actividad" },
     { prefix: "historia:seed:", type: "historia" },
+    { prefix: "medicamentoCatalogo:seed:", type: "medicamentoCatalogo" },
     { prefix: "paciente:seed:", type: "paciente" },
+    { prefix: "receta:seed:", type: "receta" },
     { prefix: "viaje:seed:", type: "viaje" },
+    { prefix: "viajeInventarioItem:seed:", type: "viajeInventarioItem" },
   ];
   const docsToDelete = [];
 
@@ -1124,6 +1335,11 @@ const viajes = buildViajes(assignments, viajeCount);
 const pacientes = Array.from({ length: patientCount }, (_, index) =>
   buildPaciente(index + 1),
 );
+const {
+  catalogoDocs: farmaciaCatalogoDocs,
+  inventarioByViaje,
+  inventarioDocs: farmaciaInventarioDocs,
+} = buildSeedFarmaciaDocs(viajes, assignments);
 const variationIndexes = getRandomIndexes(count, 0.05);
 const complementaryIndexes = getRandomIndexes(count, 0.2);
 const updateIndexes = getRandomIndexes(count, 0.0235);
@@ -1131,7 +1347,12 @@ const multiUpdateIndexes = getRandomSubset(
   updateIndexes,
   Math.max(1, Math.round(count * 0.002)),
 );
-const docs = [...viajes, ...pacientes];
+const docs = [
+  ...viajes,
+  ...pacientes,
+  ...farmaciaCatalogoDocs,
+  ...farmaciaInventarioDocs,
+];
 const variationSummary = [];
 const viajeCounts = new Map(viajes.map((viaje) => [viaje._id, 0]));
 const historiesByPaciente = new Map(
@@ -1144,6 +1365,8 @@ let updateActivityCount = 0;
 for (let index = 1; index <= count; index += 1) {
   const viaje = viajeForHistoriaIndex(viajes, index, count);
   const currentViajeLabel = viajeLabel(viaje);
+  const historiaId = `historia:seed:${index}`;
+  const recetaId = `receta:seed:${index}`;
   viajeCounts.set(viaje._id, (viajeCounts.get(viaje._id) ?? 0) + 1);
   const paciente = pacienteForHistoriaIndex(pacientes, index);
   historiesByPaciente.set(
@@ -1195,7 +1418,7 @@ for (let index = 1; index <= count; index += 1) {
     complementaryIndexes.has(index),
   );
   const historia = {
-    _id: `historia:seed:${index}`,
+    _id: historiaId,
     type: "historia",
     created_by: anamnesisUser.id,
     pacienteId: paciente._id,
@@ -1204,7 +1427,7 @@ for (let index = 1; index <= count; index += 1) {
     anamnesis: buildAnamnesis(anamnesisUser, paciente),
     examenFisicoGeneral: buildExamenFisicoGeneral(efgUser),
     examenFisicoSegmentario: buildExamenFisicoSegmentario(efsUser),
-    diagnostico: buildDiagnostico(diagnosticoUser),
+    diagnostico: buildDiagnostico(diagnosticoUser, recetaId),
     ...(complementaryRequests.ecografia
       ? { ecografia: buildEcografia(ecografiaUser, index) }
       : {}),
@@ -1218,6 +1441,15 @@ for (let index = 1; index <= count; index += 1) {
       ? { laboratorios: buildLaboratorios(labUser) }
       : {}),
   };
+  const receta = buildReceta({
+    createdAt: seedTimestamp(viaje, index, 78),
+    historiaId,
+    inventarioItems: inventarioByViaje.get(viaje._id) ?? [],
+    pacienteId: paciente._id,
+    recetaId,
+    user: diagnosticoUser,
+    viajeId: viaje._id,
+  });
 
   if (variationIndexes.has(index)) {
     const fields = applyDataVariation(historia, paciente);
@@ -1366,6 +1598,7 @@ for (let index = 1; index <= count; index += 1) {
     updateActivityCount += 1;
   });
 
+  docs.push(receta);
   docs.push(historia);
 }
 
@@ -1434,11 +1667,21 @@ console.log(
           "Anamnesis",
           usersById,
         ),
+        estudiantesFarmacia: stationStudentEmails(
+          viaje,
+          "Farmacia",
+          usersById,
+        ),
         fechaEntrada: viaje.fechaEntrada,
         fechaSalida: viaje.fechaSalida,
         historias: viajeCounts.get(viaje._id) ?? 0,
         id: viaje._id,
       })),
+      farmacia: {
+        catalogoMedicamentos: farmaciaCatalogoDocs.length,
+        inventarioItems: farmaciaInventarioDocs.length,
+        recetas: count,
+      },
       insertedDocs: docs.length,
       outOfRangeActivities: outOfRangeActivities.length,
       seededActivities: activityCount,

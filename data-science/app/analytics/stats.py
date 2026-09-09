@@ -6,6 +6,29 @@ from typing import Any
 from app.analytics.charts import count_chart_artifact, table_artifact
 from app.models.responses import Artifact
 
+NUMERIC_FIELD_PATTERNS = [
+    (
+        "imc",
+        "IMC",
+        ["imc", "indice de masa corporal", "índice de masa corporal"],
+    ),
+    (
+        "frecuenciaCardiaca",
+        "frecuencia cardiaca",
+        ["frecuencia cardiaca", "frecuencia cardíaca", "fc"],
+    ),
+    (
+        "presionArterialMedia",
+        "presion arterial media",
+        ["presion arterial media", "presión arterial media", "pam"],
+    ),
+    (
+        "glicemiaCapilar",
+        "glicemia capilar",
+        ["glicemia", "glucemia", "azucar", "azúcar"],
+    ),
+]
+
 
 @dataclass(frozen=True)
 class AnalyticsAnswer:
@@ -47,21 +70,30 @@ def answer_with_statistics(
             artifacts,
         )
 
-    if "imc" in text:
-        values = [float(row["imc"]) for row in rows if is_number(row.get("imc"))]
+    numeric_field = detect_numeric_field(text)
+    if numeric_field:
+        field, label = numeric_field
+        values = [float(row[field]) for row in rows if is_number(row.get(field))]
         if not values:
-            return AnalyticsAnswer("No encontre valores de IMC en las historias filtradas.", [])
+            return AnalyticsAnswer(
+                f"No encontre valores de {label} en las historias filtradas.",
+                [],
+            )
         summary_rows = [
             {
-                "historiasConIMC": len(values),
+                "indicador": label,
+                "registros": len(values),
                 "promedio": round(mean(values), 2),
                 "minimo": round(min(values), 2),
                 "maximo": round(max(values), 2),
             }
         ]
-        artifact = table_artifact("Resumen de IMC", summary_rows)
+        artifact = table_artifact(f"Resumen de {label}", summary_rows)
         return AnalyticsAnswer(
-            f"El IMC promedio es {round(mean(values), 2)} sobre {len(values)} historias con dato disponible.",
+            (
+                f"El promedio de {label} es {round(mean(values), 2)} "
+                f"sobre {len(values)} historias con dato disponible."
+            ),
             [artifact],
         )
 
@@ -106,6 +138,28 @@ def is_number(value: Any) -> bool:
         return True
     except (TypeError, ValueError):
         return False
+
+
+def detect_numeric_field(text: str) -> tuple[str, str] | None:
+    if not any(
+        word in text
+        for word in [
+            "promedio",
+            "media",
+            "minimo",
+            "mínimo",
+            "maximo",
+            "máximo",
+            "resumen",
+        ]
+    ):
+        return None
+
+    for field, label, patterns in NUMERIC_FIELD_PATTERNS:
+        if any(pattern in text for pattern in patterns):
+            return field, label
+
+    return None
 
 
 def artifact_for_counts(

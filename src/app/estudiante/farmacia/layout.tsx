@@ -9,15 +9,25 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getAuthenticatedUserId } from "@/lib/auth-session";
+import { getFarmaciaPlanningTrip } from "@/lib/farmacia";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function FarmaciaLayout({ children }: { children: ReactNode }) {
+export default async function FarmaciaLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const userId = await getAuthenticatedUserId();
+  const trip = await getFarmaciaPlanningTrip({ mode: "estudiante", userId });
+  const tripActive = trip?.active ?? false;
+
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <FarmaciaSidebar />
+        <FarmaciaSidebar tripActive={tripActive} />
         <SidebarInset className="bg-muted/40">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
             <SidebarTrigger />

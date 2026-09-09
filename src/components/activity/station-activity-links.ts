@@ -16,6 +16,7 @@ const stationLabels: Record<StationKey, string> = {
   espirometria: "espirometria",
   examenFisicoGeneral: "examen fisico general",
   examenFisicoSegmentario: "examen fisico segmentario",
+  farmacia: "farmacia",
   laboratorios: "laboratorios",
 };
 

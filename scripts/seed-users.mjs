@@ -106,6 +106,18 @@ const stationSeeds = [
       "Diego Diagnostico",
     ],
   },
+  {
+    docenteEmail: "docente-farmacia@tesis.com",
+    docenteName: "Docente Farmacia",
+    label: "Farmacia",
+    slug: "farmacia",
+    students: [
+      "Ana Farmacia",
+      "Luis Farmacia",
+      "Sofia Farmacia",
+      "Diego Farmacia",
+    ],
+  },
 ];
 
 const stationUsers = stationSeeds.flatMap((station) => [

@@ -20,6 +20,7 @@ const stationKeys = [
   "espirometria",
   "examenFisicoGeneral",
   "examenFisicoSegmentario",
+  "farmacia",
   "laboratorios",
 ] as const satisfies readonly StationKey[];
 

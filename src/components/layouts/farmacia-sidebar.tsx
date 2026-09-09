@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ClipboardListIcon,
+  ActivityIcon,
   LogOutIcon,
+  PackagePlusIcon,
   PillIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -34,11 +35,31 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  icon: typeof PillIcon;
+  label: string;
+};
+
+const activeNavItems: NavItem[] = [
+  {
+    href: "/estudiante/farmacia/inventario",
+    icon: PillIcon,
+    label: "Inventario",
+  },
+  {
+    href: "/estudiante/farmacia/actividad",
+    icon: ActivityIcon,
+    label: "Actividad",
+  },
+];
+
+const planningNavItems: NavItem[] = [
   {
     href: "/estudiante/farmacia/planeacion",
-    icon: ClipboardListIcon,
+    icon: PackagePlusIcon,
     label: "Planeacion",
   },
 ];
@@ -47,7 +68,11 @@ function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function FarmaciaSidebar() {
+type FarmaciaSidebarProps = {
+  tripActive: boolean;
+};
+
+export function FarmaciaSidebar({ tripActive }: FarmaciaSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -56,6 +81,7 @@ export function FarmaciaSidebar() {
   const userEmail = session?.user.email ?? "Sin sesion activa";
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
+  const navItems = tripActive ? activeNavItems : planningNavItems;
 
   function closeMobileSidebar() {
     if (isMobile) {
@@ -73,7 +99,7 @@ export function FarmaciaSidebar() {
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-semibold">Farmacia</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  Inventario
+                  {tripActive ? "Viaje activo" : "Planeacion"}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -82,7 +108,9 @@ export function FarmaciaSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Viaje</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {tripActive ? "Viaje" : "Preparacion"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
@@ -143,6 +171,8 @@ export function FarmaciaSidebar() {
                     </span>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <SidebarThemeMenuItems />
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem

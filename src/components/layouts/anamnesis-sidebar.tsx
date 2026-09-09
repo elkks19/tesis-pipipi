@@ -6,7 +6,6 @@ import {
   ActivityIcon,
   FilePlus2Icon,
   LogOutIcon,
-  StethoscopeIcon,
   UserRoundIcon,
 } from "lucide-react";
 
@@ -35,6 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 const navItems = [
   {
@@ -146,6 +146,8 @@ export function AnamnesisSidebar() {
                     </span>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <SidebarThemeMenuItems />
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem

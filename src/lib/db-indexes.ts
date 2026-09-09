@@ -25,9 +25,19 @@ const indexes: IndexDefinition[] = [
     name: "idx_historias_viaje",
   },
   {
+    ddoc: "idx_historias_paciente",
+    fields: ["type", "pacienteId"],
+    name: "idx_historias_paciente",
+  },
+  {
     ddoc: "idx_viaje_inventario_viaje",
     fields: ["type", "viajeId"],
     name: "idx_viaje_inventario_viaje",
+  },
+  {
+    ddoc: "idx_recetas_historia",
+    fields: ["type", "historiaId"],
+    name: "idx_recetas_historia",
   },
   {
     ddoc: "idx_medicamento_catalogo_fuente",

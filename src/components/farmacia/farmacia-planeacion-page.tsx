@@ -60,27 +60,24 @@ export async function FarmaciaPlaneacionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-3xl bg-muted/45 p-4 ring-1 ring-border/60 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl bg-muted/45 p-4 ring-1 ring-border/60 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="font-heading text-xl font-semibold">
-            Planeacion de Farmacia
+            Planeacion de inventario
           </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Arma el inventario que se usara durante el viaje. Medicamentos e
-            insumos quedan guardados para consultarlos luego sin depender de la
-            red.
+          <p className="text-sm text-muted-foreground">
+            Registra lo que se llevara al viaje.
           </p>
         </div>
-        <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-[360px]">
-          <div className="flex items-center gap-2 rounded-3xl bg-background px-3 py-2 ring-1 ring-border/60">
-            <ClipboardListIcon />
+        <div className="flex gap-2 text-sm">
+          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
+            <ClipboardListIcon className="size-4" />
             <span className="truncate">{planningTrip.establecimiento}</span>
           </div>
-          <div className="flex items-center gap-2 rounded-3xl bg-background px-3 py-2 ring-1 ring-border/60">
-            <CalendarDaysIcon />
+          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
+            <CalendarDaysIcon className="size-4" />
             <span>
-              {formatDate(planningTrip.fechaEntrada)} -{" "}
-              {formatDate(planningTrip.fechaSalida)}
+              {formatDate(planningTrip.fechaEntrada)} - {formatDate(planningTrip.fechaSalida)}
             </span>
           </div>
         </div>

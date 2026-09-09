@@ -6,7 +6,16 @@ import {
   type ViajeFormValue,
   type ViajeUserOption,
 } from "@/components/forms/viaje-form";
+import { ViajeInventarioTable } from "@/components/farmacia/viaje-inventario-table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { listAuthUsers } from "@/lib/auth-users";
+import { listViajeInventario } from "@/lib/farmacia";
 
 import { getViajeByDocId } from "../../queries";
 import { updateViaje } from "./actions";
@@ -53,7 +62,10 @@ export default async function EditViajePage({
     notFound();
   }
 
-  const users = await getUsers();
+  const [users, inventarioItems] = await Promise.all([
+    getUsers(),
+    listViajeInventario(viaje.docId),
+  ]);
   const action = updateViaje.bind(null, viaje.docId);
 
   return (
@@ -73,6 +85,23 @@ export default async function EditViajePage({
         submitLabel="Actualizar viaje"
         users={users}
       />
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Inventario actual del viaje</CardTitle>
+          <CardDescription>
+            Medicamentos, insumos y equipos planificados por Farmacia para esta
+            salida. Se muestran aqui para revisar la planeacion sin cambiar de
+            pantalla.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ViajeInventarioTable
+            emptyMessage="Farmacia todavia no planifico inventario para este viaje."
+            items={inventarioItems}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

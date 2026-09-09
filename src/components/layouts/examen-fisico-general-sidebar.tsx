@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ActivityIcon,
   ClipboardListIcon,
-  HeartPulseIcon,
   LogOutIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -35,6 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 const navItems = [
   {
@@ -156,6 +156,8 @@ export function ExamenFisicoGeneralSidebar() {
                     </span>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <SidebarThemeMenuItems />
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem

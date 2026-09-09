@@ -206,6 +206,7 @@ export function DataScienceChat() {
   const [tripHasMore, setTripHasMore] = useState(true);
   const [isTripsPending, setIsTripsPending] = useState(false);
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
+  const [tripMobilePickerOpen, setTripMobilePickerOpen] = useState(false);
   const [tripSearch, setTripSearch] = useState("");
   const [stationKey, setStationKey] = useState("all");
   const [chartType, setChartType] = useState<ChartType>("auto");
@@ -236,179 +237,230 @@ export function DataScienceChat() {
         : selectedTrips.map((trip) => trip.label).join(", ");
   const hiddenSelectedTrips = Math.max(0, selectedTrips.length - 3);
 
-  function renderTripPicker() {
+  function renderTripPickerContent({
+    onDone,
+  }: {
+    onDone: () => void;
+  }) {
     return (
-      <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted-foreground">
-        Viajes
-      </span>
-      <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            aria-expanded={tripPickerOpen}
-            className="h-auto min-h-10 justify-between px-3 py-2 text-left font-normal"
-            role="combobox"
-            variant="outline"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate">{tripScopeLabel}</span>
-            </span>
-            <ChevronsUpDownIcon aria-hidden="true" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-[min(680px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
-        >
-          <PopoverHeader className="border-b p-4">
-            <PopoverTitle>Buscar viajes</PopoverTitle>
-            <PopoverDescription>
-              Escribe un lugar, servicio o fecha. La lista carga más resultados al bajar.
-            </PopoverDescription>
-          </PopoverHeader>
-
-          <div className="flex flex-col gap-3 border-b p-3">
-            <InputGroup>
-              <InputGroupAddon align="inline-start">
-                <SearchIcon aria-hidden="true" />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Buscar viajes"
-                onChange={(event) => setTripSearch(event.target.value)}
-                placeholder="Buscar por lugar, servicio o fecha"
-                value={tripSearch}
-              />
-            </InputGroup>
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-h-0 flex-col">
+        <div className="flex flex-col gap-3 border-b p-3 sm:p-4">
+          <InputGroup>
+            <InputGroupAddon align="inline-start">
+              <SearchIcon aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Buscar viajes"
+              onChange={(event) => setTripSearch(event.target.value)}
+              placeholder="Buscar por lugar, servicio o fecha"
+              value={tripSearch}
+            />
+          </InputGroup>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={clearTrips}
+              size="sm"
+              type="button"
+              variant={selectedTripIds.length === 0 ? "default" : "outline"}
+            >
+              {selectedTripIds.length === 0 ? (
+                <CheckIcon aria-hidden="true" data-icon="inline-start" />
+              ) : null}
+              Incluir todos
+            </Button>
+            {selectedTripIds.length > 0 ? (
               <Button
                 onClick={clearTrips}
                 size="sm"
                 type="button"
-                variant={selectedTripIds.length === 0 ? "default" : "outline"}
+                variant="ghost"
               >
-                {selectedTripIds.length === 0 ? (
-                  <CheckIcon aria-hidden="true" data-icon="inline-start" />
-                ) : null}
-                Incluir todos
+                <XIcon aria-hidden="true" data-icon="inline-start" />
+                Limpiar
               </Button>
-              {selectedTripIds.length > 0 ? (
-                <Button
-                  onClick={clearTrips}
-                  size="sm"
+            ) : null}
+          </div>
+        </div>
+
+        <div
+          className="max-h-[52vh] min-h-56 overflow-y-auto p-2 sm:max-h-96"
+          onScroll={handleTripListScroll}
+        >
+          {tripOptions.length > 0 ? (
+            tripOptions.map((trip) => {
+              const selected = selectedTripIds.includes(trip.id);
+
+              return (
+                <button
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
+                    selected && "bg-muted",
+                  )}
+                  key={trip.id}
+                  onClick={() => toggleTrip(trip)}
                   type="button"
-                  variant="ghost"
                 >
-                  <XIcon aria-hidden="true" data-icon="inline-start" />
-                  Limpiar
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            className="max-h-80 overflow-y-auto p-2"
-            onScroll={handleTripListScroll}
-          >
-            {tripOptions.length > 0 ? (
-              tripOptions.map((trip) => {
-                const selected = selectedTripIds.includes(trip.id);
-
-                return (
-                  <button
+                  <span
                     className={cn(
-                      "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60",
-                      selected && "bg-muted",
+                      "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background",
                     )}
-                    key={trip.id}
-                    onClick={() => toggleTrip(trip)}
-                    type="button"
                   >
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-input bg-background",
-                      )}
-                    >
-                      {selected ? <CheckIcon aria-hidden="true" /> : null}
+                    {selected ? <CheckIcon aria-hidden="true" /> : null}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="truncate text-sm font-medium">
+                      {trip.label}
                     </span>
-                    <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="truncate text-sm font-medium">
-                        {trip.label}
-                      </span>
-                      <span className="line-clamp-2 text-xs text-muted-foreground">
-                        {trip.secondaryLabel} · {trip.dateLabel}
-                      </span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
+                      {trip.secondaryLabel} · {trip.dateLabel}
                     </span>
-                  </button>
-                );
-              })
-            ) : !isTripsPending ? (
-              <div className="p-5 text-center text-sm text-muted-foreground">
-                No hay viajes que coincidan con la busqueda.
-              </div>
-            ) : null}
-            {isTripsPending ? (
-              <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-                <LoaderCircleIcon
-                  aria-hidden="true"
-                  className="animate-spin"
-                  data-icon="inline-start"
-                />
-                Cargando viajes
-              </div>
-            ) : null}
-            {!isTripsPending && tripOptions.length > 0 && !tripHasMore ? (
-              <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                No hay más viajes para esta búsqueda.
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex items-center justify-between gap-3 border-t p-3">
-            <span className="text-xs text-muted-foreground">
-              {selectedTripIds.length === 0
-                ? "Se analizaran todos los viajes."
-                : `${selectedTripIds.length} viajes incluidos en el analisis.`}
-            </span>
-            <Button
-              onClick={() => setTripPickerOpen(false)}
-              size="sm"
-              type="button"
-            >
-              <CheckIcon aria-hidden="true" data-icon="inline-start" />
-              Listo
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-      {selectedTrips.length > 0 ? (
-        <div className="flex min-w-0 flex-wrap gap-1.5">
-          {selectedTrips.slice(0, 3).map((trip) => (
-            <Button
-              className="h-6 max-w-48 gap-1 px-2 text-xs"
-              key={trip.id}
-              onClick={() => toggleTrip(trip)}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              <span className="truncate">{trip.label}</span>
-              <XIcon aria-hidden="true" data-icon="inline-end" />
-            </Button>
-          ))}
-          {hiddenSelectedTrips > 0 ? (
-            <span className="self-center text-xs text-muted-foreground">
-              +{hiddenSelectedTrips} más
-            </span>
+                  </span>
+                </button>
+              );
+            })
+          ) : !isTripsPending ? (
+            <div className="p-5 text-center text-sm text-muted-foreground">
+              No hay viajes que coincidan con la busqueda.
+            </div>
+          ) : null}
+          {isTripsPending ? (
+            <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+              <LoaderCircleIcon
+                aria-hidden="true"
+                className="animate-spin"
+                data-icon="inline-start"
+              />
+              Cargando viajes
+            </div>
+          ) : null}
+          {!isTripsPending && tripOptions.length > 0 && !tripHasMore ? (
+            <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+              No hay más viajes para esta búsqueda.
+            </div>
           ) : null}
         </div>
-      ) : (
-        <span className="truncate text-xs text-muted-foreground">
-          {tripScopeDescription}
+
+        <div className="flex items-center justify-between gap-3 border-t p-3 sm:p-4">
+          <span className="text-xs text-muted-foreground">
+            {selectedTripIds.length === 0
+              ? "Se analizaran todos los viajes."
+              : `${selectedTripIds.length} viajes incluidos en el analisis.`}
+          </span>
+          <Button onClick={onDone} size="sm" type="button">
+            <CheckIcon aria-hidden="true" data-icon="inline-start" />
+            Listo
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderTripPicker() {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          Viajes
         </span>
-      )}
+
+        <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              aria-expanded={tripPickerOpen}
+              className="hidden h-auto min-h-12 w-full justify-between gap-3 px-3 py-2 text-left font-normal md:flex"
+              role="combobox"
+              variant="outline"
+            >
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="min-w-0 truncate text-sm font-medium">
+                  {tripScopeLabel}
+                </span>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {tripScopeDescription}
+                </span>
+              </span>
+              <ChevronsUpDownIcon aria-hidden="true" className="shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-[min(760px,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
+          >
+            <PopoverHeader className="border-b p-4">
+              <PopoverTitle>Buscar viajes</PopoverTitle>
+              <PopoverDescription>
+                Escribe un lugar, servicio o fecha. La lista carga más resultados al bajar.
+              </PopoverDescription>
+            </PopoverHeader>
+            {renderTripPickerContent({
+              onDone: () => setTripPickerOpen(false),
+            })}
+          </PopoverContent>
+        </Popover>
+
+        <Sheet
+          onOpenChange={setTripMobilePickerOpen}
+          open={tripMobilePickerOpen}
+        >
+          <SheetTrigger asChild>
+            <Button
+              aria-expanded={tripMobilePickerOpen}
+              className="flex h-auto min-h-12 w-full justify-between gap-3 px-3 py-2 text-left font-normal md:hidden"
+              role="combobox"
+              variant="outline"
+            >
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="min-w-0 truncate text-sm font-medium">
+                  {tripScopeLabel}
+                </span>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {tripScopeDescription}
+                </span>
+              </span>
+              <ChevronsUpDownIcon aria-hidden="true" className="shrink-0" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="max-h-[88svh] rounded-t-3xl p-0" side="bottom">
+            <SheetHeader className="border-b px-4 py-4 text-left">
+              <SheetTitle>Buscar viajes</SheetTitle>
+              <SheetDescription>
+                Elige uno o varios viajes para acotar el analisis.
+              </SheetDescription>
+            </SheetHeader>
+            {renderTripPickerContent({
+              onDone: () => setTripMobilePickerOpen(false),
+            })}
+          </SheetContent>
+        </Sheet>
+
+        {selectedTrips.length > 0 ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {selectedTrips.slice(0, 3).map((trip) => (
+              <Button
+                className="h-6 max-w-48 gap-1 px-2 text-xs"
+                key={trip.id}
+                onClick={() => toggleTrip(trip)}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                <span className="truncate">{trip.label}</span>
+                <XIcon aria-hidden="true" data-icon="inline-end" />
+              </Button>
+            ))}
+            {hiddenSelectedTrips > 0 ? (
+              <span className="self-center text-xs text-muted-foreground">
+                +{hiddenSelectedTrips} más
+              </span>
+            ) : null}
+          </div>
+        ) : (
+          <span className="truncate text-xs text-muted-foreground">
+            {tripScopeDescription}
+          </span>
+        )}
       </div>
     );
   }
@@ -647,7 +699,7 @@ export function DataScienceChat() {
   }, []);
 
   useEffect(() => {
-    if (!tripPickerOpen) {
+    if (!tripPickerOpen && !tripMobilePickerOpen) {
       return;
     }
 
@@ -659,7 +711,7 @@ export function DataScienceChat() {
     }, 250);
 
     return () => window.clearTimeout(timeout);
-  }, [loadTripOptions, tripPickerOpen, tripSearch]);
+  }, [loadTripOptions, tripMobilePickerOpen, tripPickerOpen, tripSearch]);
 
   function handleTripListScroll(event: UIEvent<HTMLDivElement>) {
     const target = event.currentTarget;
@@ -686,8 +738,23 @@ export function DataScienceChat() {
     setPending(true);
     setMessage("");
 
+    const tempId = createClientId();
+
+    // Add optimistic user message immediately
+    setMessages((current) => [
+      ...current,
+      {
+        answer: "",
+        artifacts: [],
+        id: tempId,
+        intent: "agent",
+        question,
+        sources: [],
+      },
+    ]);
+
     try {
-      const response = await fetch("/api/data-science/chat", {
+      const response = await fetch("/api/data-science/chat/stream", {
         body: JSON.stringify({
           message: question,
           scope: {
@@ -701,29 +768,117 @@ export function DataScienceChat() {
         }),
         method: "POST",
       });
-      const data = (await response.json()) as ChatResponse | { detail?: string };
 
-      if (!response.ok) {
-        throw new Error("detail" in data ? data.detail : "Consulta fallida.");
+      if (!response.ok || !response.body) {
+        // Fallback to non-streaming
+        const data = await response.json();
+        throw new Error(data?.detail ?? "Consulta fallida.");
       }
 
-      const result = data as ChatResponse;
-      const nextConversationId = result.conversation_id ?? conversationId;
-      setConversationId(nextConversationId);
-      setMessages((current) => [
-        ...current,
-        {
-          answer: result.answer,
-          assistantMessageIndex: result.assistant_message_index ?? undefined,
-          artifacts: result.artifacts,
-          id: crypto.randomUUID(),
-          intent: result.intent,
-          question,
-          sources: result.sources,
-        },
-      ]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullAnswer = "";
+      let streamArtifacts: ChatResponse["artifacts"] = [];
+      let streamSources: ChatResponse["sources"] = [];
+      let streamConversationId = conversationId;
+      let assistantMessageIndex: number | undefined;
+      let streamIntent = "agent";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const dataStr = line.slice(6).trim();
+          if (!dataStr) continue;
+
+          try {
+            const event = JSON.parse(dataStr) as {
+              type: string;
+              data: unknown;
+            };
+
+            if (event.type === "token") {
+              fullAnswer += event.data as string;
+              setMessages((current) =>
+                current.map((msg) =>
+                  msg.id === tempId ? { ...msg, answer: fullAnswer } : msg,
+                ),
+              );
+            } else if (event.type === "status") {
+              const status = event.data as string;
+              if (!fullAnswer) {
+                setMessages((current) =>
+                  current.map((msg) =>
+                    msg.id === tempId ? { ...msg, answer: status } : msg,
+                  ),
+                );
+              }
+            } else if (event.type === "artifacts") {
+              streamArtifacts = event.data as ChatResponse["artifacts"];
+              setMessages((current) =>
+                current.map((msg) =>
+                  msg.id === tempId
+                    ? { ...msg, artifacts: streamArtifacts }
+                    : msg,
+                ),
+              );
+            } else if (event.type === "sources") {
+              streamSources = event.data as ChatResponse["sources"];
+              setMessages((current) =>
+                current.map((msg) =>
+                  msg.id === tempId
+                    ? { ...msg, sources: streamSources }
+                    : msg,
+                ),
+              );
+            } else if (event.type === "done") {
+              const meta = event.data as {
+                conversation_id?: string;
+                assistant_message_index?: number;
+                intent?: string;
+              };
+              streamConversationId = meta.conversation_id ?? streamConversationId;
+              assistantMessageIndex = meta.assistant_message_index;
+              streamIntent = meta.intent ?? "agent";
+            } else if (event.type === "error") {
+              throw new Error(event.data as string);
+            }
+          } catch (parseError) {
+            if (parseError instanceof SyntaxError) continue;
+            throw parseError;
+          }
+        }
+      }
+
+      // Finalize message
+      setMessages((current) =>
+        current.map((msg) =>
+          msg.id === tempId
+            ? {
+                ...msg,
+                answer: fullAnswer || "No encontre informacion suficiente.",
+                artifacts: streamArtifacts,
+                assistantMessageIndex,
+                intent: streamIntent,
+                sources: streamSources,
+              }
+            : msg,
+        ),
+      );
+      if (streamConversationId) {
+        setConversationId(streamConversationId);
+      }
       void loadChats();
     } catch (error) {
+      // Remove the optimistic message on error
+      setMessages((current) => current.filter((msg) => msg.id !== tempId));
       toast.error(
         error instanceof Error
           ? error.message
@@ -762,7 +917,7 @@ export function DataScienceChat() {
         answer: result.answer,
         assistantMessageIndex: result.assistant_message_index ?? undefined,
         artifacts: result.artifacts,
-        id: crypto.randomUUID(),
+        id: createClientId(),
         intent: result.intent,
         question: "Generar reporte estadistico",
         sources: result.sources,
@@ -855,7 +1010,10 @@ export function DataScienceChat() {
                   Alcance
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[min(420px,100vw)]" side="bottom">
+              <SheetContent
+                className="mx-auto max-h-[88svh] w-full max-w-[760px] rounded-t-3xl"
+                side="bottom"
+              >
                 <SheetHeader className="border-b">
                   <SheetTitle>Alcance del analisis</SheetTitle>
                   <SheetDescription>
@@ -1018,6 +1176,14 @@ function mergeTripOptions(
   }
 
   return Array.from(byId.values());
+}
+
+function createClientId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `client:${Date.now()}:${Math.random().toString(36).slice(2)}`;
 }
 
 function EmptyConversation({

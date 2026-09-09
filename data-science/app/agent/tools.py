@@ -66,6 +66,10 @@ class SearchContextArguments(ToolArguments):
     limit: int = Field(default=6, ge=1, le=10)
 
 
+class SampleHistoriesArguments(ToolArguments):
+    limit: int = Field(default=5, ge=1, le=10)
+
+
 @dataclass(frozen=True)
 class ToolExecution:
     content: str
@@ -125,9 +129,20 @@ class ResearchTools:
                 "search_clinical_context",
                 (
                     "Busca evidencia narrativa relevante en el indice clinico local. "
-                    "Usala para resumenes o preguntas que necesiten contexto textual."
+                    "Usala para resumenes o preguntas que necesiten contexto textual "
+                    "sobre las historias clinicas, sintomas, hallazgos o narrativas de atencion."
                 ),
                 SearchContextArguments,
+            ),
+            tool_definition(
+                "sample_histories",
+                (
+                    "Muestra un resumen de historias clinicas de ejemplo con sus datos "
+                    "principales (diagnosticos, indicadores, genero, edad, viaje). "
+                    "Usala para entender el contenido y contexto de las historias "
+                    "antes de responder preguntas interpretativas."
+                ),
+                SampleHistoriesArguments,
             ),
             tool_definition(
                 "list_available_fields",
@@ -153,6 +168,9 @@ class ResearchTools:
         if name == "search_clinical_context":
             parsed = SearchContextArguments.model_validate(arguments)
             return self._search_clinical_context(parsed)
+        if name == "sample_histories":
+            parsed = SampleHistoriesArguments.model_validate(arguments)
+            return await self._sample_histories(parsed)
         if name == "list_available_fields":
             EmptyArguments.model_validate(arguments)
             return self._list_available_fields()
@@ -313,9 +331,75 @@ class ResearchTools:
             sources=[context.to_source() for context in contexts],
         )
 
+    async def _sample_histories(
+        self,
+        arguments: SampleHistoriesArguments,
+    ) -> ToolExecution:
+        rows = await self._get_rows()
+        sample = rows[: arguments.limit]
+        summaries = []
+        for row in sample:
+            summary: dict[str, Any] = {}
+            if row.get("genero"):
+                summary["genero"] = row["genero"]
+            if row.get("grupoEdad"):
+                summary["grupoEdad"] = row["grupoEdad"]
+            if row.get("viajeId"):
+                summary["viaje"] = row["viajeId"]
+            if row.get("diagnosticos"):
+                summary["diagnosticos"] = row["diagnosticos"]
+            if row.get("diagnosticoIMC"):
+                summary["clasificacionIMC"] = row["diagnosticoIMC"]
+            for numeric_field in NUMERIC_LABELS:
+                value = row.get(numeric_field)
+                if value is not None and value != "":
+                    summary[numeric_field] = value
+            summaries.append(summary)
+
+        return tool_result(
+            {
+                "totalHistorias": len(rows),
+                "muestraDeHistorias": summaries,
+                "nota": (
+                    "Esta es una muestra representativa de las historias disponibles. "
+                    "Usa esta informacion para entender el contexto de los datos "
+                    "antes de responder la pregunta del usuario."
+                ),
+            },
+        )
+
     def _list_available_fields(self) -> ToolExecution:
         return tool_result(
             {
+                "camposDisponiblesEnElSistema": {
+                    "delPaciente": [
+                        "genero (Masculino, Femenino, Indeterminado)",
+                        "fechaNacimiento",
+                        "edad (calculada)",
+                        "grupoEdad (0-4, 5-11, 12-17, 18-29, 30-44, 45-59, 60+)",
+                        "nacionalidad",
+                        "etnia (opcional)",
+                    ],
+                    "delaHistoriaClinica": [
+                        "viajeId (campana/viaje en que se registro)",
+                        "diagnosticoPrincipal",
+                        "diagnosticos (lista completa incluyendo secundarios)",
+                        "imc",
+                        "diagnosticoIMC (clasificacion)",
+                        "frecuenciaCardiaca",
+                        "presionArterialMedia",
+                        "glicemiaCapilar",
+                    ],
+                },
+                "camposQueNOexistenEnElSistema": [
+                    "estado civil",
+                    "ocupacion",
+                    "escolaridad",
+                    "ingreso economico",
+                    "religion",
+                    "direccion",
+                    "telefono",
+                ],
                 "agrupaciones": list(GROUP_LABELS),
                 "indicadoresNumericos": list(NUMERIC_LABELS),
                 "crucesSugeridos": [
@@ -324,7 +408,11 @@ class ResearchTools:
                     "diagnosticos por grupoEdad",
                     "diagnosticos por viajeId",
                 ],
-                "nota": "Los filtros de viajes y estacion los impone el backend.",
+                "nota": (
+                    "Si el usuario pregunta por un dato que NO existe en el sistema, "
+                    "respondele que ese dato no se recolecta actualmente. "
+                    "Los filtros de viajes y estacion los impone el backend."
+                ),
             }
         )
 
@@ -367,6 +455,8 @@ def normalize_arguments(raw_arguments: Any) -> dict[str, Any]:
         return raw_arguments
     if isinstance(raw_arguments, str):
         parsed = json.loads(raw_arguments or "{}")
+        if parsed is None:
+            return {}
         if isinstance(parsed, dict):
             return parsed
     raise ValueError("Los argumentos de la herramienta deben ser un objeto JSON.")

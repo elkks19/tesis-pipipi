@@ -614,7 +614,7 @@ function NumberField({
   label,
   name,
   onChange,
-  step = "1",
+  step = "any",
   suffix,
   value,
 }: {

@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     llm_provider: str = Field(default="ollama", alias="DS_LLM_PROVIDER")
     ollama_url: str = Field(default="http://localhost:11434", alias="DS_OLLAMA_URL")
     chat_model: str = Field(default="qwen3:4b", alias="DS_CHAT_MODEL")
+    groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
+    groq_base_url: str = Field(
+        default="https://api.groq.com/openai/v1",
+        alias="DS_GROQ_BASE_URL",
+    )
     embedding_model: str = Field(
         default="intfloat/multilingual-e5-small",
         alias="DS_EMBEDDING_MODEL",

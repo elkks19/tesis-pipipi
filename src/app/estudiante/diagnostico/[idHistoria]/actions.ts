@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { logStationActivity } from "@/lib/activity-log";
 import { getAuthenticatedUser } from "@/lib/auth-session";
 import { db } from "@/lib/db";
+import { saveHistoriaReceta } from "@/lib/farmacia";
 import { enqueueReporteHistoria } from "@/lib/queues/reportes";
 import {
   CreateDiagnosticoSchema,
   type Diagnostico,
   type DiagnosticoCie11,
 } from "@/lib/schema/diagnostico";
+import { CreateRecetaSchema, type RecetaMedicamento } from "@/lib/schema/farmacia";
 import type { Historia } from "@/lib/schema/historia";
 import { canAccessActiveStationHistoria } from "@/lib/station-histories";
 
@@ -53,6 +55,55 @@ function getSecondaryIndexes(formData: FormData) {
   return [...indexes].sort((a, b) => a - b);
 }
 
+function getRecetaMedicationIndexes(formData: FormData) {
+  const indexes = new Set<number>();
+
+  for (const key of formData.keys()) {
+    const match = key.match(/^receta\.medicamentos\.(\d+)\./);
+
+    if (match) {
+      indexes.add(Number(match[1]));
+    }
+  }
+
+  return [...indexes].sort((a, b) => a - b);
+}
+
+function optionalString(formData: FormData, key: string) {
+  const value = getString(formData, key);
+
+  return value || undefined;
+}
+
+function optionalNumber(formData: FormData, key: string) {
+  const value = getString(formData, key);
+
+  return value ? Number(value) : undefined;
+}
+
+function getRecetaPayload(formData: FormData) {
+  return {
+    indicacionesGenerales: optionalString(formData, "receta.indicacionesGenerales"),
+    medicamentos: getRecetaMedicationIndexes(formData)
+      .map((index) => ({
+        cantidad: optionalNumber(formData, `receta.medicamentos.${index}.cantidad`),
+        catalogoId: optionalString(formData, `receta.medicamentos.${index}.catalogoId`),
+        concentracion: optionalString(formData, `receta.medicamentos.${index}.concentracion`),
+        dosis: getString(formData, `receta.medicamentos.${index}.dosis`),
+        duracion: getString(formData, `receta.medicamentos.${index}.duracion`),
+        formaFarmaceutica: optionalString(formData, `receta.medicamentos.${index}.formaFarmaceutica`),
+        frecuencia: getString(formData, `receta.medicamentos.${index}.frecuencia`),
+        indicaciones: optionalString(formData, `receta.medicamentos.${index}.indicaciones`),
+        inventarioItemId: optionalString(formData, `receta.medicamentos.${index}.inventarioItemId`),
+        nombre: getString(formData, `receta.medicamentos.${index}.nombre`),
+        principioActivo: optionalString(formData, `receta.medicamentos.${index}.principioActivo`),
+        unidad: optionalString(formData, `receta.medicamentos.${index}.unidad`),
+        viaAdministracion: optionalString(formData, `receta.medicamentos.${index}.viaAdministracion`),
+      }))
+      .filter((medicamento) => medicamento.nombre || medicamento.dosis || medicamento.frecuencia || medicamento.duracion),
+  };
+}
+
 function getPayload(idHistoria: string, formData: FormData) {
   const recetaId = getString(formData, "recetaId");
 
@@ -90,6 +141,12 @@ function getFieldErrors(error: unknown) {
   }
 
   return {};
+}
+
+function prefixErrorKeys(errors: Record<string, string>, prefix: string) {
+  return Object.fromEntries(
+    Object.entries(errors).map(([key, value]) => [`${prefix}.${key}`, value]),
+  );
 }
 
 function isHistoriaDocument(doc: unknown): doc is HistoriaDocument {
@@ -139,11 +196,21 @@ export async function saveDiagnostico(
   const parsed = CreateDiagnosticoSchema.safeParse(
     getPayload(idHistoria, formData),
   );
+  const recetaPayload = getRecetaPayload(formData);
+  const parsedReceta = CreateRecetaSchema.safeParse(recetaPayload);
 
   if (!parsed.success) {
     return {
       errors: getFieldErrors(parsed.error),
       message: "Revisa los campos marcados antes de guardar.",
+      ok: false,
+    };
+  }
+
+  if (!parsedReceta.success) {
+    return {
+      errors: prefixErrorKeys(getFieldErrors(parsedReceta.error), "receta"),
+      message: "Revisa los campos de la receta antes de guardar.",
       ok: false,
     };
   }
@@ -171,8 +238,19 @@ export async function saveDiagnostico(
       };
     }
 
+    const receta =
+      parsedReceta.data.medicamentos.length > 0
+        ? await saveHistoriaReceta({
+            historia,
+            indicacionesGenerales: parsedReceta.data.indicacionesGenerales,
+            medicamentos: parsedReceta.data.medicamentos as RecetaMedicamento[],
+            recetaId: parsed.data.recetaId,
+            userId,
+          })
+        : null;
     const diagnostico = {
       ...(parsed.data as Diagnostico),
+      ...(receta ? { recetaId: receta.id } : {}),
       created_by: historia.diagnostico?.created_by ?? userId,
       updated_by: userId,
     };

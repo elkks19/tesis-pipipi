@@ -47,6 +47,10 @@ export const stationConfigs = {
     field: "laboratorios",
     viajeTipo: "Laboratorios",
   },
+  farmacia: {
+    field: "receta",
+    viajeTipo: "Farmacia",
+  },
 } as const;
 
 export type StationKey = keyof typeof stationConfigs;

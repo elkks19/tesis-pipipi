@@ -5,6 +5,10 @@ from uuid import uuid4
 from app.db.couch import CouchClient
 
 CHAT_TYPE = "investigacion_chat"
+MEMORY_SUMMARY_LIMIT = 4000
+MEMORY_FACT_LIMIT = 16
+MEMORY_FACT_TEXT_LIMIT = 300
+RECENT_MESSAGE_LIMIT = 10
 
 
 class ChatRepository:
@@ -30,7 +34,7 @@ class ChatRepository:
         conversation_id: str | None,
         owner_id: str,
         *,
-        limit: int = 8,
+        limit: int = RECENT_MESSAGE_LIMIT,
     ) -> list[dict[str, str]]:
         chat = await self.get_chat(conversation_id, owner_id) if conversation_id else None
         if not chat:
@@ -45,6 +49,25 @@ class ChatRepository:
             history.append({"role": role, "content": truncate_memory_content(content)})
 
         return history
+
+    async def get_context_messages(
+        self,
+        conversation_id: str | None,
+        owner_id: str,
+        *,
+        limit: int = RECENT_MESSAGE_LIMIT,
+    ) -> list[dict[str, str]]:
+        chat = await self.get_chat(conversation_id, owner_id) if conversation_id else None
+        if not chat:
+            return []
+
+        messages: list[dict[str, str]] = []
+        memory_message = build_memory_message(chat.get("memory"))
+        if memory_message:
+            messages.append(memory_message)
+
+        messages.extend(await self.get_recent_messages(conversation_id, owner_id, limit=limit))
+        return messages
 
     async def append_exchange(
         self,
@@ -74,6 +97,13 @@ class ChatRepository:
                 "type": CHAT_TYPE,
             }
 
+        memory = update_chat_memory(
+            chat.get("memory"),
+            answer=answer,
+            intent=intent,
+            question=question,
+            scope=scope,
+        )
         messages = list(chat.get("messages") or [])
         messages.append(
             {
@@ -98,6 +128,7 @@ class ChatRepository:
 
         chat["messages"] = messages
         chat["messageCount"] = len(messages)
+        chat["memory"] = memory
         chat["role"] = role
         chat["scope"] = scope
         chat["summary"] = make_exchange_summary(question, answer)
@@ -176,3 +207,164 @@ def truncate_memory_content(content: str, limit: int = 900) -> str:
     if len(content) <= limit:
         return content
     return f"{content[:limit].rstrip()}..."
+
+
+def build_memory_message(memory: Any) -> dict[str, str] | None:
+    if not isinstance(memory, dict):
+        return None
+
+    summary = str(memory.get("summary") or "").strip()
+    facts = [
+        str(item).strip()
+        for item in memory.get("facts") or []
+        if str(item).strip()
+    ][:MEMORY_FACT_LIMIT]
+
+    if not summary and not facts:
+        return None
+
+    parts = ["Contexto de la conversacion (memoria persistente del chat):"]
+    if summary:
+        parts.append(f"Historial de intercambios previos:\n{summary}")
+    if facts:
+        parts.append("Datos clave y preferencias del usuario:")
+        parts.extend(f"- {fact}" for fact in facts)
+
+    parts.append(
+        "\nUsa esta memoria como contexto conversacional para mantener coherencia. "
+        "Para datos clinicos actuales, usa siempre las herramientas disponibles."
+    )
+    return {"role": "system", "content": "\n".join(parts)}
+
+
+def update_chat_memory(
+    memory: Any,
+    *,
+    answer: str,
+    intent: str,
+    question: str,
+    scope: dict[str, Any],
+) -> dict[str, Any]:
+    current = memory if isinstance(memory, dict) else {}
+    now = datetime.now(UTC).isoformat()
+    previous_summary = str(current.get("summary") or "").strip()
+    exchange_summary = summarize_exchange_for_memory(question, answer, intent, scope)
+    summary = compact_memory_summary(previous_summary, exchange_summary)
+    facts = merge_memory_facts(current.get("facts"), extract_explicit_memory_facts(question, answer))
+
+    return {
+        "facts": facts,
+        "summary": summary,
+        "updatedAt": now,
+    }
+
+
+def summarize_exchange_for_memory(
+    question: str,
+    answer: str,
+    intent: str,
+    scope: dict[str, Any],
+) -> str:
+    cleaned_question = " ".join(question.split())
+    cleaned_answer = " ".join(answer.split())
+    scope_parts = []
+    role = scope.get("role")
+    station_key = scope.get("stationKey") or scope.get("station_key")
+    viaje_id = scope.get("viajeId") or scope.get("viaje_id")
+    viaje_ids = scope.get("viajeIds") or scope.get("viaje_ids")
+    if role:
+        scope_parts.append(f"rol {role}")
+    if station_key:
+        scope_parts.append(f"estacion {station_key}")
+    if viaje_id:
+        scope_parts.append(f"viaje {viaje_id}")
+    elif viaje_ids:
+        scope_parts.append(f"viajes {', '.join(map(str, viaje_ids[:4]))}")
+
+    scope_text = f" ({'; '.join(scope_parts)})" if scope_parts else ""
+    answer_summary = cleaned_answer[:500].rstrip()
+    question_summary = cleaned_question[:220].rstrip()
+    return (
+        f"[{intent}{scope_text}] P: {question_summary} "
+        f"R: {answer_summary}"
+    ).strip()
+
+
+def compact_memory_summary(previous_summary: str, exchange_summary: str) -> str:
+    if not previous_summary:
+        return exchange_summary[:MEMORY_SUMMARY_LIMIT]
+
+    combined = f"{previous_summary}\n{exchange_summary}".strip()
+    if len(combined) <= MEMORY_SUMMARY_LIMIT:
+        return combined
+
+    lines = [line for line in combined.splitlines() if line.strip()]
+    kept: list[str] = []
+    total = 0
+    for line in reversed(lines):
+        line_len = len(line) + 1
+        if total + line_len > MEMORY_SUMMARY_LIMIT:
+            break
+        kept.append(line)
+        total += line_len
+
+    return "\n".join(reversed(kept))
+
+
+def extract_explicit_memory_facts(question: str, answer: str = "") -> list[str]:
+    cleaned = " ".join(question.split())
+    lowered = cleaned.lower()
+    facts: list[str] = []
+
+    # Explicit memory instructions from user
+    markers = [
+        "recuerda que",
+        "acuérdate que",
+        "acuerdate que",
+        "ten en cuenta que",
+        "de ahora en adelante",
+        "para este chat",
+        "no olvides que",
+        "siempre que",
+        "cada vez que",
+    ]
+    if any(marker in lowered for marker in markers):
+        facts.append(cleaned[:MEMORY_FACT_TEXT_LIMIT].rstrip())
+
+    # Extract key numeric findings from the answer to remember
+    if answer:
+        cleaned_answer = " ".join(answer.split())
+        # Look for patterns like "encontre N historias", "promedio de X es Y"
+        import re
+        patterns = [
+            r"encontr[eé]\s+(\d+\s+historias[^.]*\.)",
+            r"el\s+promedio\s+de\s+[^.]+\.",
+            r"la\s+distribuci[oó]n\s+[^.]+\.",
+            r"los\s+diagn[oó]sticos\s+m[aá]s\s+frecuentes[^.]*\.",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, cleaned_answer.lower())
+            if match:
+                start = match.start()
+                # Get the original case text
+                snippet = cleaned_answer[start:start + MEMORY_FACT_TEXT_LIMIT].split(".")[0] + "."
+                if len(snippet) > 20:
+                    facts.append(snippet.strip())
+                    break  # Only keep one key finding per exchange
+
+    return facts[:3]
+
+
+def merge_memory_facts(existing: Any, new_facts: list[str]) -> list[str]:
+    facts: list[str] = []
+    for item in existing or []:
+        text = str(item).strip()
+        if text and text not in facts:
+            facts.append(text[:MEMORY_FACT_TEXT_LIMIT].rstrip())
+
+    for item in new_facts:
+        text = item.strip()
+        if text and text not in facts:
+            facts.append(text[:MEMORY_FACT_TEXT_LIMIT].rstrip())
+
+    return facts[-MEMORY_FACT_LIMIT:]

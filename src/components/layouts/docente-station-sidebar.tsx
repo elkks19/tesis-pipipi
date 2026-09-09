@@ -35,6 +35,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 type DocenteStationSidebarProps = {
   activityHref?: string;
@@ -193,6 +194,8 @@ export function DocenteStationSidebar({
                     </span>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <SidebarThemeMenuItems />
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem

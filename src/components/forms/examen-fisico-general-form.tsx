@@ -13,6 +13,7 @@ import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { SelectField, TextField } from "@/components/forms/fields";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Button } from "@/components/ui/button";
 import {
   textSummary,
@@ -188,31 +189,6 @@ function buildPayload(state: ExamenFisicoGeneralFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function createInitialValue(defaultValue?: Partial<ExamenFisicoGeneralFormValue>) {
   return {
     ...baseFormValue,
@@ -299,7 +275,6 @@ export function ExamenFisicoGeneralForm({
   );
   const [form, setForm] =
     useState<ExamenFisicoGeneralFormValue>(initialValue);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -309,10 +284,13 @@ export function ExamenFisicoGeneralForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar examen general",
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateExamenFisicoGeneralSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors, showWarning } = useInteractiveErrors({
+    value: form,
+    actionState,
+    isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -339,18 +317,11 @@ export function ExamenFisicoGeneralForm({
       indiceCinturaCadera: calculateWaistHipIndex(form),
       presionArterialMedia: calculateMeanPressure(form),
     };
-    const result = CreateExamenFisicoGeneralSchema.safeParse(
-      buildPayload(nextForm),
-    );
-
-    if (!result.success) {
-      event.preventDefault();
-      setErrors(getErrorMap(result.error));
+    if (revealErrors(event)) {
       return;
     }
 
     setForm(nextForm);
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(nextForm))) {
       return;
@@ -402,6 +373,8 @@ export function ExamenFisicoGeneralForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
@@ -417,6 +390,7 @@ export function ExamenFisicoGeneralForm({
             onChange={(value) => updatePressure("derecha", "max", value)}
             suffix="mmHg"
             value={form.presionArterial.derecha.max}
+            warning={showWarning("presionArterial.derecha.max") && Number(form.presionArterial.derecha.max) >= 180 ? "Cifra elevada: confirma la medicion y la atencion clinica" : undefined}
           />
           <NumberField
             error={visibleErrors["presionArterial.derecha.min"]}
@@ -425,6 +399,7 @@ export function ExamenFisicoGeneralForm({
             onChange={(value) => updatePressure("derecha", "min", value)}
             suffix="mmHg"
             value={form.presionArterial.derecha.min}
+            warning={showWarning("presionArterial.derecha.min") && Number(form.presionArterial.derecha.min) >= 120 ? "Cifra elevada: confirma la medicion y la atencion clinica" : undefined}
           />
           <NumberField
             error={visibleErrors["presionArterial.izquierda.max"]}
@@ -433,6 +408,7 @@ export function ExamenFisicoGeneralForm({
             onChange={(value) => updatePressure("izquierda", "max", value)}
             suffix="mmHg"
             value={form.presionArterial.izquierda.max}
+            warning={showWarning("presionArterial.izquierda.max") && Number(form.presionArterial.izquierda.max) >= 180 ? "Cifra elevada: confirma la medicion y la atencion clinica" : undefined}
           />
           <NumberField
             error={visibleErrors["presionArterial.izquierda.min"]}
@@ -441,6 +417,7 @@ export function ExamenFisicoGeneralForm({
             onChange={(value) => updatePressure("izquierda", "min", value)}
             suffix="mmHg"
             value={form.presionArterial.izquierda.min}
+            warning={showWarning("presionArterial.izquierda.min") && Number(form.presionArterial.izquierda.min) >= 120 ? "Cifra elevada: confirma la medicion y la atencion clinica" : undefined}
           />
           <NumberField
             error={visibleErrors.presionArterialMedia}
@@ -617,6 +594,7 @@ function NumberField({
   step = "any",
   suffix,
   value,
+  warning,
 }: {
   error?: string;
   label: string;
@@ -625,11 +603,13 @@ function NumberField({
   step?: string;
   suffix?: string;
   value: string;
+  warning?: string;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <TextField
         error={error}
+        warning={error ? undefined : warning}
         label={label}
         min={0}
         name={name}

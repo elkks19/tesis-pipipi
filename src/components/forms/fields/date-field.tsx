@@ -70,7 +70,7 @@ export function DateField({
   const [open, setOpen] = useState(false);
 
   return (
-    <Field error={error}>
+    <Field error={error} name={name}>
       <Label htmlFor={name}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
@@ -79,6 +79,7 @@ export function DateField({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            aria-describedby={error ? `${name}-error` : undefined}
             aria-invalid={Boolean(error)}
             className={cn(
               "h-10 justify-start rounded-md font-normal",
@@ -106,6 +107,11 @@ export function DateField({
             }}
             selected={parseDate(value)}
           />
+          {!required && value ? (
+            <Button className="m-2" onClick={() => { onChange(""); setOpen(false); }} size="sm" type="button" variant="ghost">
+              Quitar fecha
+            </Button>
+          ) : null}
         </PopoverContent>
       </Popover>
     </Field>

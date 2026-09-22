@@ -38,10 +38,12 @@ import {
   consumosAlcohol,
   CreateAnamnesisSchema,
   estadosCiviles,
+  getAnamnesisSchemaForPatient,
   habitosTabaco,
   nivelesEducativos,
   porcionesFrutasVerduras,
 } from "@/lib/schema/anamnesis";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 
 type Emptyable<T extends string> = T | "";
 
@@ -121,6 +123,8 @@ type AnamnesisFormAction = (
 type AnamnesisFormProps = {
   action?: AnamnesisFormAction;
   defaultValue?: Partial<AnamnesisFormValue>;
+  pacienteGenero?: string;
+  pacienteFechaNacimiento?: string;
   successRedirectHref?: string;
 };
 
@@ -209,7 +213,12 @@ function requiredNumber(value: string) {
   return value.trim().length > 0 ? Number(value) : Number.NaN;
 }
 
-function buildPayload(state: AnamnesisFormValue) {
+function buildPayload(
+  state: AnamnesisFormValue,
+  options?: { includeGinecoObstetricos?: boolean },
+) {
+  const includeGinecoObstetricos = options?.includeGinecoObstetricos ?? true;
+
   return {
     pacienteId: state.pacienteId.trim(),
     estadoCivil: state.estadoCivil,
@@ -233,23 +242,24 @@ function buildPayload(state: AnamnesisFormValue) {
         edadFallecimiento: optionalNumber(item.edadFallecimiento),
       })),
     },
-    antecedentesGinecoObstetricos: state.antecedentesGinecoObstetricos
+    antecedentesGinecoObstetricos:
+      includeGinecoObstetricos && state.antecedentesGinecoObstetricos
       ? {
           ...state.antecedentesGinecoObstetricos,
-          menarca: requiredNumber(state.antecedentesGinecoObstetricos.menarca),
+          menarca: optionalNumber(state.antecedentesGinecoObstetricos.menarca),
           gestaciones: requiredNumber(
             state.antecedentesGinecoObstetricos.gestaciones,
           ),
           partos: requiredNumber(state.antecedentesGinecoObstetricos.partos),
           abortos: requiredNumber(state.antecedentesGinecoObstetricos.abortos),
           cesareas: requiredNumber(state.antecedentesGinecoObstetricos.cesareas),
-          edadMenopausia: requiredNumber(
+          edadMenopausia: optionalNumber(
             state.antecedentesGinecoObstetricos.edadMenopausia,
           ),
-          inicioVidaSexual: requiredNumber(
+          inicioVidaSexual: optionalNumber(
             state.antecedentesGinecoObstetricos.inicioVidaSexual,
           ),
-          numeroParejasSexuales: requiredNumber(
+          numeroParejasSexuales: optionalNumber(
             state.antecedentesGinecoObstetricos.numeroParejasSexuales,
           ),
           metodoAnticonceptivo: optionalText(
@@ -267,34 +277,15 @@ function buildPayload(state: AnamnesisFormValue) {
           biopsiaCervical: optionalText(
             state.antecedentesGinecoObstetricos.biopsiaCervical,
           ),
+          ritmoMenstrual: optionalText(state.antecedentesGinecoObstetricos.ritmoMenstrual),
+          cirugiaPelviana: optionalText(state.antecedentesGinecoObstetricos.cirugiaPelviana),
+          fechaUltimaGestacion: optionalText(state.antecedentesGinecoObstetricos.fechaUltimaGestacion),
+          fechaUltimoParto: optionalText(state.antecedentesGinecoObstetricos.fechaUltimoParto),
+          fechaUltimoAborto: optionalText(state.antecedentesGinecoObstetricos.fechaUltimoAborto),
+          fechaUltimaCesarea: optionalText(state.antecedentesGinecoObstetricos.fechaUltimaCesarea),
         }
       : undefined,
   };
-}
-
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
 }
 
 function createInitialValue(defaultValue?: Partial<AnamnesisFormValue>) {
@@ -312,6 +303,10 @@ function createInitialValue(defaultValue?: Partial<AnamnesisFormValue>) {
     antecedentesGinecoObstetricos:
       defaultValue?.antecedentesGinecoObstetricos,
   };
+}
+
+function supportsGinecoObstetricos(genero: string | undefined) {
+  return genero?.trim().toLowerCase() === "femenino";
 }
 
 function diseaseSummary(enfermedad: EnfermedadForm) {
@@ -381,6 +376,8 @@ function getConfirmationSections(form: AnamnesisFormValue) {
 export function AnamnesisForm({
   action,
   defaultValue,
+  pacienteGenero,
+  pacienteFechaNacimiento,
   successRedirectHref,
 }: AnamnesisFormProps) {
   const router = useRouter();
@@ -389,7 +386,9 @@ export function AnamnesisForm({
     [defaultValue],
   );
   const [form, setForm] = useState<AnamnesisFormValue>(initialValue);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
+  const [submitted, setSubmitted] = useState(false);
+  const [submission, setSubmission] = useState<{ form: AnamnesisFormValue; actionState: AnamnesisFormActionState } | null>(null);
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -399,10 +398,33 @@ export function AnamnesisForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar anamnesis",
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const showGinecoObstetricos = supportsGinecoObstetricos(pacienteGenero);
+  const validation = useMemo(() => {
+    const payload = buildPayload(form, { includeGinecoObstetricos: showGinecoObstetricos });
+    const schema = pacienteFechaNacimiento
+      ? getAnamnesisSchemaForPatient(pacienteFechaNacimiento)
+      : CreateAnamnesisSchema;
+    return schema.safeParse(payload);
+  }, [form, pacienteFechaNacimiento, showGinecoObstetricos]);
+  const allErrors = validation.success ? {} : firstFieldErrors(validation.error);
+  const serverErrors = submission?.form === form && submission.actionState !== actionState
+    ? actionState.errors ?? {}
+    : {};
+  const showValidation = !isPending && !actionState.ok;
+  const visibleErrors = Object.fromEntries(
+    Object.entries({ ...serverErrors, ...allErrors }).filter(([path]) => showValidation && (submitted || touched.has(path))),
+  );
+  const warnings: Record<string, string> = {};
+  const gineco = form.antecedentesGinecoObstetricos;
+  if (gineco) {
+    const menarca = Number(gineco.menarca);
+    const menopausia = Number(gineco.edadMenopausia);
+    const gestaciones = Number(gineco.gestaciones);
+    if (gineco.menarca && (menarca < 8 || menarca > 15)) warnings["antecedentesGinecoObstetricos.menarca"] = "Edad inusual; revisa el dato antes de guardar.";
+    if (gineco.edadMenopausia && menopausia < 40) warnings["antecedentesGinecoObstetricos.edadMenopausia"] = "Menopausia temprana; revisa el dato antes de guardar.";
+    if (gineco.gestaciones && gestaciones > 15) warnings["antecedentesGinecoObstetricos.gestaciones"] = "Conteo inusual; revisa el dato antes de guardar.";
+  }
+  const visibleWarnings = Object.fromEntries(Object.entries(warnings).filter(([path]) => showValidation && (submitted || touched.has(path))));
 
   useEffect(() => {
     if (!actionState.message) {
@@ -422,16 +444,22 @@ export function AnamnesisForm({
     }
   }, [actionState, router, successRedirectHref]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreateAnamnesisSchema.safeParse(buildPayload(form));
+  if (actionState.ok && successRedirectHref) {
+    return <p className="text-sm text-muted-foreground" role="status">Historia guardada. Redirigiendo...</p>;
+  }
 
-    if (!result.success) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    setSubmitted(true);
+    setSubmission({ form, actionState });
+    if (!validation.success) {
       event.preventDefault();
-      setErrors(getErrorMap(result.error));
+      const firstPath = Object.keys(allErrors)[0];
+      const control = firstPath?.includes(".enfermedad.")
+        ? firstPath.slice(0, firstPath.indexOf(".enfermedad.") + ".enfermedad".length)
+        : firstPath;
+      window.requestAnimationFrame(() => document.getElementById(control)?.focus());
       return;
     }
-
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(form))) {
       return;
@@ -442,6 +470,12 @@ export function AnamnesisForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={(event) => {
+        const control = event.target as HTMLElement;
+        const path = control.id || control.getAttribute("name");
+        if (path) setTouched((current) => new Set(current).add(path));
+      }}
       onSubmit={handleSubmit}
       ref={formRef}
     >
@@ -631,7 +665,8 @@ export function AnamnesisForm({
         <PathologyList
           emptyText="Sin antecedentes personales registrados."
           items={form.antecedentesPatologicos.personales}
-          onRemove={(index) =>
+          onRemove={(index) => {
+            setTouched(new Set());
             setForm((current) => ({
               ...current,
               antecedentesPatologicos: {
@@ -640,8 +675,8 @@ export function AnamnesisForm({
                   (_, itemIndex) => itemIndex !== index,
                 ),
               },
-            }))
-          }
+            }));
+          }}
           renderItem={(item, index) => (
             <FieldGrid>
               <DiseaseFields
@@ -753,7 +788,8 @@ export function AnamnesisForm({
         <PathologyList
           emptyText="Sin antecedentes familiares registrados."
           items={form.antecedentesPatologicos.familiares}
-          onRemove={(index) =>
+          onRemove={(index) => {
+            setTouched(new Set());
             setForm((current) => ({
               ...current,
               antecedentesPatologicos: {
@@ -762,8 +798,8 @@ export function AnamnesisForm({
                   (_, itemIndex) => itemIndex !== index,
                 ),
               },
-            }))
-          }
+            }));
+          }}
           renderItem={(item, index) => (
             <div className="flex flex-col gap-4">
               <FieldGrid>
@@ -836,45 +872,51 @@ export function AnamnesisForm({
         />
       </FormSection>
 
-      <FormSection
-        action={
-          <CheckboxField
-            checked={Boolean(form.antecedentesGinecoObstetricos)}
-            label="Incluir"
-            name="habilitarAntecedentesGinecoObstetricos"
-            onChange={(checked) =>
-              setForm((current) => ({
-                ...current,
-                antecedentesGinecoObstetricos: checked
-                  ? { ...emptyGineco }
-                  : undefined,
-              }))
-            }
-          />
-        }
-        description="Completar cuando corresponda por el contexto clinico."
-        title="Antecedentes gineco-obstetricos"
-      >
-        {form.antecedentesGinecoObstetricos ? (
-          <GinecoFields
-            errors={visibleErrors}
-            onChange={(patch) =>
-              setForm((current) => ({
-                ...current,
-                antecedentesGinecoObstetricos: {
-                  ...current.antecedentesGinecoObstetricos!,
-                  ...patch,
-                },
-              }))
-            }
-            value={form.antecedentesGinecoObstetricos}
-          />
-        ) : (
-          <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-            Seccion no incluida.
-          </div>
-        )}
-      </FormSection>
+      {showGinecoObstetricos ? (
+        <FormSection
+          action={
+            <CheckboxField
+              checked={Boolean(form.antecedentesGinecoObstetricos)}
+              label="Incluir"
+              name="habilitarAntecedentesGinecoObstetricos"
+              onChange={(checked) => {
+                if (!checked) {
+                  setTouched((current) => new Set([...current].filter((path) => !path.startsWith("antecedentesGinecoObstetricos."))));
+                }
+                setForm((current) => ({
+                  ...current,
+                  antecedentesGinecoObstetricos: checked
+                    ? { ...emptyGineco }
+                    : undefined,
+                }));
+              }}
+            />
+          }
+          description="Completar cuando corresponda por el contexto clinico."
+          title="Antecedentes gineco-obstetricos"
+        >
+          {form.antecedentesGinecoObstetricos ? (
+            <GinecoFields
+              errors={visibleErrors}
+              warnings={visibleWarnings}
+              onChange={(patch) =>
+                setForm((current) => ({
+                  ...current,
+                  antecedentesGinecoObstetricos: {
+                    ...current.antecedentesGinecoObstetricos!,
+                    ...patch,
+                  },
+                }))
+              }
+              value={form.antecedentesGinecoObstetricos}
+            />
+          ) : (
+            <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+              Seccion no incluida.
+            </div>
+          )}
+        </FormSection>
+      ) : null}
 
       <footer className="sticky bottom-0 flex flex-col gap-3 rounded-lg border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -885,7 +927,9 @@ export function AnamnesisForm({
             disabled={isPending}
             onClick={() => {
               setForm(initialValue);
-              setErrors({});
+              setTouched(new Set());
+              setSubmitted(false);
+              setSubmission(null);
             }}
             type="reset"
             variant="outline"
@@ -997,40 +1041,42 @@ function PathologyList<T>({
 
 function GinecoFields({
   errors,
+  warnings,
   onChange,
   value,
 }: {
   errors: Record<string, string>;
+  warnings: Record<string, string>;
   onChange: (patch: Partial<GinecoObstetricosForm>) => void;
   value: GinecoObstetricosForm;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <FieldGrid>
-        <TextField
+        <SelectField
           error={errors["antecedentesGinecoObstetricos.estadioTanner"]}
           label="Estadio Tanner"
           name="antecedentesGinecoObstetricos.estadioTanner"
           onChange={(nextValue) => onChange({ estadioTanner: nextValue })}
+          options={["1", "2", "3", "4", "5", "No evaluado"]}
           required
           value={value.estadioTanner}
         />
         <TextField
           error={errors["antecedentesGinecoObstetricos.menarca"]}
           label="Menarca"
-          min={0}
+          min={1}
           name="antecedentesGinecoObstetricos.menarca"
           onChange={(nextValue) => onChange({ menarca: nextValue })}
-          required
           type="number"
           value={value.menarca}
+          warning={warnings["antecedentesGinecoObstetricos.menarca"]}
         />
         <TextField
           error={errors["antecedentesGinecoObstetricos.ritmoMenstrual"]}
           label="Ritmo menstrual"
           name="antecedentesGinecoObstetricos.ritmoMenstrual"
           onChange={(nextValue) => onChange({ ritmoMenstrual: nextValue })}
-          required
           value={value.ritmoMenstrual}
         />
         <TextField
@@ -1042,6 +1088,7 @@ function GinecoFields({
           required
           type="number"
           value={value.gestaciones}
+          warning={warnings["antecedentesGinecoObstetricos.gestaciones"]}
         />
         <TextField
           error={errors["antecedentesGinecoObstetricos.partos"]}
@@ -1076,12 +1123,12 @@ function GinecoFields({
         <TextField
           error={errors["antecedentesGinecoObstetricos.edadMenopausia"]}
           label="Edad menopausia"
-          min={0}
+          min={1}
           name="antecedentesGinecoObstetricos.edadMenopausia"
           onChange={(nextValue) => onChange({ edadMenopausia: nextValue })}
-          required
           type="number"
           value={value.edadMenopausia}
+          warning={warnings["antecedentesGinecoObstetricos.edadMenopausia"]}
         />
       </FieldGrid>
       <FieldGrid>
@@ -1090,7 +1137,6 @@ function GinecoFields({
           label="Ultima gestacion"
           name="antecedentesGinecoObstetricos.fechaUltimaGestacion"
           onChange={(nextValue) => onChange({ fechaUltimaGestacion: nextValue })}
-          required
           value={value.fechaUltimaGestacion}
         />
         <DateField
@@ -1098,7 +1144,6 @@ function GinecoFields({
           label="Ultimo parto"
           name="antecedentesGinecoObstetricos.fechaUltimoParto"
           onChange={(nextValue) => onChange({ fechaUltimoParto: nextValue })}
-          required
           value={value.fechaUltimoParto}
         />
         <DateField
@@ -1106,7 +1151,6 @@ function GinecoFields({
           label="Ultimo aborto"
           name="antecedentesGinecoObstetricos.fechaUltimoAborto"
           onChange={(nextValue) => onChange({ fechaUltimoAborto: nextValue })}
-          required
           value={value.fechaUltimoAborto}
         />
         <DateField
@@ -1114,7 +1158,6 @@ function GinecoFields({
           label="Ultima cesarea"
           name="antecedentesGinecoObstetricos.fechaUltimaCesarea"
           onChange={(nextValue) => onChange({ fechaUltimaCesarea: nextValue })}
-          required
           value={value.fechaUltimaCesarea}
         />
         <DateField
@@ -1142,10 +1185,9 @@ function GinecoFields({
         <TextField
           error={errors["antecedentesGinecoObstetricos.inicioVidaSexual"]}
           label="Inicio vida sexual"
-          min={0}
+          min={1}
           name="antecedentesGinecoObstetricos.inicioVidaSexual"
           onChange={(nextValue) => onChange({ inicioVidaSexual: nextValue })}
-          required
           type="number"
           value={value.inicioVidaSexual}
         />
@@ -1159,7 +1201,6 @@ function GinecoFields({
           onChange={(nextValue) =>
             onChange({ numeroParejasSexuales: nextValue })
           }
-          required
           type="number"
           value={value.numeroParejasSexuales}
         />
@@ -1168,7 +1209,6 @@ function GinecoFields({
           label="Cirugia pelviana"
           name="antecedentesGinecoObstetricos.cirugiaPelviana"
           onChange={(nextValue) => onChange({ cirugiaPelviana: nextValue })}
-          required
           value={value.cirugiaPelviana}
         />
         <TextField

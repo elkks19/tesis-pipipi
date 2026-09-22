@@ -1,19 +1,20 @@
 import json
 from collections import Counter
 from dataclasses import dataclass
-from statistics import mean
+from statistics import mean, median
 from typing import Any, Callable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.analytics.charts import count_chart_artifact, table_artifact
+from app.analytics.advanced import cluster_rows, numeric_correlations, numeric_outliers
+from app.analytics.charts import chart_artifact, count_chart_artifact, table_artifact
 from app.analytics.dataframe_builder import build_story_rows
 from app.db.repositories import TesisRepository
 from app.models.documents import RetrievedChunk
 from app.models.responses import Artifact, Source
 from app.rag.retrieval import RagRetriever
 
-ChartType = Literal["auto", "table", "bar", "line", "pie"]
+ChartType = Literal["auto", "table", "bar", "line", "pie", "scatter", "heatmap"]
 GroupField = Literal["genero", "diagnosticos", "diagnosticoIMC", "viajeId", "grupoEdad"]
 NumericField = Literal[
     "imc",
@@ -61,6 +62,16 @@ class SummarizeNumericArguments(ToolArguments):
     field: NumericField
 
 
+class NumericDistributionArguments(ToolArguments):
+    field: NumericField
+    chart_type: ChartType = Field(default="auto", alias="chartType")
+
+
+class CompareNumericByGroupArguments(ToolArguments):
+    field: NumericField
+    group: GroupField
+
+
 class SearchContextArguments(ToolArguments):
     query: str = Field(min_length=2, max_length=500)
     limit: int = Field(default=6, ge=1, le=10)
@@ -68,6 +79,20 @@ class SearchContextArguments(ToolArguments):
 
 class SampleHistoriesArguments(ToolArguments):
     limit: int = Field(default=5, ge=1, le=10)
+
+
+class ClusterHistoriesArguments(ToolArguments):
+    fields: list[NumericField] = Field(min_length=2, max_length=4)
+    clusters: int = Field(default=3, ge=2, le=6)
+
+
+class DetectNumericOutliersArguments(ToolArguments):
+    field: NumericField
+    method: Literal["iqr", "zscore"] = "iqr"
+
+
+class CorrelateNumericFieldsArguments(ToolArguments):
+    fields: list[NumericField] = Field(min_length=2, max_length=4)
 
 
 @dataclass(frozen=True)
@@ -85,11 +110,13 @@ class ResearchTools:
         filters: dict[str, Any],
         chart_type: ChartType,
         retriever_factory: Callable[[], RagRetriever],
+        search_limit: int = 6,
     ) -> None:
         self.repository = repository
         self.filters = filters
         self.chart_type = chart_type
         self.retriever_factory = retriever_factory
+        self.search_limit = search_limit
         self._rows: list[dict[str, Any]] | None = None
         self._retriever: RagRetriever | None = None
 
@@ -98,7 +125,7 @@ class ResearchTools:
         return [
             tool_definition(
                 "count_histories",
-                "Cuenta las historias clinicas dentro del alcance autorizado.",
+                "Cuenta historias clinicas. Usala solo cuando el usuario pida un total simple, no graficos ni analisis.",
                 EmptyArguments,
             ),
             tool_definition(
@@ -110,12 +137,30 @@ class ResearchTools:
                 GroupHistoriesArguments,
             ),
             tool_definition(
+                "numeric_distribution",
+                (
+                    "Genera una distribucion/frecuencia por rangos de un indicador numerico. "
+                    "Usala cuando el usuario pida grafico, histograma, frecuencia o distribucion "
+                    "de IMC, glicemia, frecuencia cardiaca o presion arterial media."
+                ),
+                NumericDistributionArguments,
+            ),
+            tool_definition(
                 "cross_tab_histories",
                 (
                     "Cruza dos agrupaciones autorizadas. Usala para ampliar una consulta "
                     "principal con distribucion por viaje, genero o grupo de edad."
                 ),
                 CrossTabHistoriesArguments,
+            ),
+            tool_definition(
+                "compare_numeric_by_group",
+                (
+                    "Compara un indicador numerico por genero, viaje, grupo de edad, "
+                    "clasificacion de IMC o diagnostico. Usala para analisis multivariable "
+                    "o preguntas tipo 'IMC por genero'."
+                ),
+                CompareNumericByGroupArguments,
             ),
             tool_definition(
                 "summarize_numeric_field",
@@ -149,6 +194,21 @@ class ResearchTools:
                 "Lista los campos autorizados para analisis.",
                 EmptyArguments,
             ),
+            tool_definition(
+                "cluster_histories",
+                "Agrupa historias por 2 a 4 indicadores numericos con KMeans estandarizado. Devuelve tamanos y perfiles de grupos; no infiere diagnosticos.",
+                ClusterHistoriesArguments,
+            ),
+            tool_definition(
+                "detect_numeric_outliers",
+                "Detecta valores atipicos de un indicador numerico mediante IQR (1.5 veces el rango intercuartil) o puntuacion Z (umbral 3).",
+                DetectNumericOutliersArguments,
+            ),
+            tool_definition(
+                "correlate_numeric_fields",
+                "Calcula correlaciones de Pearson entre 2 a 4 indicadores numericos usando pares con datos validos.",
+                CorrelateNumericFieldsArguments,
+            ),
         ]
 
     async def execute(self, name: str, raw_arguments: Any) -> ToolExecution:
@@ -159,9 +219,15 @@ class ResearchTools:
         if name == "group_histories_by":
             parsed = GroupHistoriesArguments.model_validate(arguments)
             return await self._group_histories_by(parsed)
+        if name == "numeric_distribution":
+            parsed = NumericDistributionArguments.model_validate(arguments)
+            return await self._numeric_distribution(parsed)
         if name == "cross_tab_histories":
             parsed = CrossTabHistoriesArguments.model_validate(arguments)
             return await self._cross_tab_histories(parsed)
+        if name == "compare_numeric_by_group":
+            parsed = CompareNumericByGroupArguments.model_validate(arguments)
+            return await self._compare_numeric_by_group(parsed)
         if name == "summarize_numeric_field":
             parsed = SummarizeNumericArguments.model_validate(arguments)
             return await self._summarize_numeric_field(parsed)
@@ -174,6 +240,15 @@ class ResearchTools:
         if name == "list_available_fields":
             EmptyArguments.model_validate(arguments)
             return self._list_available_fields()
+        if name == "cluster_histories":
+            parsed = ClusterHistoriesArguments.model_validate(arguments)
+            return await self._cluster_histories(parsed)
+        if name == "detect_numeric_outliers":
+            parsed = DetectNumericOutliersArguments.model_validate(arguments)
+            return await self._detect_numeric_outliers(parsed)
+        if name == "correlate_numeric_fields":
+            parsed = CorrelateNumericFieldsArguments.model_validate(arguments)
+            return await self._correlate_numeric_fields(parsed)
         raise ValueError(f"Herramienta no permitida: {name}")
 
     async def _count_histories(self) -> ToolExecution:
@@ -185,6 +260,45 @@ class ResearchTools:
                 "nota": "Conteo calculado dentro del alcance autorizado.",
             },
             artifacts=[artifact],
+        )
+
+    async def _numeric_distribution(
+        self,
+        arguments: NumericDistributionArguments,
+    ) -> ToolExecution:
+        rows = await self._get_rows()
+        values = numeric_values(rows, arguments.field)
+        label = NUMERIC_LABELS[arguments.field]
+        bins = numeric_frequency_rows(values)
+        chart_type = self._resolve_chart_type(arguments.chart_type)
+        if chart_type in {"pie", "scatter", "heatmap"}:
+            chart_type = "bar"
+        summary = numeric_summary(values, label)
+        return tool_result(
+            {
+                "indicador": label,
+                "historiasAnalizadas": len(rows),
+                "valoresDisponibles": len(values),
+                "resumen": summary,
+                "rangos": bins,
+            },
+            artifacts=[
+                chart_artifact(
+                    f"Frecuencia de {label}",
+                    "rango",
+                    "historias",
+                    bins,
+                    description=f"Frecuencia de valores de {label} agrupados por rangos.",
+                    kind=chart_type,
+                    role="primary",
+                ),
+                table_artifact(
+                    f"Resumen de {label}",
+                    [summary],
+                    description="Resumen numerico de los valores disponibles.",
+                    role="summary",
+                ),
+            ],
         )
 
     async def _group_histories_by(
@@ -285,7 +399,65 @@ class ResearchTools:
                 "filas": table_rows,
                 "nota": "Tabla cruzada calculada dentro del alcance autorizado.",
             },
-            artifacts=[table_artifact(title, table_rows)],
+            artifacts=[
+                table_artifact(
+                    title,
+                    table_rows,
+                    description="Cruce categorico calculado dentro del alcance autorizado.",
+                    role="breakdown",
+                )
+            ],
+        )
+
+    async def _compare_numeric_by_group(
+        self,
+        arguments: CompareNumericByGroupArguments,
+    ) -> ToolExecution:
+        rows = await self._get_rows()
+        grouped_rows = numeric_by_group_rows(rows, arguments.field, arguments.group)
+        label = NUMERIC_LABELS[arguments.field]
+        _, group_key = GROUP_LABELS[arguments.group]
+        values = numeric_values(rows, arguments.field)
+        artifacts: list[Artifact] = []
+        if grouped_rows:
+            artifacts.extend(
+                [
+                    chart_artifact(
+                        f"{label} promedio por {group_key}",
+                        group_key,
+                        "promedio",
+                        grouped_rows,
+                        description=f"Comparacion multivariable de {label} agrupada por {group_key}.",
+                        kind="bar",
+                        role="primary",
+                    ),
+                    table_artifact(
+                        f"Resumen de {label} por {group_key}",
+                        grouped_rows,
+                        description="Promedio, mediana y rango por grupo.",
+                        role="breakdown",
+                    ),
+                ]
+            )
+        if values:
+            artifacts.append(
+                table_artifact(
+                    f"Resumen general de {label}",
+                    [numeric_summary(values, label)],
+                    description="Resumen calculado sobre todos los valores disponibles.",
+                    role="summary",
+                )
+            )
+
+        return tool_result(
+            {
+                "indicador": label,
+                "agrupacion": arguments.group,
+                "historiasAnalizadas": len(rows),
+                "valoresDisponibles": len(values),
+                "grupos": grouped_rows,
+            },
+            artifacts=artifacts,
         )
 
     async def _summarize_numeric_field(
@@ -295,14 +467,18 @@ class ResearchTools:
         rows = await self._get_rows()
         values = numeric_values(rows, arguments.field)
         label = NUMERIC_LABELS[arguments.field]
-        summary = {
-            "indicador": label,
-            "registros": len(values),
-            "promedio": round(mean(values), 2) if values else None,
-            "minimo": round(min(values), 2) if values else None,
-            "maximo": round(max(values), 2) if values else None,
-        }
-        return tool_result(summary, artifacts=[table_artifact(f"Resumen de {label}", [summary])])
+        summary = numeric_summary(values, label)
+        return tool_result(
+            summary,
+            artifacts=[
+                table_artifact(
+                    f"Resumen de {label}",
+                    [summary],
+                    description="Resumen numerico de los valores disponibles.",
+                    role="summary",
+                )
+            ],
+        )
 
     def _search_clinical_context(
         self,
@@ -311,7 +487,7 @@ class ResearchTools:
         contexts = self._get_retriever().search(
             arguments.query,
             filters=self.filters,
-            limit=arguments.limit,
+            limit=min(arguments.limit, self.search_limit),
         )
         return tool_result(
             {
@@ -416,6 +592,74 @@ class ResearchTools:
             }
         )
 
+    async def _cluster_histories(self, arguments: ClusterHistoriesArguments) -> ToolExecution:
+        result = cluster_rows(await self._get_rows(), arguments.fields, arguments.clusters)
+        groups = result["clusters"]
+        if not groups:
+            return tool_result(result)
+        return tool_result(
+            result,
+            artifacts=[
+                chart_artifact(
+                    "Historias por grupo clinico", "grupo", "historias", groups,
+                    kind="bar", role="primary",
+                    description="Grupos exploratorios calculados con KMeans sobre indicadores estandarizados.",
+                ),
+                table_artifact(
+                    "Perfil numerico por grupo", groups, role="summary",
+                    description="Medias originales por grupo; se excluyen historias con indicadores faltantes.",
+                ),
+            ],
+        )
+
+    async def _detect_numeric_outliers(self, arguments: DetectNumericOutliersArguments) -> ToolExecution:
+        result = numeric_outliers(await self._get_rows(), arguments.field, arguments.method)
+        if result["limiteInferior"] is None:
+            return tool_result(result)
+        return tool_result(
+            result,
+            artifacts=[
+                chart_artifact(
+                    f"Valores atipicos de {NUMERIC_LABELS[arguments.field]}",
+                    "categoria", "historias",
+                    [
+                        {"categoria": "Dentro de limites", "historias": result["valoresValidos"] - result["atipicos"]},
+                        {"categoria": "Atipicos", "historias": result["atipicos"]},
+                    ],
+                    kind="bar", role="primary",
+                    description=f"Deteccion estadistica por {arguments.method.upper()}, no diagnostico clinico.",
+                ),
+                table_artifact(
+                    "Resumen de valores atipicos",
+                    [{key: value for key, value in result.items() if key != "valoresAtipicos"}],
+                    role="summary",
+                ),
+            ],
+        )
+
+    async def _correlate_numeric_fields(self, arguments: CorrelateNumericFieldsArguments) -> ToolExecution:
+        result = numeric_correlations(await self._get_rows(), arguments.fields)
+        pairs = result["correlaciones"]
+        valid = [pair for pair in pairs if pair["correlacion"] is not None]
+        artifacts = [table_artifact(
+            "Correlaciones de Pearson", pairs, role="summary",
+            description="Cada par utiliza historias con ambos indicadores validos.",
+        )]
+        if valid:
+            artifacts.insert(0, chart_artifact(
+                "Magnitud de correlaciones", "par", "magnitud",
+                [
+                    {
+                        "par": f"{pair['indicadorA']} / {pair['indicadorB']}",
+                        "magnitud": abs(pair["correlacion"]),
+                    }
+                    for pair in valid
+                ],
+                kind="bar", role="primary",
+                description="Magnitud absoluta; consulta el signo y el numero de pares en la tabla.",
+            ))
+        return tool_result(result, artifacts=artifacts)
+
     async def _get_rows(self) -> list[dict[str, Any]]:
         if self._rows is None:
             historias = await self.repository.fetch_historias(**self.filters)
@@ -472,6 +716,90 @@ def numeric_values(rows: list[dict[str, Any]], field: NumericField) -> list[floa
         except (TypeError, ValueError):
             continue
     return values
+
+
+def numeric_summary(values: list[float], label: str) -> dict[str, Any]:
+    summary = {
+        "indicador": label,
+        "registros": len(values),
+        "promedio": round(mean(values), 2) if values else None,
+        "mediana": round(median(values), 2) if values else None,
+        "minimo": round(min(values), 2) if values else None,
+        "maximo": round(max(values), 2) if values else None,
+    }
+    return summary
+
+
+def numeric_frequency_rows(values: list[float], bins_count: int = 8) -> list[dict[str, Any]]:
+    if not values:
+        return []
+
+    low = min(values)
+    high = max(values)
+    if low == high:
+        return [{"rango": format_range_label(low, high), "historias": len(values)}]
+
+    width = (high - low) / bins_count
+    bins = [0 for _ in range(bins_count)]
+    for value in values:
+        index = int((value - low) / width)
+        if index >= bins_count:
+            index = bins_count - 1
+        bins[index] += 1
+
+    result = []
+    for index, count in enumerate(bins):
+        start = low + width * index
+        end = high if index == bins_count - 1 else low + width * (index + 1)
+        result.append({"rango": format_range_label(start, end), "historias": count})
+    return result
+
+
+def format_range_label(start: float, end: float) -> str:
+    if start == end:
+        return format_number(start)
+    return f"{format_number(start)}-{format_number(end)}"
+
+
+def format_number(value: float) -> str:
+    rounded = round(value, 1)
+    if rounded.is_integer():
+        return str(int(rounded))
+    return str(rounded)
+
+
+def numeric_by_group_rows(
+    rows: list[dict[str, Any]],
+    numeric_field: NumericField,
+    group_field: GroupField,
+) -> list[dict[str, Any]]:
+    _, group_key = GROUP_LABELS[group_field]
+    grouped: dict[str, list[float]] = {}
+    for row in rows:
+        value = row.get(numeric_field)
+        if value is None or value == "":
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+
+        for group in row_values(row, group_field):
+            grouped.setdefault(group, []).append(number)
+
+    result = []
+    for group, values in grouped.items():
+        result.append(
+            {
+                group_key: group,
+                "registros": len(values),
+                "promedio": round(mean(values), 2),
+                "mediana": round(median(values), 2),
+                "minimo": round(min(values), 2),
+                "maximo": round(max(values), 2),
+            }
+        )
+    return sorted(result, key=lambda row: row["registros"], reverse=True)
 
 
 def row_values(row: dict[str, Any], field: GroupField) -> list[str]:

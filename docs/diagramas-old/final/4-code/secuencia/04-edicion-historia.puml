@@ -1,0 +1,42 @@
+@startuml
+title
+Secuencia - Edicion de historia clinica
+Roles: estudiante y docente
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Docente o estudiante" as Usuario
+participant "Pagina de historia" as Page
+participant "Resumen clinico" as Summary
+participant "Formulario de estacion" as Form
+participant "Server action" as Action
+database "Base de datos central" as DB
+
+Usuario -> Page: Abre una historia
+Page -> DB: Cargar historia y paciente
+DB --> Page: Datos actuales
+Page -> Summary: Preparar resumen clinico
+Summary --> Page: Contexto para editar
+
+Usuario -> Form: Ajusta datos de su estacion
+Form -> Action: Guardar cambios
+Action -> DB: Leer historia vigente
+DB --> Action: Version actual
+Action -> DB: Actualizar bloque editado
+Action -> DB: Registrar actividad
+DB --> Action: Cambios guardados
+
+Action --> Page: Refrescar historia
+Page --> Usuario: Muestra datos actualizados
+
+@enduml

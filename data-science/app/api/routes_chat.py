@@ -41,6 +41,38 @@ async def chat(
         owner_id,
     )
 
+    intent = detect_intent(request.message)
+    if intent in {"chart", "statistic"}:
+        historias = await repository.fetch_historias(**filters)
+        pacientes = await repository.fetch_pacientes_for_historias(historias)
+        rows = build_story_rows(historias, pacientes)
+        deterministic = answer_with_statistics(
+            request.message,
+            rows,
+            intent,
+            request.chart_type,
+        )
+        saved_chat = await chat_repository.append_exchange(
+            answer=deterministic.answer,
+            artifacts=[artifact.model_dump() for artifact in deterministic.artifacts],
+            conversation_id=request.conversation_id,
+            intent=intent,
+            owner_id=owner_id,
+            question=request.message,
+            role=request.scope.role,
+            scope=request.scope.model_dump(by_alias=True),
+            sources=[],
+        )
+
+        return ChatResponse(
+            answer=deterministic.answer,
+            assistant_message_index=saved_chat.get("_assistantMessageIndex"),
+            conversation_id=saved_chat.get("_id"),
+            intent=intent,
+            artifacts=deterministic.artifacts,
+            sources=[],
+        )
+
     def build_retriever() -> RagRetriever:
         embeddings = EmbeddingService(settings.embedding_model)
         store = SQLiteVectorStore(settings.vector_db_path)
@@ -51,6 +83,7 @@ async def chat(
         filters=filters,
         chart_type=request.chart_type,
         retriever_factory=build_retriever,
+        search_limit=request.top_k,
     )
     agent = ResearchAgent(chat_client, tools)
 
@@ -114,6 +147,7 @@ async def chat_stream(
         filters=filters,
         chart_type=request.chart_type,
         retriever_factory=build_retriever,
+        search_limit=request.top_k,
     )
     streamer = ResearchAgentStreamer(chat_client, tools)
 

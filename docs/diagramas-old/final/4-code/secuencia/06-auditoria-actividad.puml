@@ -1,0 +1,38 @@
+@startuml
+title
+Secuencia - Auditoria de cambios
+Roles: estudiante, docente y admin
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor Usuario
+participant "Server action" as Action
+participant "Comparador de cambios" as Diff
+database "Base de datos central" as DB
+participant "Pantallas de actividad" as ActivityUI
+
+Usuario -> Action: Guarda una historia o paciente
+Action -> DB: Lee version anterior
+DB --> Action: Documento previo
+
+Action -> Diff: Compara antes y despues
+Diff --> Action: Lista de cambios relevantes
+
+Action -> DB: Guarda documento actualizado
+Action -> DB: Guarda registro de actividad
+
+ActivityUI -> DB: Consulta actividad por viaje y estacion
+DB --> ActivityUI: Historial filtrado
+ActivityUI --> Usuario: Muestra auditoria
+
+@enduml

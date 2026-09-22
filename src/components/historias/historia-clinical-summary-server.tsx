@@ -10,7 +10,12 @@ import type { Historia } from "@/lib/schema/historia";
 
 type HistoriaClinicalSummaryModalProps = {
   historia: Historia;
-  scope: "examenFisicoGeneral" | "examenFisicoSegmentario" | "complementarios" | "diagnostico";
+  scope:
+    | "anamnesis"
+    | "examenFisicoGeneral"
+    | "examenFisicoSegmentario"
+    | "complementarios"
+    | "diagnostico";
   triggerLabel?: string;
 };
 

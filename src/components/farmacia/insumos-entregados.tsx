@@ -52,6 +52,9 @@ export function InsumosEntregados({
 }: InsumosEntregadosProps) {
   const [search, setSearch] = useState("");
   const [selectedInsumo, setSelectedInsumo] = useState<ViajeInventarioItem | null>(null);
+  const [cantidad, setCantidad] = useState("1");
+  const [cantidadTouched, setCantidadTouched] = useState(false);
+  const [cantidadSubmitted, setCantidadSubmitted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [optimisticEntregas, addOptimistic] = useOptimistic(
     entregas,
@@ -64,6 +67,12 @@ export function InsumosEntregados({
         normalizeSearch(item.nombre).includes(normalizedSearch),
       )
     : insumos;
+  const disponible = selectedInsumo?.cantidadDisponible ?? selectedInsumo?.cantidadPlanificada ?? 0;
+  const cantidadNumero = Number(cantidad);
+  const cantidadError = !cantidad.trim() || !Number.isInteger(cantidadNumero) || cantidadNumero < 1
+    ? "Ingresa una cantidad entera mayor que cero"
+    : cantidadNumero > disponible ? `Solo hay ${disponible} disponibles` : "";
+  const showCantidadError = cantidadError && (cantidadTouched || cantidadSubmitted);
 
   function handleSubmit(formData: FormData) {
     if (!selectedInsumo) return;
@@ -84,6 +93,9 @@ export function InsumosEntregados({
       if (result.ok) {
         toast.success(result.message ?? "Entrega registrada.");
         setSelectedInsumo(null);
+        setCantidad("1");
+        setCantidadTouched(false);
+        setCantidadSubmitted(false);
       } else {
         toast.error(result.message ?? "Error al registrar.");
       }
@@ -114,7 +126,7 @@ export function InsumosEntregados({
                   <button
                     className="flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
                     key={item.id}
-                    onClick={() => setSelectedInsumo(item)}
+                    onClick={() => { setSelectedInsumo(item); setCantidad("1"); setCantidadTouched(false); setCantidadSubmitted(false); }}
                     type="button"
                   >
                     <span className="flex items-center gap-2">
@@ -140,6 +152,14 @@ export function InsumosEntregados({
           <form
             action={handleSubmit}
             className="flex flex-col gap-3"
+            noValidate
+            onSubmit={(event) => {
+              setCantidadSubmitted(true);
+              if (cantidadError) {
+                event.preventDefault();
+                event.currentTarget.querySelector<HTMLInputElement>('[name="cantidad"]')?.focus();
+              }
+            }}
           >
             <input name="insumoId" type="hidden" value={selectedInsumo.id} />
             <input
@@ -170,16 +190,22 @@ export function InsumosEntregados({
                 placeholder="Paciente (opcional)"
               />
               <Input
-                defaultValue="1"
+                aria-invalid={Boolean(showCantidadError)}
+                aria-describedby={showCantidadError ? "entrega-cantidad-error" : undefined}
                 min={1}
                 name="cantidad"
+                onBlur={() => setCantidadTouched(true)}
+                onChange={(event) => setCantidad(event.target.value)}
+                step={1}
                 type="number"
+                value={cantidad}
               />
               <Input
                 name="observaciones"
                 placeholder="Observaciones (opcional)"
               />
             </div>
+            {showCantidadError ? <p className="text-xs text-destructive" id="entrega-cantidad-error" role="alert">{cantidadError}</p> : null}
 
             <div className="flex justify-end">
               <Button disabled={isPending} size="sm" type="submit">

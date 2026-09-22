@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ViajeInventarioTable } from "@/components/farmacia/viaje-inventario-table";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,9 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import type { AddInventarioItemActionState } from "@/lib/farmacia-actions";
 import type { ViajeInventarioItem } from "@/lib/schema";
+import { CreateViajeInventarioItemSchema } from "@/lib/schema/farmacia";
 
 type FarmaciaPlaneacionFormProps = {
   action: (
@@ -51,6 +52,8 @@ const categorias = [
   { label: "Otro", value: "otro" },
 ];
 
+const emptyFields = { categoria: "medicamento", nombre: "", principioActivo: "", cantidadPlanificada: "", unidad: "", concentracion: "", formaFarmaceutica: "" };
+
 function getError(
   errors: AddInventarioItemActionState["errors"],
   field: string,
@@ -64,10 +67,30 @@ export function FarmaciaPlaneacionForm({
   action,
   items,
 }: FarmaciaPlaneacionFormProps) {
-  const [state, formAction, isPending] = useActionState(action, initialState);
   const [categoria, setCategoria] = useState("medicamento");
+  const [fields, setFields] = useState(emptyFields);
   const formRef = useRef<HTMLFormElement>(null);
+  const resetErrorsRef = useRef<() => void>(() => {});
+  const [state, formAction, isPending] = useActionState(async (previousState: AddInventarioItemActionState, data: FormData) => {
+    const result = await action(previousState, data);
+    if (result.ok) {
+      formRef.current?.reset();
+      setCategoria("medicamento");
+      setFields(emptyFields);
+      resetErrorsRef.current();
+    }
+    return result;
+  }, initialState);
   const isMedication = categoria === "medicamento";
+  const displayState = useMemo(() => ({ ...state, ok: false }), [state]);
+  const validation = CreateViajeInventarioItemSchema.safeParse(fields);
+  const { visibleErrors, onBlurCapture, revealErrors, resetErrors } = useInteractiveErrors({
+    value: fields, actionState: displayState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
+  useEffect(() => {
+    resetErrorsRef.current = resetErrors;
+  }, [resetErrors]);
 
   useEffect(() => {
     if (!state.message) {
@@ -76,7 +99,6 @@ export function FarmaciaPlaneacionForm({
 
     if (state.ok) {
       toast.success(state.message);
-      formRef.current?.reset();
       return;
     }
 
@@ -93,17 +115,23 @@ export function FarmaciaPlaneacionForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+          <form ref={formRef} action={formAction} className="flex flex-col gap-4" noValidate
+            onBlurCapture={onBlurCapture}
+            onChangeCapture={(event) => {
+              const target = event.target as HTMLInputElement;
+              if (target.name in emptyFields) setFields((current) => ({ ...current, [target.name]: target.value }));
+            }}
+            onSubmit={(event) => { revealErrors(event); }}>
             <FieldGroup>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr_1fr_100px_100px]">
-                <Field data-invalid={Boolean(state.errors?.categoria)}>
+                <Field data-invalid={Boolean(visibleErrors.categoria)}>
                   <FieldLabel htmlFor="categoria">Tipo</FieldLabel>
                   <Select
                     name="categoria"
-                    onValueChange={setCategoria}
+                    onValueChange={(value) => { setCategoria(value); setFields((current) => ({ ...current, categoria: value })); }}
                     value={categoria}
                   >
-                    <SelectTrigger className="w-full" id="categoria">
+                    <SelectTrigger aria-invalid={Boolean(visibleErrors.categoria)} aria-describedby={visibleErrors.categoria ? "categoria-error" : undefined} className="w-full" id="categoria">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -116,28 +144,32 @@ export function FarmaciaPlaneacionForm({
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                  <FieldError errors={getError(state.errors, "categoria")} />
+                  <FieldError id="categoria-error" errors={getError(visibleErrors, "categoria")} />
                 </Field>
 
-                <Field data-invalid={Boolean(state.errors?.nombre)}>
+                <Field data-invalid={Boolean(visibleErrors.nombre)}>
                   <FieldLabel htmlFor="nombre">Nombre</FieldLabel>
                   <Input
+                    aria-invalid={Boolean(visibleErrors.nombre)}
+                    aria-describedby={visibleErrors.nombre ? "nombre-error" : undefined}
                     id="nombre"
                     name="nombre"
                     placeholder={isMedication ? "Ej. Paracetamol 500mg tabletas" : "Ej. Gasa esteril"}
                   />
-                  <FieldError errors={getError(state.errors, "nombre")} />
+                  <FieldError id="nombre-error" errors={getError(visibleErrors, "nombre")} />
                 </Field>
 
                 {isMedication ? (
-                  <Field data-invalid={Boolean(state.errors?.principioActivo)}>
+                  <Field data-invalid={Boolean(visibleErrors.principioActivo)}>
                     <FieldLabel htmlFor="principioActivo">Principio activo</FieldLabel>
                     <Input
+                      aria-invalid={Boolean(visibleErrors.principioActivo)}
+                      aria-describedby={visibleErrors.principioActivo ? "principioActivo-error" : undefined}
                       id="principioActivo"
                       name="principioActivo"
                       placeholder="Ej. Paracetamol"
                     />
-                    <FieldError errors={getError(state.errors, "principioActivo")} />
+                    <FieldError id="principioActivo-error" errors={getError(visibleErrors, "principioActivo")} />
                   </Field>
                 ) : (
                   <Field>
@@ -150,9 +182,11 @@ export function FarmaciaPlaneacionForm({
                   </Field>
                 )}
 
-                <Field data-invalid={Boolean(state.errors?.cantidadPlanificada)}>
+                <Field data-invalid={Boolean(visibleErrors.cantidadPlanificada)}>
                   <FieldLabel htmlFor="cantidadPlanificada">Cantidad</FieldLabel>
                   <Input
+                    aria-invalid={Boolean(visibleErrors.cantidadPlanificada)}
+                    aria-describedby={visibleErrors.cantidadPlanificada ? "cantidadPlanificada-error" : undefined}
                     id="cantidadPlanificada"
                     min="0"
                     name="cantidadPlanificada"
@@ -160,39 +194,45 @@ export function FarmaciaPlaneacionForm({
                     step="1"
                     type="number"
                   />
-                  <FieldError errors={getError(state.errors, "cantidadPlanificada")} />
+                  <FieldError id="cantidadPlanificada-error" errors={getError(visibleErrors, "cantidadPlanificada")} />
                 </Field>
 
-                <Field data-invalid={Boolean(state.errors?.unidad)}>
+                <Field data-invalid={Boolean(visibleErrors.unidad)}>
                   <FieldLabel htmlFor="unidad">Unidad</FieldLabel>
                   <Input
+                    aria-invalid={Boolean(visibleErrors.unidad)}
+                    aria-describedby={visibleErrors.unidad ? "unidad-error" : undefined}
                     id="unidad"
                     name="unidad"
                     placeholder="cajas"
                   />
-                  <FieldError errors={getError(state.errors, "unidad")} />
+                  <FieldError id="unidad-error" errors={getError(visibleErrors, "unidad")} />
                 </Field>
               </div>
 
               {isMedication && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                  <Field data-invalid={Boolean(state.errors?.concentracion)}>
+                  <Field data-invalid={Boolean(visibleErrors.concentracion)}>
                     <FieldLabel htmlFor="concentracion">Concentracion</FieldLabel>
                     <Input
+                      aria-invalid={Boolean(visibleErrors.concentracion)}
+                      aria-describedby={visibleErrors.concentracion ? "concentracion-error" : undefined}
                       id="concentracion"
                       name="concentracion"
                       placeholder="500 mg"
                     />
-                    <FieldError errors={getError(state.errors, "concentracion")} />
+                    <FieldError id="concentracion-error" errors={getError(visibleErrors, "concentracion")} />
                   </Field>
-                  <Field data-invalid={Boolean(state.errors?.formaFarmaceutica)}>
+                  <Field data-invalid={Boolean(visibleErrors.formaFarmaceutica)}>
                     <FieldLabel htmlFor="formaFarmaceutica">Forma</FieldLabel>
                     <Input
+                      aria-invalid={Boolean(visibleErrors.formaFarmaceutica)}
+                      aria-describedby={visibleErrors.formaFarmaceutica ? "formaFarmaceutica-error" : undefined}
                       id="formaFarmaceutica"
                       name="formaFarmaceutica"
                       placeholder="Tableta"
                     />
-                    <FieldError errors={getError(state.errors, "formaFarmaceutica")} />
+                    <FieldError id="formaFarmaceutica-error" errors={getError(visibleErrors, "formaFarmaceutica")} />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="viaAdministracion">Via</FieldLabel>

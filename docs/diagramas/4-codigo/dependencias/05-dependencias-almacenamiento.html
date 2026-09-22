@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de dependencias - Almacenamiento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f5f5f5; color: #2d3142; font-family: 'Geist', system-ui, sans-serif; }
+    .frame { width: 100%; max-width: 1480px; }
+    h1 { margin-bottom: 1.5rem; color: #2d3142; font-family: 'Instrument Serif', 'Noto Serif KR', serif; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; line-height: 1.15; }
+    svg { width: 100%; min-width: 1120px; display: block; }
+    .dep-edge { fill: none; stroke: #4f5d75; stroke-width: 1.15; }
+    .dep-soft { fill: none; stroke: #7a8399; stroke-width: 1.05; stroke-dasharray: 5 4; }
+    .dep-link { fill: none; stroke: #2e5aa8; stroke-width: 1.15; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de dependencias - Almacenamiento</h1>
+    <svg viewBox="0 0 1480 940" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dep-storage-title dep-storage-desc">
+      <title id="dep-storage-title">Diagrama de dependencias - Almacenamiento</title>
+      <desc id="dep-storage-desc">Grafo de dependencias del almacenamiento de archivos: consumidores, modulo file-storage, Flydrive y seleccion dinamica entre S3Driver y FSDriver.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      
+      <rect x="86" y="92" width="1308" height="130" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="104" y="116" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">CONSUMIDORES</text>
+
+      <rect x="426" y="306" width="628" height="132" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="444" y="330" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">ABSTRACCION DE STORAGE</text>
+
+      <rect x="122" y="596" width="1236" height="144" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="140" y="620" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">DRIVERS Y CONFIGURACION</text>
+      <path class="dep-edge" d="M 273,202 V 268 Q 273,276 281,276 H 677 Q 685,276 685,284 V 340" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 537,202 V 284 Q 537,292 545,292 H 713 Q 721,292 721,300 V 340" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 777,202 V 300 Q 777,308 769,308 H 765 Q 757,308 757,316 V 340" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 1041,202 V 316 Q 1041,324 1033,324 H 801 Q 793,324 793,332 V 340" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 739,416 V 472 Q 739,480 747,480 H 731 Q 739,480 739,488 V 506" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 689,582 V 584 Q 689,592 681,592 H 379 Q 371,592 371,600 V 638" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 739,582 V 604 Q 739,612 747,612 H 731 Q 739,612 739,620 V 638" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 791,416 V 566 Q 791,574 799,574 H 1097 Q 1105,574 1105,582 V 638" marker-end="url(#arrow)"/>
+      <path class="dep-soft" d="M 438,676 H 1040" marker-end="url(#arrow)"/>
+      <path class="dep-soft" d="M 846,676 H 1040" marker-end="url(#arrow)"/>
+      
+      <rect x="142" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="306" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="325" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="249" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">ecografia actions</text>
+      <text x="249" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ACTION</text>
+      <text x="249" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">putFile</text>
+
+      <rect x="414" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="578" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="597" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="521" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">ecografia preview</text>
+      <text x="521" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PAGE</text>
+      <text x="521" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">getFileUrl</text>
+
+      <rect x="686" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="850" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="869" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="793" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">reportes PDF</text>
+      <text x="793" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WORKER/ROUTE</text>
+      <text x="793" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">put + stream</text>
+
+      <rect x="958" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="1122" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="1141" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="1065" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">archivos route</text>
+      <text x="1065" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">HTTP ROUTE</text>
+      <text x="1065" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">getFileStream</text>
+
+      <rect x="632" y="340" width="214" height="76" rx="8" fill="rgba(30,64,175,0.08)" stroke="#1e40af" stroke-width="1.25"/>
+      <rect x="796" y="350" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="815" y="363" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">4 in</text>
+      <text x="739" y="373" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">file-storage</text>
+      <text x="739" y="393" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">MODULO</text>
+      <text x="739" y="407" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">singleton Disk</text>
+
+      <rect x="632" y="506" width="214" height="76" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="796" y="516" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="815" y="529" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="739" y="539" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Flydrive Disk</text>
+      <text x="739" y="559" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PAQUETE</text>
+      <text x="739" y="573" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">driver contract</text>
+
+      <rect x="224" y="638" width="214" height="76" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="388" y="648" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="407" y="661" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="331" y="671" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">S3Driver</text>
+      <text x="331" y="691" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DRIVER</text>
+      <text x="331" y="705" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Vault S3 / S3</text>
+
+      <rect x="632" y="638" width="214" height="76" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="796" y="648" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="815" y="661" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="739" y="671" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">FSDriver</text>
+      <text x="739" y="691" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DRIVER</text>
+      <text x="739" y="705" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">storage/uploads</text>
+
+      <rect x="1040" y="638" width="214" height="76" rx="8" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="1204" y="648" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="1223" y="661" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">3 in</text>
+      <text x="1147" y="671" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">storage env</text>
+      <text x="1147" y="691" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">CONFIG</text>
+      <text x="1147" y="705" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">S3_* / FILE_*</text>
+    </svg>
+  </div>
+</body>
+</html>

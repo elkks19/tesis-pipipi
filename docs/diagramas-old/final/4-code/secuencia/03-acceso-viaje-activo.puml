@@ -1,0 +1,41 @@
+@startuml
+title
+Secuencia - Acceso al viaje activo
+Roles: estudiante, docente, docente-organizador, docente-investigador y admin
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor Usuario
+participant "Aplicacion web" as App
+participant "Better Auth" as Auth
+participant "Resolver de viaje" as Resolver
+database "Base de datos central" as DB
+participant "Pagina destino" as UI
+
+Usuario -> App: Ingresa al sistema
+App -> Auth: Valida sesion y rol
+Auth --> App: Usuario autenticado
+
+App -> Resolver: Resolver acceso segun rol
+Resolver -> DB: Buscar viajes activos o futuros
+DB --> Resolver: Viaje y asignaciones
+
+alt Tiene viaje activo asignado
+  Resolver --> App: Ruta de estacion o modulo permitido
+  App -> UI: Renderiza pagina de trabajo
+else No tiene viaje activo
+  Resolver --> App: Sin acceso operativo
+  App -> UI: Muestra estado informativo
+end
+
+@enduml

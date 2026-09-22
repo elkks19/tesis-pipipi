@@ -7,8 +7,10 @@ import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import {
   CreateAnamnesisSchema,
+  getAnamnesisSchemaForPatient,
   type Anamnesis,
 } from "@/lib/schema/anamnesis";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 import type { Historia } from "@/lib/schema/historia";
 import type { Paciente } from "@/lib/schema/pacientes";
 import { canAccessActiveStationHistoria } from "@/lib/station-histories";
@@ -39,31 +41,6 @@ function optionalNumber(formData: FormData, key: string) {
 function requiredNumber(formData: FormData, key: string) {
   const value = getString(formData, key).trim();
   return value.length > 0 ? Number(value) : Number.NaN;
-}
-
-function getFieldErrors(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
 }
 
 function getDisease(formData: FormData, key: string) {
@@ -148,8 +125,8 @@ function getGinecoObstetricos(formData: FormData) {
       formData,
       "antecedentesGinecoObstetricos.estadioTanner",
     ),
-    menarca: requiredNumber(formData, "antecedentesGinecoObstetricos.menarca"),
-    ritmoMenstrual: getString(
+    menarca: optionalNumber(formData, "antecedentesGinecoObstetricos.menarca"),
+    ritmoMenstrual: optionalString(
       formData,
       "antecedentesGinecoObstetricos.ritmoMenstrual",
     ),
@@ -163,23 +140,23 @@ function getGinecoObstetricos(formData: FormData) {
       formData,
       "antecedentesGinecoObstetricos.cesareas",
     ),
-    fechaUltimaGestacion: getString(
+    fechaUltimaGestacion: optionalString(
       formData,
       "antecedentesGinecoObstetricos.fechaUltimaGestacion",
     ),
-    fechaUltimoParto: getString(
+    fechaUltimoParto: optionalString(
       formData,
       "antecedentesGinecoObstetricos.fechaUltimoParto",
     ),
-    fechaUltimoAborto: getString(
+    fechaUltimoAborto: optionalString(
       formData,
       "antecedentesGinecoObstetricos.fechaUltimoAborto",
     ),
-    fechaUltimaCesarea: getString(
+    fechaUltimaCesarea: optionalString(
       formData,
       "antecedentesGinecoObstetricos.fechaUltimaCesarea",
     ),
-    edadMenopausia: requiredNumber(
+    edadMenopausia: optionalNumber(
       formData,
       "antecedentesGinecoObstetricos.edadMenopausia",
     ),
@@ -191,15 +168,15 @@ function getGinecoObstetricos(formData: FormData) {
       formData,
       "antecedentesGinecoObstetricos.metodoAnticonceptivo",
     ),
-    inicioVidaSexual: requiredNumber(
+    inicioVidaSexual: optionalNumber(
       formData,
       "antecedentesGinecoObstetricos.inicioVidaSexual",
     ),
-    numeroParejasSexuales: requiredNumber(
+    numeroParejasSexuales: optionalNumber(
       formData,
       "antecedentesGinecoObstetricos.numeroParejasSexuales",
     ),
-    cirugiaPelviana: getString(
+    cirugiaPelviana: optionalString(
       formData,
       "antecedentesGinecoObstetricos.cirugiaPelviana",
     ),
@@ -269,6 +246,19 @@ function isPaciente(doc: unknown): doc is Paciente {
   );
 }
 
+function removeGinecoObstetricosForPaciente<
+  T extends { antecedentesGinecoObstetricos?: unknown },
+>(anamnesis: T, paciente: Paciente) {
+  if (paciente.genero.trim().toLowerCase() === "femenino") {
+    return anamnesis;
+  }
+
+  return {
+    ...anamnesis,
+    antecedentesGinecoObstetricos: undefined,
+  };
+}
+
 export async function createAnamnesis(
   _previousState: CreateAnamnesisActionState,
   formData: FormData,
@@ -288,13 +278,13 @@ export async function createAnamnesis(
 
   if (!parsed.success) {
     return {
-      errors: getFieldErrors(parsed.error),
+      errors: firstFieldErrors(parsed.error),
       message: "Revisa los campos marcados antes de guardar la anamnesis.",
       ok: false,
     };
   }
 
-  const { pacienteId, ...anamnesisData } = parsed.data;
+  const { pacienteId } = parsed.data;
   const activeTrip = await resolveActiveViajeForUser(userId);
   const viajeId = activeTrip?.viajeId ?? optionalString(formData, "viajeId");
 
@@ -306,19 +296,6 @@ export async function createAnamnesis(
   }
 
   const historiaId = getDocumentId(pacienteId);
-  const anamnesis = {
-    ...(anamnesisData as Anamnesis),
-    created_by: userId,
-    updated_by: userId,
-  };
-  const historia: Historia = {
-    type: "historia",
-    created_by: userId,
-    pacienteId,
-    viajeId,
-    anamnesis,
-  };
-
   try {
     const paciente = await db.get(pacienteId);
 
@@ -331,6 +308,29 @@ export async function createAnamnesis(
         ok: false,
       };
     }
+
+    const ageValidated = getAnamnesisSchemaForPatient(paciente.datosPersonales.fechaNacimiento).safeParse(getPayload(formData));
+    if (!ageValidated.success) {
+      return { errors: firstFieldErrors(ageValidated.error), message: "Revisa los campos marcados antes de guardar la anamnesis.", ok: false };
+    }
+    const { pacienteId: _validatedPacienteId, ...anamnesisData } = ageValidated.data;
+    void _validatedPacienteId;
+
+    const anamnesis = {
+      ...(removeGinecoObstetricosForPaciente(
+        anamnesisData,
+        paciente,
+      ) as Anamnesis),
+      created_by: userId,
+      updated_by: userId,
+    };
+    const historia: Historia = {
+      type: "historia",
+      created_by: userId,
+      pacienteId,
+      viajeId,
+      anamnesis,
+    };
 
     await db.put({
       _id: historiaId,
@@ -412,7 +412,7 @@ export async function updateAnamnesis(
 
   if (!parsed.success) {
     return {
-      errors: getFieldErrors(parsed.error),
+      errors: firstFieldErrors(parsed.error),
       message: "Revisa los campos marcados antes de guardar la anamnesis.",
       ok: false,
     };
@@ -441,7 +441,7 @@ export async function updateAnamnesis(
       };
     }
 
-    const { pacienteId, ...anamnesisData } = parsed.data;
+    const { pacienteId } = parsed.data;
 
     if (pacienteId !== historia.pacienteId) {
       return {
@@ -450,9 +450,28 @@ export async function updateAnamnesis(
       };
     }
 
+    const paciente = await db.get(historia.pacienteId).catch(() => null);
+
+    if (!isPaciente(paciente)) {
+      return {
+        message: "No se encontro el paciente de esta historia clinica.",
+        ok: false,
+      };
+    }
+
+    const ageValidated = getAnamnesisSchemaForPatient(paciente.datosPersonales.fechaNacimiento).safeParse(getPayload(formData));
+    if (!ageValidated.success) {
+      return { errors: firstFieldErrors(ageValidated.error), message: "Revisa los campos marcados antes de guardar la anamnesis.", ok: false };
+    }
+    const { pacienteId: _validatedPacienteId, ...anamnesisData } = ageValidated.data;
+    void _validatedPacienteId;
+
     const before = historia.anamnesis;
     const anamnesis = {
-      ...(anamnesisData as Anamnesis),
+      ...(removeGinecoObstetricosForPaciente(
+        anamnesisData,
+        paciente,
+      ) as Anamnesis),
       created_by: before?.created_by ?? userId,
       updated_by: userId,
     };

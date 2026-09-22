@@ -55,40 +55,45 @@ export type Ecografia = {
 	}
 };
 
+const measurement = (label: string) => z.number()
+	.positive(`${label}: debe ser mayor que cero`)
+	.max(1000, `${label}: revisa la unidad`);
+const diagnosis = z.string().trim().min(1, "Ingresa el diagnostico").max(3000, "Maximo 3000 caracteres");
+
 export const CreateEcografiaSchema = z.object({
 	historiaId: z.string(),
 	imagen: z.object({
 		key: z.string(),
 		nombre: z.string(),
 		tipo: z.string(),
-		tamano: z.number(),
+		tamano: z.number().nonnegative(),
 		url: z.string().optional(),
 		data: z.string().optional(),
 	}).optional(),
 	higado: z.object({
-		dimensiones: z.number(),
+		dimensiones: measurement("Dimension hepatica"),
 		hepatomegalia: z.coerce.boolean<boolean>(),
 		parenquima: z.enum(tiposParenquima),
-		diagnostico: z.string(),
+		diagnostico: diagnosis,
 	}),
 	vesiculaBiliar: z.object({
 		paredes: z.enum(tiposParedes),
 		contenidoAnecoico: z.coerce.boolean<boolean>(),
 		barroBiliar: z.coerce.boolean<boolean>(),
 		calculos: z.coerce.boolean<boolean>(),
-		diagnostico: z.string(),
+		diagnostico: diagnosis,
 	}),
 	riñones: z.object({
 		derecho: z.object({
-			longitud: z.number(),
-			parenquima: z.number(),
+			longitud: measurement("Longitud renal derecha"),
+			parenquima: measurement("Parenquima renal derecho"),
 		}),
 		izquierdo: z.object({
-			longitud: z.number(),
-			parenquima: z.number(),
+			longitud: measurement("Longitud renal izquierda"),
+			parenquima: measurement("Parenquima renal izquierdo"),
 		}),
 		ecogenicidad: z.enum(tiposEcogenicidad),
 		relacionCorticoMedular: z.enum(tiposEcogenicidad),
-		diagnostico: z.string(),
+		diagnostico: diagnosis,
 	}),
 });

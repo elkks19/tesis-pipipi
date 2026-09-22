@@ -173,7 +173,7 @@ class ChatRepository:
         if chart_type == "table":
             artifact["type"] = "table"
             spec["kind"] = "table"
-        elif chart_type in {"bar", "line", "pie"}:
+        elif chart_type in {"bar", "line", "pie", "scatter", "heatmap"}:
             artifact["type"] = "chart"
             spec["kind"] = chart_type
         else:

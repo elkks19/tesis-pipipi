@@ -24,13 +24,14 @@ export function TextareaField({
   ...props
 }: TextareaFieldProps) {
   return (
-    <Field error={error}>
+    <Field error={error} name={name}>
       <Label htmlFor={name}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
       </Label>
       <Textarea
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${name}-error` : undefined}
         id={name}
         name={name}
         onChange={(event) => onChange(event.target.value)}

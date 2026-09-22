@@ -1,0 +1,70 @@
+@startuml
+title Casos de uso - roles del sistema
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+actor Admin
+actor "Docente organizador" as Organizador
+actor "Docente investigador" as Investigador
+actor Docente
+actor Estudiante
+
+rectangle "Sistema de tesis" {
+  usecase "Iniciar sesion" as UCLogin
+  usecase "Gestionar usuarios" as UCGestionUsuarios
+  usecase "Planear viaje" as UCPlanearViaje
+  usecase "Asignar docentes y estudiantes" as UCAsignar
+  usecase "Acceder al viaje activo" as UCAccesoViaje
+  usecase "Registrar historia por estacion" as UCRegistrarHistoria
+  usecase "Editar historia clinica" as UCEditarHistoria
+  usecase "Revisar actividad" as UCActividad
+  usecase "Ver dashboard" as UCDashboard
+  usecase "Generar reportes" as UCReportes
+  usecase "Consultar investigacion" as UCInvestigacion
+  usecase "Planear inventario de farmacia" as UCFarmacia
+}
+
+Admin --> UCLogin
+Organizador --> UCLogin
+Investigador --> UCLogin
+Docente --> UCLogin
+Estudiante --> UCLogin
+
+Admin --> UCGestionUsuarios
+Admin --> UCPlanearViaje
+Admin --> UCAsignar
+Admin --> UCDashboard
+Admin --> UCReportes
+Admin --> UCInvestigacion
+Admin --> UCActividad
+
+Organizador --> UCPlanearViaje
+Organizador --> UCAsignar
+
+Docente --> UCAccesoViaje
+Docente --> UCEditarHistoria
+Docente --> UCActividad
+Docente --> UCReportes
+Docente --> UCFarmacia
+
+Estudiante --> UCAccesoViaje
+Estudiante --> UCRegistrarHistoria
+Estudiante --> UCFarmacia
+
+Investigador --> UCInvestigacion
+
+UCPlanearViaje .> UCAsignar : incluye
+UCRegistrarHistoria .> UCAccesoViaje : requiere
+UCEditarHistoria .> UCAccesoViaje : requiere
+UCReportes .> UCEditarHistoria : usa datos
+UCInvestigacion .> UCAccesoViaje : filtra viajes
+
+@enduml

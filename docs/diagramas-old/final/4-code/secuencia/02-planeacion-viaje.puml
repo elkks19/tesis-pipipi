@@ -1,0 +1,38 @@
+@startuml
+title
+Secuencia - Planeacion del viaje
+Roles: admin y docente-organizador
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Admin u organizador" as Usuario
+participant "Formulario de viaje" as Form
+participant "Accion de viaje" as Action
+participant "Permisos" as Permisos
+participant "Esquema de viaje" as Schema
+database "Base de datos central" as DB
+
+Usuario -> Form: Define fechas, lugar y estaciones
+Form -> Action: Guardar viaje
+Action -> Permisos: Verificar permiso de crear o editar
+Permisos --> Action: Autorizado
+
+Action -> Schema: Validar datos del formulario
+Schema --> Action: Viaje normalizado
+
+Action -> DB: Guardar documento viaje
+DB --> Action: Viaje persistido
+Action --> Form: Confirmar guardado
+Form --> Usuario: Volver a lista de viajes
+
+@enduml

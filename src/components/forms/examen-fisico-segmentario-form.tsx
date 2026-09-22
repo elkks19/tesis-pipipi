@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import { TextareaField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -164,31 +165,6 @@ function buildPayload(state: ExamenFisicoSegmentarioFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function createInitialValue(
   defaultValue?: Partial<ExamenFisicoSegmentarioFormValue>,
 ) {
@@ -224,15 +200,15 @@ export function ExamenFisicoSegmentarioForm({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [examenesComplementariosSolicitados, setExamenesComplementariosSolicitados] =
     useState<ExamenesComplementariosForm>(baseExamenesComplementarios);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
   );
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateExamenFisicoSegmentarioSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors, showAllErrors } = useInteractiveErrors({
+    value: form, actionState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -263,8 +239,7 @@ export function ExamenFisicoSegmentarioForm({
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!validateForm()) {
-      event.preventDefault();
+    if (revealErrors(event)) {
       return;
     }
 
@@ -273,23 +248,9 @@ export function ExamenFisicoSegmentarioForm({
     }
   }
 
-  function validateForm() {
-    const result = CreateExamenFisicoSegmentarioSchema.safeParse(
-      buildPayload(form),
-    );
-
-    if (!result.success) {
-      setErrors(getErrorMap(result.error));
-      return false;
-    }
-
-    setErrors({});
-
-    return true;
-  }
-
   function openConfirmDialog() {
-    if (validateForm()) {
+    showAllErrors(document.getElementById(formId) as HTMLFormElement | null);
+    if (validation.success) {
       setConfirmOpen(true);
     }
   }
@@ -309,6 +270,8 @@ export function ExamenFisicoSegmentarioForm({
       action={formAction}
       className="flex flex-col gap-6"
       id={formId}
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
     >
       {fieldGroups.map((group) => (

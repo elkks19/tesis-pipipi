@@ -1,0 +1,97 @@
+@startuml
+title Clases - farmacia e inventario
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+class Viaje {
+  +id: string
+  +servicio: string
+  +fechaEntrada: string
+  +fechaSalida: string
+}
+
+class MedicamentoCatalogo {
+  +id: string
+  +type: "medicamentoCatalogo"
+  +atcCode?: string
+  +concentracion?: string
+  +createdAt: string
+  +createdBy?: string
+  +formaFarmaceutica?: string
+  +fuente: FuenteInventario
+  +laboratorio?: string
+  +nombreComercial?: string
+  +principioActivo: string
+  +registroSanitario?: string
+  +titularRegistro?: string
+  +updatedAt: string
+  +updatedBy?: string
+  +viaAdministracion?: string
+}
+
+class ViajeInventarioItem {
+  +id: string
+  +type: "viajeInventarioItem"
+  +atcCode?: string
+  +cantidadDisponible?: number
+  +cantidadPlanificada: number
+  +catalogoId?: string
+  +categoria: CategoriaInventario
+  +concentracion?: string
+  +fechaVencimiento?: string
+  +formaFarmaceutica?: string
+  +fuente?: FuenteInventario
+  +laboratorio?: string
+  +lote?: string
+  +nombre: string
+  +nombreComercial?: string
+  +observaciones?: string
+  +principioActivo?: string
+  +registroSanitario?: string
+  +titularRegistro?: string
+  +unidad: string
+  +viaAdministracion?: string
+  +viajeId: string
+  +esMedicamento(): boolean
+  +estaDisponible(): boolean
+}
+
+class Receta {
+  +type: "receta"
+  +medicamentos: RecetaMedicamento[]
+}
+
+class RecetaMedicamento {
+  +nombre: string
+  +dosis: string
+  +frecuencia: string
+  +duracion: string
+}
+
+enum CategoriaInventario {
+  medicamento
+  insumo
+  equipo
+  otro
+}
+
+enum FuenteInventario {
+  agemed
+  manual
+}
+
+Viaje "1" o-- "0..*" ViajeInventarioItem
+ViajeInventarioItem --> MedicamentoCatalogo
+ViajeInventarioItem --> CategoriaInventario
+ViajeInventarioItem --> FuenteInventario
+Receta *-- "0..*" RecetaMedicamento
+
+@enduml

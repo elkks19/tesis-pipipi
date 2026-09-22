@@ -18,6 +18,7 @@ import {
   useSubmitConfirmation,
 } from "@/components/forms/submit-confirmation";
 import { Button } from "@/components/ui/button";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import {
   CreateLaboratoriosSchema,
   gruposSanguineos,
@@ -78,31 +79,6 @@ function buildPayload(state: LaboratoriosFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function createInitialValue(defaultValue?: Partial<LaboratoriosFormValue>) {
   return {
     ...baseFormValue,
@@ -147,7 +123,6 @@ export function LaboratoriosForm({
     [defaultValue],
   );
   const [form, setForm] = useState<LaboratoriosFormValue>(initialValue);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -157,10 +132,11 @@ export function LaboratoriosForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar laboratorios",
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateLaboratoriosSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors, clearTouched } = useInteractiveErrors({
+    value: form, actionState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -181,15 +157,9 @@ export function LaboratoriosForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreateLaboratoriosSchema.safeParse(buildPayload(form));
-
-    if (!result.success) {
-      event.preventDefault();
-      setErrors(getErrorMap(result.error));
+    if (revealErrors(event)) {
       return;
     }
-
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(form))) {
       return;
@@ -209,6 +179,8 @@ export function LaboratoriosForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
@@ -295,14 +267,15 @@ export function LaboratoriosForm({
                 <div className="flex items-end">
                   <Button
                     aria-label="Quitar estudio"
-                    onClick={() =>
+                    onClick={() => {
+                      clearTouched("otrosEstudios.");
                       setForm((current) => ({
                         ...current,
                         otrosEstudios: current.otrosEstudios.filter(
                           (_study, currentIndex) => currentIndex !== index,
                         ),
-                      }))
-                    }
+                      }));
+                    }}
                     size="icon"
                     type="button"
                     variant="outline"

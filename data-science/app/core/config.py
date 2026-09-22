@@ -8,14 +8,18 @@ SERVICE_DIR = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     couchdb_url: str = Field(default="", alias="COUCHDB_URL")
-    llm_provider: str = Field(default="ollama", alias="DS_LLM_PROVIDER")
+    llm_provider: str = Field(default="groq", alias="DS_LLM_PROVIDER")
     ollama_url: str = Field(default="http://localhost:11434", alias="DS_OLLAMA_URL")
-    chat_model: str = Field(default="qwen3:4b", alias="DS_CHAT_MODEL")
+    chat_model: str = Field(default="openai/gpt-oss-20b", alias="DS_CHAT_MODEL")
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
     groq_base_url: str = Field(
         default="https://api.groq.com/openai/v1",
         alias="DS_GROQ_BASE_URL",
     )
+    max_completion_tokens: int = Field(default=900, alias="DS_MAX_COMPLETION_TOKENS")
+    temperature: float = Field(default=0.2, alias="DS_TEMPERATURE")
+    reasoning_format: str = Field(default="hidden", alias="DS_REASONING_FORMAT")
+    reasoning_effort: str = Field(default="low", alias="DS_REASONING_EFFORT")
     embedding_model: str = Field(
         default="intfloat/multilingual-e5-small",
         alias="DS_EMBEDDING_MODEL",

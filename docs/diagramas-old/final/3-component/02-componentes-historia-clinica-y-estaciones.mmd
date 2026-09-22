@@ -1,0 +1,37 @@
+%% Explica el flujo clínico por estaciones. Muestra cómo las rutas de estudiante/docente usan consultas compartidas, formularios y server actions para completar bloques de historia y registrar actividad.
+C4Component
+  title Componentes - Historia clínica y estaciones
+
+  Container(nextApp, "Aplicación web", "Next.js 16", "Rutas de estudiante y docente")
+  ContainerDb(couchdb, "CouchDB", "PouchDB Find", "Documentos paciente, historia y actividad")
+  ContainerDb(fileStorage, "Flydrive Storage", "FS/S3", "Imágenes de ecografía y archivos privados")
+
+  Container_Boundary(clinica, "Módulos clínicos") {
+    Component(studentRoutes, "src/app/estudiante/{estacion}", "App Router", "Vistas de anamnesis, EFG, EFS, complementarios y diagnóstico")
+    Component(docenteRoutes, "src/app/docente/{estacion}", "App Router", "Vistas de revisión, actividad y rendimiento por estación")
+    Component(stationHistories, "src/lib/station-histories.ts", "Server query", "Lista historias por estación, viaje activo y complementarios")
+    Component(pacienteFlow, "src/app/*/anamnesis/create-paciente", "Server actions", "Crea/edita paciente desde anamnesis")
+    Component(stationActions, "src/app/*/{estacion}/[idHistoria]/actions.ts", "Server actions", "Guarda bloques clínicos de historia")
+    Component(forms, "src/components/forms/*-form.tsx", "React + shadcn/ui", "Formularios clínicos por estación")
+    Component(schemaHistoria, "src/lib/schema/historia.ts", "TypeScript", "Documento type historia y bloques clínicos")
+    Component(schemaPaciente, "src/lib/schema/pacientes.ts", "Zod + TypeScript", "Documento type paciente")
+    Component(activityLog, "src/lib/activity-log.ts", "Server utility", "Calcula diff y guarda type actividad")
+    Component(fileApi, "src/app/archivos/[...key]/route.ts", "Route handler", "Sirve archivos privados con Flydrive")
+  }
+
+  Rel(studentRoutes, stationHistories, "Carga pendientes de estación", "Server call")
+  Rel(docenteRoutes, stationHistories, "Carga historias del viaje activo", "Server call")
+  Rel(studentRoutes, forms, "Renderiza formularios")
+  Rel(docenteRoutes, forms, "Revisa o ajusta formularios")
+  Rel(forms, stationActions, "Envía datos clínicos", "Server action")
+  Rel(pacienteFlow, schemaPaciente, "Valida paciente", "Zod")
+  Rel(stationActions, schemaHistoria, "Construye bloque de historia")
+  Rel(stationHistories, couchdb, "Consulta type historia y paciente", "Mango idx_historias_viaje")
+  Rel(pacienteFlow, couchdb, "Persiste type paciente", "PouchDB")
+  Rel(stationActions, couchdb, "Actualiza type historia", "PouchDB")
+  Rel(stationActions, activityLog, "Registra created/updated")
+  Rel(activityLog, couchdb, "Guarda type actividad", "PouchDB")
+  Rel(stationActions, fileStorage, "Guarda imagen ecografía si existe", "Flydrive")
+  Rel(fileApi, fileStorage, "Lee archivo privado", "Flydrive")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

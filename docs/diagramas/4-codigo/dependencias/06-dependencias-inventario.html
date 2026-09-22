@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de dependencias - Inventario</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f5f5f5; color: #2d3142; font-family: 'Geist', system-ui, sans-serif; }
+    .frame { width: 100%; max-width: 1480px; }
+    h1 { margin-bottom: 1.5rem; color: #2d3142; font-family: 'Instrument Serif', 'Noto Serif KR', serif; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; line-height: 1.15; }
+    svg { width: 100%; min-width: 1120px; display: block; }
+    .dep-edge { fill: none; stroke: #4f5d75; stroke-width: 1.15; }
+    .dep-soft { fill: none; stroke: #7a8399; stroke-width: 1.05; stroke-dasharray: 5 4; }
+    .dep-link { fill: none; stroke: #2e5aa8; stroke-width: 1.15; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de dependencias - Inventario</h1>
+    <svg viewBox="0 0 1480 940" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dep-inventario-title dep-inventario-desc">
+      <title id="dep-inventario-title">Diagrama de dependencias - Inventario</title>
+      <desc id="dep-inventario-desc">Grafo de dependencias del inventario de farmacia: paginas de planeacion, formulario, actions, reglas de viaje activo, farmacia.ts, esquema y persistencia.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      
+      <rect x="82" y="92" width="1308" height="128" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="100" y="116" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">INTERFAZ FARMACIA</text>
+
+      <rect x="240" y="302" width="1000" height="138" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="258" y="326" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">CASOS DE USO</text>
+
+      <rect x="130" y="604" width="1220" height="138" rx="8" fill="rgba(45,49,66,0.018)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="148" y="628" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.10em">REGLAS Y DOCUMENTOS</text>
+      <path class="dep-edge" d="M 364,176 H 412 Q 420,176 420,168 V 158 Q 420,150 428,150 H 1134" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 692,172.66666666666666 H 740 Q 748,172.66666666666666 748,164.66666666666666 V 167.33333333333334 Q 748,159.33333333333334 756,159.33333333333334 H 1134" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 869,202 V 254 Q 869,262 861,262 H 511 Q 503,262 503,270 V 338" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 1193,202 V 282 Q 1193,290 1185,290 H 893 Q 885,290 885,298 V 338" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 411,414 V 526 Q 411,534 403,534 H 365 Q 357,534 357,542 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 447,414 V 546 Q 447,554 455,554 H 673 Q 681,554 681,562 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 491,414 V 566 Q 491,574 499,574 H 963 Q 971,574 971,582 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 787,414 V 516 Q 787,524 779,524 H 401 Q 393,524 393,532 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 825,414 V 536 Q 825,544 817,544 H 689 Q 681,544 681,552 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 869,414 V 556 Q 869,564 877,564 H 997 Q 1005,564 1005,572 V 642" marker-end="url(#arrow)"/>
+      <path class="dep-edge" d="M 903,414 V 576 Q 903,584 911,584 H 1281 Q 1289,584 1289,592 V 642" marker-end="url(#arrow)"/>
+      
+      <rect x="150" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="314" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="333" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="257" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">estudiante farmacia</text>
+      <text x="257" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PAGE</text>
+      <text x="257" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">planeacion</text>
+
+      <rect x="478" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="642" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="661" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="585" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">docente farmacia</text>
+      <text x="585" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PAGE</text>
+      <text x="585" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">planeacion</text>
+
+      <rect x="806" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="970" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="989" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">0 in</text>
+      <text x="913" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Farmacia form</text>
+      <text x="913" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMPONENTE</text>
+      <text x="913" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">items + cantidades</text>
+
+      <rect x="1134" y="126" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="1298" y="136" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="1317" y="149" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2 in</text>
+      <text x="1241" y="159" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Farmacia page</text>
+      <text x="1241" y="179" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMPONENTE</text>
+      <text x="1241" y="193" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">listado del viaje</text>
+
+      <rect x="356" y="338" width="214" height="76" rx="8" fill="rgba(30,64,175,0.08)" stroke="#1e40af" stroke-width="1.25"/>
+      <rect x="520" y="348" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="539" y="361" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="463" y="371" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">farmacia-actions</text>
+      <text x="463" y="391" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SERVER ACTIONS</text>
+      <text x="463" y="405" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">agregar item</text>
+
+      <rect x="738" y="338" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="902" y="348" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="921" y="361" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="845" y="371" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">farmacia.ts</text>
+      <text x="845" y="391" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DOMINIO</text>
+      <text x="845" y="405" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">viaje + inventario</text>
+
+      <rect x="250" y="642" width="214" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="414" y="652" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="433" y="665" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2 in</text>
+      <text x="357" y="675" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">student-trip</text>
+      <text x="357" y="695" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POLITICA</text>
+      <text x="357" y="709" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">viaje activo</text>
+
+      <rect x="574" y="642" width="214" height="76" rx="8" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="738" y="652" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="757" y="665" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2 in</text>
+      <text x="681" y="675" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">schema/farmacia</text>
+      <text x="681" y="695" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ZOD + TYPES</text>
+      <text x="681" y="709" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">categoria/fuente</text>
+
+      <rect x="898" y="642" width="214" height="76" rx="8" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="1062" y="652" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="1081" y="665" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2 in</text>
+      <text x="1005" y="675" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">db.ts</text>
+      <text x="1005" y="695" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PouchDB</text>
+      <text x="1005" y="709" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">documentos</text>
+
+      <rect x="1222" y="642" width="214" height="76" rx="8" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="1386" y="652" width="38" height="18" rx="3" fill="#f5f5f5" stroke="rgba(45,49,66,0.18)" stroke-width="0.8"/>
+      <text x="1405" y="665" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">1 in</text>
+      <text x="1329" y="675" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">db-indexes</text>
+      <text x="1329" y="695" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">INDICES</text>
+      <text x="1329" y="709" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">inventario_viaje</text>
+    </svg>
+  </div>
+</body>
+</html>

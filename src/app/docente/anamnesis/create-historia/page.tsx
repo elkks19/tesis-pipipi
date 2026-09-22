@@ -5,6 +5,7 @@ import { PacienteSearchInput } from "@/components/pacientes/paciente-search-inpu
 import { PacienteSearchResults } from "@/components/pacientes/paciente-search-results";
 import { createAnamnesis } from "@/app/estudiante/anamnesis/create-historia/actions";
 import {
+  getHistoriasByPacienteId,
   getPacienteById,
   searchPacientes,
 } from "@/app/estudiante/anamnesis/create-historia/queries";
@@ -34,6 +35,10 @@ export default async function DocenteCreateHistoriaPage({
     searchPacientes(query),
     getPacienteById(pacienteId),
   ]);
+  const selectedPacienteHistorias = selectedPaciente
+    ? await getHistoriasByPacienteId(selectedPaciente.id)
+    : [];
+  const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes;
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,7 +60,12 @@ export default async function DocenteCreateHistoriaPage({
         createHistoriaRoute="/docente/anamnesis/create-historia"
         editPacienteRoute="/docente/anamnesis/pacientes"
         newPacienteRoute="/docente/anamnesis/create-paciente"
-        pacientes={pacientes}
+        pacientes={visiblePacientes}
+        historiasByPacienteId={
+          selectedPaciente
+            ? { [selectedPaciente.id]: selectedPacienteHistorias }
+            : undefined
+        }
         query={query}
         selectedPacienteId={selectedPaciente?.id}
       />
@@ -66,6 +76,8 @@ export default async function DocenteCreateHistoriaPage({
             action={createAnamnesis}
             defaultValue={{ pacienteId: selectedPaciente.id }}
             key={selectedPaciente.id}
+            pacienteGenero={selectedPaciente.genero}
+            pacienteFechaNacimiento={new Date(selectedPaciente.datosPersonales.fechaNacimiento).toISOString()}
             successRedirectHref="/docente/anamnesis/create-historia"
           />
         </section>

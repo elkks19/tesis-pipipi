@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de contenedores - Sistema en la nube</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-paper: #f5f5f5;
+      --color-ink: #2d3142;
+      --color-muted: #4f5d75;
+      --color-soft: #7a8399;
+      --color-accent: #1e40af;
+      --font-sans: 'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif KR', serif;
+      --font-mono: 'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-sans);
+    }
+
+    .frame { width: 100%; max-width: 1720px; }
+
+    h1 {
+      margin-bottom: 1.5rem;
+      color: var(--color-ink);
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      line-height: 1.15;
+    }
+
+    svg { width: 100%; min-width: 1200px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de contenedores - Sistema en la nube</h1>
+
+    <svg viewBox="0 0 1720 1040" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="contenedores-nube-title contenedores-nube-desc">
+      <title id="contenedores-nube-title">Diagrama de contenedores - Sistema en la nube</title>
+      <desc id="contenedores-nube-desc">Diagrama de contenedores del sistema en la nube organizado en triángulo, con aplicación web al centro, persistencia a la derecha, investigación arriba a la derecha, reportes abajo y sincronización desde el sistema portable.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1e40af"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Zones -->
+      <rect x="176" y="120" width="1368" height="820" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+      <rect x="212" y="132" width="300" height="32" rx="4" fill="#f5f5f5"/>
+      <text x="216" y="156" fill="#1e40af" font-size="28" font-family="'Instrument Serif', 'Noto Serif KR', serif">Sistema en la nube</text>
+
+      <rect x="956" y="196" width="376" height="272" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="980" y="204" width="124" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1044" y="216" fill="rgba(45,49,66,0.48)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.14em">INVESTIGACION</text>
+
+      <rect x="460" y="636" width="660" height="240" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="484" y="644" width="84" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="528" y="656" fill="rgba(45,49,66,0.48)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.14em">REPORTES</text>
+
+      <!-- Connectors -->
+      <path d="M 704,156 V 224"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="716" y="184" width="52" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="744" y="196" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
+
+      <path d="M 812,348 H 916 Q 924,348 924,340 V 284 Q 924,276 932,276 H 1144"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="956" y="248" width="84" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1000" y="260" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">API INTERNA</text>
+
+      <path d="M 812,276 H 900 Q 908,276 908,268 V 244 Q 908,236 916,236 H 1268"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="936" y="208" width="48" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="960" y="220" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">AUTH</text>
+
+      <path d="M 812,316 H 1268"
+            fill="none" stroke="#1e40af" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="1000" y="288" width="76" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1040" y="300" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">LEE/ESCRIBE</text>
+
+      <path d="M 812,388 H 900 Q 908,388 908,396 V 512 Q 908,520 916,520 H 1268"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="920" y="492" width="76" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="960" y="504" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">ARCHIVOS</text>
+
+      <path d="M 664,408 V 680"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="676" y="532" width="64" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="708" y="544" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">ENCOLA</text>
+
+      <path d="M 680,788 H 760"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="696" y="760" width="64" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="728" y="772" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">ENTREGA</text>
+
+      <path d="M 880,736 V 620 Q 880,612 888,612 H 1348 Q 1356,612 1356,604 V 568"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="1032" y="584" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1068" y="596" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">LEE DATOS</text>
+
+      <path d="M 880,780 H 968"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="888" y="752" width="100" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="940" y="764" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">RENDERIZA PDF</text>
+
+      <path d="M 880,824 H 944 Q 952,824 952,816 V 600 Q 952,592 960,592 H 1396 Q 1404,592 1404,584 V 568"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="968" y="796" width="80" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1008" y="808" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">GUARDA PDF</text>
+
+      <path d="M 1204,288 V 300 Q 1204,308 1212,308 H 1388 Q 1396,308 1396,316"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="1272" y="280" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1308" y="292" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">CONSULTA</text>
+
+      <path d="M 1168,288 V 340"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="1180" y="304" width="52" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1208" y="316" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">RAG</text>
+
+      <path d="M 1144,252 H 1040 Q 1032,252 1032,260 V 488 Q 1032,496 1040,496 H 1064"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="980" y="364" width="44" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1004" y="376" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">LLM</text>
+
+      <path d="M 328,736 H 360 Q 368,736 368,744 V 892 Q 368,900 376,900 H 1532 Q 1540,900 1540,892 V 380 Q 1540,372 1532,372 H 1504"
+            fill="none" stroke="#1e40af" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="468" y="872" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="520" y="884" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">SINCRONIZA DOCS</text>
+
+      <path d="M 328,784 H 384 Q 392,784 392,792 V 912 Q 392,920 400,920 H 1512 Q 1520,920 1520,912 V 532 Q 1520,524 1512,524 H 1504"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="600" y="892" width="112" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="656" y="904" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace"
+            text-anchor="middle" letter-spacing="0.06em">SINCRONIZA ARCH</text>
+
+      <!-- Nodes -->
+      <rect x="608" y="60" width="192" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="608" y="60" width="192" height="96" rx="8" fill="rgba(79, 93, 117, 0.10)" stroke="#7a8399" stroke-width="1"/>
+      <circle cx="652" cy="100" r="20" fill="#ffffff" stroke="#7a8399" stroke-width="1.2"/>
+      <circle cx="652" cy="92" r="7" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+      <path d="M 636,116 Q 652,104 668,116" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-linecap="round"/>
+      <text x="724" y="96" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Usuario</text>
+      <text x="724" y="116" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[PERSONA]</text>
+      <text x="704" y="140" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">roles del sistema</text>
+
+      <rect x="596" y="224" width="216" height="184" rx="8" fill="#f5f5f5"/>
+      <rect x="596" y="224" width="216" height="184" rx="8" fill="rgba(30, 64, 175, 0.08)" stroke="#1e40af" stroke-width="1.2"/>
+      <text x="704" y="292" fill="#2d3142" font-size="20" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Aplicación web</text>
+      <text x="704" y="316" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="704" y="340" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Next.js 16 · React</text>
+      <text x="704" y="356" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">App Router</text>
+
+      <rect x="1268" y="196" width="236" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="1268" y="196" width="236" height="96" rx="8" fill="rgba(45, 49, 66, 0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="1388" y="232" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Base de autenticación</text>
+      <text x="1388" y="252" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[BASE DE DATOS]</text>
+      <text x="1388" y="272" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">SQLite · Better Auth</text>
+
+      <rect x="1268" y="316" width="236" height="128" rx="8" fill="#f5f5f5"/>
+      <rect x="1268" y="316" width="236" height="128" rx="8" fill="rgba(45, 49, 66, 0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="1388" y="364" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Base documental central</text>
+      <text x="1388" y="384" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[BASE DE DATOS]</text>
+      <text x="1388" y="404" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">CouchDB</text>
+
+      <rect x="1268" y="496" width="236" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="1268" y="496" width="236" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1388" y="524" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Almacenamiento</text>
+      <text x="1388" y="544" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="1388" y="560" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">S3 · Flydrive</text>
+
+      <rect x="1144" y="216" width="120" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="1144" y="216" width="120" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1204" y="244" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">FastAPI</text>
+      <text x="1204" y="264" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="1204" y="280" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">data-science/app</text>
+
+      <rect x="1064" y="340" width="192" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="1064" y="340" width="192" height="72" rx="8" fill="rgba(45, 49, 66, 0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="1160" y="368" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Índice clínico RAG</text>
+      <text x="1160" y="388" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[BASE DE DATOS]</text>
+      <text x="1160" y="404" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">SQLite · rag.sqlite3</text>
+
+      <rect x="1064" y="452" width="192" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="1064" y="452" width="192" height="72" rx="8" fill="rgba(45, 49, 66, 0.03)" stroke="rgba(45, 49, 66, 0.30)" stroke-width="1"/>
+      <text x="1160" y="480" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Motor de IA</text>
+      <text x="1160" y="500" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[SISTEMA EXTERNO]</text>
+      <text x="1160" y="516" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Ollama · qwen3</text>
+
+      <rect x="472" y="680" width="208" height="108" rx="8" fill="#f5f5f5"/>
+      <rect x="472" y="680" width="208" height="108" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="576" y="720" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Cola de reportes</text>
+      <text x="576" y="740" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="576" y="760" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Redis · BullMQ</text>
+
+      <rect x="760" y="736" width="120" height="108" rx="8" fill="#f5f5f5"/>
+      <rect x="760" y="736" width="120" height="108" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="820" y="776" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Procesador</text>
+      <text x="820" y="796" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="820" y="816" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Worker Node.js</text>
+
+      <rect x="968" y="724" width="144" height="108" rx="8" fill="#f5f5f5"/>
+      <rect x="968" y="724" width="144" height="108" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1040" y="764" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Generador PDF</text>
+      <text x="1040" y="784" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[CONTENEDOR]</text>
+      <text x="1040" y="804" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Carbone v5</text>
+
+      <rect x="184" y="704" width="144" height="120" rx="8" fill="#f5f5f5"/>
+      <rect x="184" y="704" width="144" height="120" rx="8" fill="rgba(45, 49, 66, 0.03)" stroke="rgba(45, 49, 66, 0.30)" stroke-width="1"/>
+      <text x="256" y="752" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Sistema</text>
+      <text x="256" y="772" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">portable</text>
+      <text x="256" y="792" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[SISTEMA DE SOFTWARE]</text>
+    </svg>
+  </div>
+</body>
+</html>

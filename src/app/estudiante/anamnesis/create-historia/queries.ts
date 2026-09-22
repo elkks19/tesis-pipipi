@@ -4,11 +4,14 @@ import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
 import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { Paciente } from "@/lib/schema";
+import type { Historia } from "@/lib/schema/historia";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
 type PacienteDocument = Paciente & {
   _id?: string;
 };
+
+type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
 
 function normalize(value: string) {
   return value
@@ -53,6 +56,17 @@ function serializePaciente(doc: PacienteDocument): PacienteSearchResult | null {
       },
     })),
   };
+}
+
+function isHistoriaDocument(doc: unknown): doc is HistoriaDocument {
+  return (
+    typeof doc === "object" &&
+    doc !== null &&
+    "type" in doc &&
+    doc.type === "historia" &&
+    "_id" in doc &&
+    "_rev" in doc
+  );
 }
 
 function pacienteMatchesQuery(paciente: PacienteSearchResult, query: string) {
@@ -116,4 +130,23 @@ export async function getPacienteById(id: string) {
   } catch {
     return null;
   }
+}
+
+export async function getHistoriasByPacienteId(id: string) {
+  if (!id) {
+    return [];
+  }
+
+  await ensureTesisIndexes();
+
+  const result = await findTesisDocs({
+    limit: 25,
+    selector: {
+      pacienteId: id,
+      type: "historia",
+    },
+    use_index: "idx_historias_paciente",
+  });
+
+  return result.docs.filter(isHistoriaDocument).slice(0, 12);
 }

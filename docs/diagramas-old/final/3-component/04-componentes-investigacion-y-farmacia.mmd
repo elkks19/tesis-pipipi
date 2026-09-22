@@ -1,0 +1,44 @@
+%% Agrupa dos módulos no clínicos directos pero relevantes para la tesis. Muestra que investigación entra por proxy autorizado hacia FastAPI y que farmacia planifica inventario por viaje usando catálogo local/offline.
+C4Component
+  title Componentes - Investigación y farmacia
+
+  Container(nextApp, "Aplicación web", "Next.js 16", "UI de investigación y farmacia")
+  Container(dataScienceApi, "API investigación", "FastAPI", "Chat, estadísticas y RAG")
+  ContainerDb(couchdb, "CouchDB", "PouchDB/CouchDB", "Historias, viajes, chats e inventario")
+  ContainerDb(vectorDb, "Índice RAG", "SQLite", "Chunks clínicos para búsqueda")
+  System_Ext(ollama, "Ollama", "LLM local")
+
+  Container_Boundary(nextModules, "Módulos Next.js") {
+    Component(dataScienceChat, "src/components/data-science/data-science-chat.tsx", "React", "Chat de investigación con selector múltiple de viajes")
+    Component(dataScienceProxy, "src/app/api/data-science/[...path]/route.ts", "Route handler", "Valida rol y reenvía scope autorizado")
+    Component(investigacionViajesApi, "src/app/api/investigacion/viajes/route.ts", "Route handler", "Busca viajes para combobox incremental")
+    Component(farmaciaPage, "src/components/farmacia/farmacia-planeacion-page.tsx", "React", "Planeación de inventario por viaje")
+    Component(farmaciaActions, "src/lib/farmacia-actions.ts", "Server actions", "Crea items de inventario desde formulario")
+    Component(farmaciaService, "src/lib/farmacia.ts", "Server service", "Acceso, catálogo local e inventario por viaje")
+  }
+
+  Container_Boundary(pyModules, "Módulos FastAPI") {
+    Component(routesChat, "data-science/app/api/routes_chat.py", "FastAPI route", "Orquesta chat, agente y fallback determinístico")
+    Component(researchAgent, "data-science/app/agent/orchestrator.py", "Agent", "Coordina Ollama y herramientas autorizadas")
+    Component(researchTools, "data-science/app/agent/tools.py", "Tools", "Conteos, cruces, indicadores y búsqueda clínica")
+    Component(tesisRepository, "data-science/app/db/repositories.py", "Repository", "Consulta historias y pacientes")
+    Component(ragRetriever, "data-science/app/rag/retrieval.py", "RAG", "Busca contexto clínico indexado")
+  }
+
+  Rel(dataScienceChat, dataScienceProxy, "Envía preguntas y scope", "JSON/HTTP")
+  Rel(dataScienceProxy, dataScienceApi, "Reenvía con token interno", "JSON/HTTP")
+  Rel(investigacionViajesApi, couchdb, "Lista viajes por búsqueda", "Mango find")
+  Rel(dataScienceApi, routesChat, "Atiende /chat")
+  Rel(routesChat, researchAgent, "Solicita respuesta con herramientas")
+  Rel(researchAgent, ollama, "Genera respuesta", "HTTP")
+  Rel(researchAgent, researchTools, "Ejecuta herramientas autorizadas")
+  Rel(researchTools, tesisRepository, "Obtiene filas clínicas")
+  Rel(tesisRepository, couchdb, "Consulta historias y pacientes", "HTTP/_find")
+  Rel(researchTools, ragRetriever, "Busca contexto narrativo")
+  Rel(ragRetriever, vectorDb, "Lee índice local", "SQLite")
+
+  Rel(farmaciaPage, farmaciaActions, "Envía item de inventario", "Server action")
+  Rel(farmaciaActions, farmaciaService, "Valida acceso y normaliza medicamento")
+  Rel(farmaciaService, couchdb, "Lee/escribe medicamentoCatalogo y viajeInventarioItem", "PouchDB Find")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

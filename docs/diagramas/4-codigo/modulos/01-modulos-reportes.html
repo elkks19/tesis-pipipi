@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de módulos - Reportes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f5f5f5; color: #2d3142; font-family: 'Geist', system-ui, sans-serif; }
+    .frame { width: 100%; max-width: 1440px; }
+    h1 { margin-bottom: 1.5rem; color: #2d3142; font-family: 'Instrument Serif', 'Noto Serif KR', serif; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; line-height: 1.15; }
+    svg { width: 100%; min-width: 1120px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de módulos - Reportes</h1>
+    <svg viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mod-reportes-title mod-reportes-desc">
+      <title id="mod-reportes-title">Diagrama de módulos - Reportes</title>
+      <desc id="mod-reportes-desc">Módulos de código que participan en la generación de reportes PDF.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1e40af"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        <marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <path d="M 380,248 H 460" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-open)"/>
+      <path d="M 700,248 H 780" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-open)"/>
+      <path d="M 1020,248 H 1100" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-open)"/>
+      <path d="M 1340,248 H 300" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-open)"/>
+      <path d="M 540,580 H 620" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-open)"/>
+      <rect x="140" y="168" width="240" height="156" rx="8" fill="rgba(30,64,175,0.08)" stroke="#1e40af" stroke-width="1.2"/>
+      <text x="260" y="200" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Queue helper</text>
+      <line x1="140" y1="216" x2="380" y2="216" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="156" y="244" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ enqueueReporteHistoria()</text>
+      <text x="156" y="264" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ getReportesQueue()</text>
+      <line x1="140" y1="280" x2="380" y2="280" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="156" y="304" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">depende de BullMQ</text>
+      <rect x="460" y="168" width="240" height="156" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="580" y="200" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Worker</text>
+      <line x1="460" y1="216" x2="700" y2="216" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="476" y="244" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ consume jobs</text>
+      <text x="476" y="264" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ load env</text>
+      <line x1="460" y1="280" x2="700" y2="280" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="476" y="304" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">orquesta el proceso</text>
+      <rect x="780" y="168" width="240" height="156" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="900" y="200" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Formatter</text>
+      <line x1="780" y1="216" x2="1020" y2="216" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="796" y="244" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ normalize values</text>
+      <text x="796" y="264" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ build payload</text>
+      <line x1="780" y1="280" x2="1020" y2="280" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="796" y="304" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">prepara plantilla</text>
+      <rect x="1100" y="168" width="240" height="156" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1220" y="200" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Carbone renderer</text>
+      <line x1="1100" y1="216" x2="1340" y2="216" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="1116" y="244" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ renderHistoriaReport()</text>
+      <text x="1116" y="264" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ template id/url</text>
+      <line x1="1100" y1="280" x2="1340" y2="280" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="1116" y="304" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">produce PDF</text>
+      <rect x="300" y="500" width="240" height="156" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="420" y="532" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Storage writer</text>
+      <line x1="300" y1="548" x2="540" y2="548" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="316" y="576" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ putHistoriaReportFile()</text>
+      <text x="316" y="596" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ key/nombre/url</text>
+      <line x1="300" y1="612" x2="540" y2="612" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="316" y="636" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">guarda archivo</text>
+      <rect x="620" y="500" width="240" height="156" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="740" y="532" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Couch updater</text>
+      <line x1="620" y1="548" x2="860" y2="548" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="636" y="576" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ putCouchDocument()</text>
+      <text x="636" y="596" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">+ retry 409</text>
+      <line x1="620" y1="612" x2="860" y2="612" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+      <text x="636" y="636" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace">guarda referencia</text>
+    </svg>
+  </div>
+</body>
+</html>

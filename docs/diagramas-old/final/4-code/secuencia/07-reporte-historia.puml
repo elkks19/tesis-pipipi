@@ -1,0 +1,42 @@
+@startuml
+title
+Secuencia - Reporte de historia clinica
+Roles: docente y admin
+end title
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #CBD5E1
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBackgroundColor #EEF2F7
+  ParticipantBorderColor #94A3B8
+  ActorBackgroundColor #F7F7F7
+  ActorBorderColor #334155
+}
+
+actor "Docente o admin" as Usuario
+participant "Guardar diagnostico" as Diagnostico
+queue "Cola de reportes" as Queue
+participant "Procesador de reportes" as Worker
+database "Base de datos central" as DB
+participant "Generador de PDF" as Carbone
+database "Almacenamiento de archivos" as Storage
+
+Usuario -> Diagnostico: Registra diagnostico final
+Diagnostico -> DB: Guarda diagnostico en historia
+Diagnostico -> Queue: Encola reporte de historia
+Diagnostico --> Usuario: Confirma guardado
+
+Queue -> Worker: Entrega job pendiente
+Worker -> DB: Carga historia y paciente
+DB --> Worker: Datos para plantilla
+
+Worker -> Carbone: Renderiza PDF
+Carbone --> Worker: Archivo PDF
+
+Worker -> Storage: Guarda PDF generado
+Storage --> Worker: Ruta privada
+Worker -> DB: Actualiza estado del reporte
+
+@enduml

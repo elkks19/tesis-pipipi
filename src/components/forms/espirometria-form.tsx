@@ -19,6 +19,7 @@ import {
   TextField,
 } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -100,31 +101,6 @@ function buildPayload(state: EspirometriaFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function createInitialValue(defaultValue?: Partial<EspirometriaFormValue>) {
   return {
     ...baseFormValue,
@@ -182,7 +158,6 @@ export function EspirometriaForm({
     [defaultValue],
   );
   const [form, setForm] = useState<EspirometriaFormValue>(initialValue);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -192,10 +167,11 @@ export function EspirometriaForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar espirometria",
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateEspirometriaSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
+    value: form, actionState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -216,15 +192,9 @@ export function EspirometriaForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreateEspirometriaSchema.safeParse(buildPayload(form));
-
-    if (!result.success) {
-      event.preventDefault();
-      setErrors(getErrorMap(result.error));
+    if (revealErrors(event)) {
       return;
     }
-
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(form))) {
       return;
@@ -235,6 +205,8 @@ export function EspirometriaForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
@@ -440,10 +412,11 @@ function NumberField({
   value: string;
 }) {
   return (
-    <Field error={error}>
+    <Field error={error} name={name}>
       <Label htmlFor={name}>{label}</Label>
       <Input
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${name}-error` : undefined}
         id={name}
         min={0}
         name={name}

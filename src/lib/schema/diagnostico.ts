@@ -23,7 +23,7 @@ export const CreateDiagnosticoSchema = z.object({
 	historiaId: z.string(),
 	principal: DiagnosticoCie11Schema,
 	secundarios: z.array(DiagnosticoCie11Schema),
-	planTrabajo: z.string(),
+	planTrabajo: z.string().trim().min(1, "Ingresa el plan de trabajo").max(5000, "Maximo 5000 caracteres"),
 	recetaId: z.string().optional(),
 });
 

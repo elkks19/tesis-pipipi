@@ -92,7 +92,7 @@ export async function registrarInsumoEntregaAction(
   }
 
   const cantidad = Number(cantidadRaw);
-  if (!Number.isFinite(cantidad) || cantidad < 1) {
+  if (!Number.isInteger(cantidad) || cantidad < 1) {
     return { ok: false, message: "Cantidad invalida." };
   }
 

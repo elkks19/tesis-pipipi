@@ -4,6 +4,7 @@ import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { logPacienteActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { CreatePacienteSchema, type Paciente } from "@/lib/schema/pacientes";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 
 export type CreatePacienteActionState = {
   errors?: Record<string, string>;
@@ -21,31 +22,6 @@ function getOptionalString(formData: FormData, key: string) {
   const value = getString(formData, key).trim();
 
   return value.length > 0 ? value : undefined;
-}
-
-function getFieldErrors(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
 }
 
 function getPadres(formData: FormData) {
@@ -177,7 +153,7 @@ export async function createPaciente(
 
   if (!parsed.success) {
     return {
-      errors: getFieldErrors(parsed.error),
+      errors: firstFieldErrors(parsed.error),
       message: "Revisa los campos marcados antes de guardar el paciente.",
       ok: false,
     };
@@ -251,7 +227,7 @@ export async function updatePaciente(
 
   if (!parsed.success) {
     return {
-      errors: getFieldErrors(parsed.error),
+      errors: firstFieldErrors(parsed.error),
       message: "Revisa los campos marcados antes de guardar el paciente.",
       ok: false,
     };

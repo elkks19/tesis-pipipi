@@ -590,23 +590,24 @@ export async function createInsumoEntrega({
     viajeId,
   };
 
-  await db.put({ ...document, _id: id });
-
-  // Decrement available quantity
   const insumoDoc = await db.get(insumoId).catch(() => null);
-  if (isInventarioItem(insumoDoc)) {
-    const disponible =
-      typeof insumoDoc.cantidadDisponible === "number"
-        ? insumoDoc.cantidadDisponible
-        : insumoDoc.cantidadPlanificada;
-    const newDisponible = Math.max(0, disponible - cantidad);
-    await db.put({
-      ...insumoDoc,
-      cantidadDisponible: newDisponible,
-      updatedAt: now,
-      updatedBy: userId,
-    });
+  if (!isInventarioItem(insumoDoc) || insumoDoc.viajeId !== viajeId) {
+    throw new Error("El insumo no pertenece a este viaje.");
   }
+  const disponible = typeof insumoDoc.cantidadDisponible === "number"
+    ? insumoDoc.cantidadDisponible
+    : insumoDoc.cantidadPlanificada;
+  if (cantidad > disponible) {
+    throw new Error(`Solo hay ${disponible} unidades disponibles.`);
+  }
+
+  await db.put({
+    ...insumoDoc,
+    cantidadDisponible: disponible - cantidad,
+    updatedAt: now,
+    updatedBy: userId,
+  });
+  await db.put({ ...document, _id: id });
 
   return { id, createdAt: now };
 }

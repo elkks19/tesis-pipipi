@@ -11,6 +11,7 @@ import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-cl
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import type { Historia } from "@/lib/schema/historia";
+import type { Paciente } from "@/lib/schema/pacientes";
 import { isDocenteEncargado } from "@/lib/station-histories";
 
 type PageProps = {
@@ -28,6 +29,15 @@ function isHistoria(doc: unknown): doc is HistoriaDocument {
     "type" in doc &&
     doc.type === "historia" &&
     "_id" in doc
+  );
+}
+
+function isPaciente(doc: unknown): doc is Paciente {
+  return (
+    typeof doc === "object" &&
+    doc !== null &&
+    "type" in doc &&
+    doc.type === "paciente"
   );
 }
 
@@ -84,6 +94,13 @@ function toFormValue(historia: HistoriaDocument): Partial<AnamnesisFormValue> {
     antecedentesGinecoObstetricos: anamnesis.antecedentesGinecoObstetricos
       ? {
           ...anamnesis.antecedentesGinecoObstetricos,
+          estadioTanner: anamnesis.antecedentesGinecoObstetricos.estadioTanner ?? "",
+          ritmoMenstrual: anamnesis.antecedentesGinecoObstetricos.ritmoMenstrual ?? "",
+          cirugiaPelviana: anamnesis.antecedentesGinecoObstetricos.cirugiaPelviana ?? "",
+          fechaUltimaGestacion: dateToFormValue(anamnesis.antecedentesGinecoObstetricos.fechaUltimaGestacion),
+          fechaUltimoParto: dateToFormValue(anamnesis.antecedentesGinecoObstetricos.fechaUltimoParto),
+          fechaUltimoAborto: dateToFormValue(anamnesis.antecedentesGinecoObstetricos.fechaUltimoAborto),
+          fechaUltimaCesarea: dateToFormValue(anamnesis.antecedentesGinecoObstetricos.fechaUltimaCesarea),
           menarca: numberToFormValue(
             anamnesis.antecedentesGinecoObstetricos.menarca,
           ),
@@ -110,8 +127,7 @@ function toFormValue(historia: HistoriaDocument): Partial<AnamnesisFormValue> {
           ),
           metodoAnticonceptivo:
             anamnesis.antecedentesGinecoObstetricos.metodoAnticonceptivo ?? "",
-          fechaPapanicolau:
-            anamnesis.antecedentesGinecoObstetricos.fechaPapanicolau ?? "",
+          fechaPapanicolau: dateToFormValue(anamnesis.antecedentesGinecoObstetricos.fechaPapanicolau),
           resultadoPapanicolau:
             anamnesis.antecedentesGinecoObstetricos.resultadoPapanicolau ?? "",
           colposcopia:
@@ -150,6 +166,8 @@ export default async function DocenteEditarAnamnesisPage({
     notFound();
   }
 
+  const paciente = await db.get(doc.pacienteId).catch(() => null);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -167,6 +185,8 @@ export default async function DocenteEditarAnamnesisPage({
       <AnamnesisForm
         action={updateAnamnesis.bind(null, decodedIdHistoria)}
         defaultValue={toFormValue(doc)}
+        pacienteGenero={isPaciente(paciente) ? paciente.genero : undefined}
+        pacienteFechaNacimiento={isPaciente(paciente) ? new Date(paciente.datosPersonales.fechaNacimiento).toISOString() : undefined}
         successRedirectHref="/docente/anamnesis"
       />
     </div>

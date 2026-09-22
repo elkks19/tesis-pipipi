@@ -1,0 +1,123 @@
+@startuml
+title Clases - nucleo de viajes e historias
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+class Viaje {
+  +id: string
+  +type: "viaje"
+  +servicio: string
+  +fechaEntrada: string
+  +fechaSalida: string
+  +establecimiento: Establecimiento
+  +estaciones: EstacionViaje[]
+  +estaActivo(fecha: string): boolean
+  +tieneEstacion(tipo: TipoEstacion): boolean
+}
+
+class Establecimiento {
+  +nombre: string
+  +direccion?: string
+  +contacto?: string
+}
+
+class EstacionViaje {
+  +tipo: TipoEstacion
+  +docenteEncargadoId: string
+  +estudiantesIds: string[]
+  +tieneDocente(userId: string): boolean
+  +tieneEstudiante(userId: string): boolean
+}
+
+class Paciente {
+  +type: "paciente"
+  +datosPersonales: DatosPersonales
+  +genero: Genero
+  +lugarNacimiento: LugarNacimiento
+  +nacionalidad: string
+  +etnia?: string
+  +padres?: PadreTutor[]
+  +nombreCompleto(): string
+  +edad(fecha: Date): number
+}
+
+class DatosPersonales {
+  +nombres: string
+  +apellidoPaterno: string
+  +apellidoMaterno: string
+  +fechaNacimiento: Date
+  +documentoIdentidad: TipoDocumentoIdentidad
+  +numeroDocumentoIdentidad: string
+  +nombreCompleto(): string
+}
+
+class LugarNacimiento {
+  +pais: string
+  +departamento: string
+  +distrito?: string
+}
+
+class PadreTutor {
+  +datosPersonales: DatosPersonales
+  +relacion: string
+  +asumeSustento: boolean
+  +numeroContacto: string
+}
+
+class Historia {
+  +type: "historia"
+  +created_by?: string
+  +pacienteId: string
+  +viajeId?: string
+  +reporteHistoria?: ReporteHistoriaFile
+  +reportesHistoria?: ReporteHistoriaFile[]
+  +examenesComplementariosSolicitados?: ExamenesComplementariosSolicitados
+  +estaCompleta(): boolean
+  +registrarBloque(estacion: TipoEstacion): void
+  +solicitarComplementario(estacion: TipoEstacion): void
+}
+
+class ExamenesComplementariosSolicitados {
+  +ecografia: boolean
+  +laboratorios: boolean
+  +espirometria: boolean
+  +electrocardiograma: boolean
+}
+
+class ReporteHistoriaFile {
+  +generatedAt: string
+  +key: string
+  +nombre: string
+  +tamano: number
+  +tipo: string
+  +url: string
+  +urlPrivada(): string
+}
+
+class TipoEstacion <<enum>>
+class TipoDocumentoIdentidad <<enum>>
+class Genero <<enum>>
+
+Viaje *-- Establecimiento
+Viaje *-- "1..*" EstacionViaje
+EstacionViaje --> TipoEstacion
+Viaje "1" o-- "0..*" Historia
+Paciente *-- DatosPersonales
+Paciente *-- LugarNacimiento
+Paciente *-- "0..*" PadreTutor
+PadreTutor *-- DatosPersonales
+Historia --> Paciente
+Historia --> Viaje
+Historia *-- ExamenesComplementariosSolicitados
+Historia *-- "0..*" ReporteHistoriaFile
+
+@enduml

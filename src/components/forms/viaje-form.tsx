@@ -19,6 +19,7 @@ import {
 
 import { DateRangeField, Field, SelectField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import {
   listSummary,
   textSummary,
@@ -172,31 +173,6 @@ function buildPayload(form: ViajeFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function getUserLabel(user: ViajeUserOption) {
   return `${user.name} (${user.email})`;
 }
@@ -317,7 +293,6 @@ export function ViajeForm({
   const [activeStationId, setActiveStationId] = useState(
     initialFormValue.estaciones[0].id,
   );
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -327,10 +302,11 @@ export function ViajeForm({
       actionAvailable: Boolean(action),
       confirmLabel: submitLabel,
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateViajeSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors, clearTouched } = useInteractiveErrors({
+    value: form, actionState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -369,15 +345,9 @@ export function ViajeForm({
   const allStationTypesSelected = form.estaciones.length >= tiposEstacion.length;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreateViajeSchema.safeParse(buildPayload(form));
-
-    if (!result.success) {
-      event.preventDefault();
-      setErrors(getErrorMap(result.error));
+    if (revealErrors(event)) {
       return;
     }
-
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(form, userById))) {
       return;
@@ -398,6 +368,7 @@ export function ViajeForm({
   }
 
   function removeStation(stationId: string) {
+    clearTouched("estaciones.");
     setForm((current) => {
       if (current.estaciones.length === 1) {
         return current;
@@ -431,6 +402,8 @@ export function ViajeForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >

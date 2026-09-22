@@ -1,0 +1,53 @@
+@startuml
+title Casos de uso - administracion y viajes
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+actor Admin
+actor "Docente organizador" as Organizador
+
+rectangle "Gestion operativa" {
+  usecase "Iniciar sesion" as UCLogin
+  usecase "Gestionar usuarios" as UCUsuarios
+  usecase "Crear viaje" as UCCrearViaje
+  usecase "Editar viaje futuro" as UCEditarViaje
+  usecase "Asignar docentes" as UCAsignarDocentes
+  usecase "Asignar estudiantes" as UCAsignarEstudiantes
+  usecase "Ver lista de viajes" as UCListarViajes
+  usecase "Ver dashboard del viaje" as UCDashboard
+  usecase "Generar reporte del viaje" as UCReporteViaje
+}
+
+Admin --> UCLogin
+Admin --> UCUsuarios
+Admin --> UCCrearViaje
+Admin --> UCEditarViaje
+Admin --> UCAsignarDocentes
+Admin --> UCAsignarEstudiantes
+Admin --> UCListarViajes
+Admin --> UCDashboard
+Admin --> UCReporteViaje
+
+Organizador --> UCLogin
+Organizador --> UCCrearViaje
+Organizador --> UCEditarViaje
+Organizador --> UCAsignarDocentes
+Organizador --> UCAsignarEstudiantes
+Organizador --> UCListarViajes
+
+UCCrearViaje .> UCAsignarDocentes : incluye
+UCCrearViaje .> UCAsignarEstudiantes : incluye
+UCEditarViaje .> UCAsignarDocentes : actualiza
+UCEditarViaje .> UCAsignarEstudiantes : actualiza
+UCDashboard .> UCListarViajes : usa seleccion
+UCReporteViaje .> UCListarViajes : usa viaje
+
+@enduml

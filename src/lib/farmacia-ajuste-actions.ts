@@ -36,12 +36,11 @@ export async function updateInventarioItemAction(
     observaciones?: string;
   } = {};
 
-  if (typeof cantidadRaw === "string" && cantidadRaw.trim() !== "") {
-    const parsed = Number(cantidadRaw);
-    if (!Number.isNaN(parsed) && parsed >= 0) {
-      updates.cantidadDisponible = parsed;
-    }
+  if (typeof cantidadRaw !== "string" || !cantidadRaw.trim() ||
+      !Number.isInteger(Number(cantidadRaw)) || Number(cantidadRaw) < 0) {
+    return { ok: false, message: "La cantidad disponible debe ser un entero no negativo." };
   }
+  updates.cantidadDisponible = Number(cantidadRaw);
 
   if (typeof nombre === "string" && nombre.trim()) {
     updates.nombre = nombre.trim();

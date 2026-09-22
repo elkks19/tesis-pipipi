@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de componentes - Autenticación</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      background: #f5f5f5;
+      color: #2d3142;
+      font-family: 'Geist', system-ui, sans-serif;
+    }
+    .frame { width: 100%; max-width: 1440px; }
+    h1 {
+      margin-bottom: 1.5rem;
+      color: #2d3142;
+      font-family: 'Instrument Serif', 'Noto Serif KR', serif;
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      line-height: 1.15;
+    }
+    svg { width: 100%; min-width: 1120px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de componentes - Autenticación</h1>
+    <svg viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="componentes-auth-title componentes-auth-desc">
+      <title id="componentes-auth-title">Diagrama de componentes - Autenticación</title>
+      <desc id="componentes-auth-desc">Componentes de autenticación basados en Better Auth, SQLite, roles y protección de rutas.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1e40af"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect x="72" y="92" width="1296" height="740" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+      <rect x="108" y="104" width="420" height="32" rx="4" fill="#f5f5f5"/>
+      <text x="112" y="128" fill="#1e40af" font-size="28" font-family="'Instrument Serif', 'Noto Serif KR', serif">Autenticación y sesiones</text>
+      <rect x="180" y="228" width="284" height="332" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="204" y="236" width="84" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="246" y="248" fill="rgba(45,49,66,0.48)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">CLIENTE</text>
+      <rect x="540" y="228" width="344" height="332" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="564" y="236" width="92" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="610" y="248" fill="rgba(45,49,66,0.48)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">SERVIDOR</text>
+      <rect x="960" y="228" width="300" height="332" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="984" y="236" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1020" y="248" fill="rgba(45,49,66,0.48)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">ESTADO</text>
+      <path d="M 720,152 V 276 H 428" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="512" y="188" width="48" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="536" y="200" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">USA</text>
+      <path d="M 322,372 V 432" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="334" y="396" width="56" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="362" y="408" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ENVIA</text>
+      <path d="M 428,480 H 604" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="488" y="452" width="52" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="514" y="464" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LOGIN</text>
+      <path d="M 716,348 V 408" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="728" y="372" width="56" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="756" y="384" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DELEGA</text>
+      <path d="M 828,440 H 992" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="884" y="412" width="52" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="910" y="424" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LEE</text>
+      <path d="M 828,300 H 992" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="884" y="272" width="52" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="910" y="284" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">APLICA</text>
+      <path d="M 716,504 V 632" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="728" y="560" width="64" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="760" y="572" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SESION</text>
+      <path d="M 828,456 H 908 Q 916,456 916,464 V 680 Q 916,688 924,688 H 992" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="884" y="656" width="64" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="916" y="668" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">OAUTH</text>
+      <rect x="624" y="56" width="192" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="624" y="56" width="192" height="96" rx="8" fill="rgba(79, 93, 117, 0.10)" stroke="#7a8399" stroke-width="1"/>
+      <circle cx="660" cy="96" r="20" fill="#ffffff" stroke="#7a8399" stroke-width="1.2"/>
+      <circle cx="660" cy="88" r="7" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+      <path d="M 644,112 Q 660,100 676,112" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-linecap="round"/>
+      <text x="740" y="92" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Usuario</text>
+      <text x="740" y="114" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[PERSONA]</text>
+      <text x="740" y="138" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">credenciales/Google</text>
+      <rect x="216" y="276" width="212" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="216" y="276" width="212" height="96" rx="8" fill="rgba(30, 64, 175, 0.08)" stroke="#1e40af" stroke-width="1.2"/>
+      
+      <text x="322" y="312" fill="#2d3142" font-size="20" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Página login</text>
+      <text x="322" y="334" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="322" y="358" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">src/app/login</text>
+      <rect x="216" y="432" width="212" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="216" y="432" width="212" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      
+      <text x="322" y="468" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Auth client</text>
+      <text x="322" y="490" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="322" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">auth-client.ts</text>
+      <rect x="604" y="252" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="604" y="252" width="224" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      
+      <text x="716" y="288" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">API Auth</text>
+      <text x="716" y="310" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="716" y="334" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Better Auth handler</text>
+      <rect x="604" y="408" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="604" y="408" width="224" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      
+      <text x="716" y="444" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Auth server</text>
+      <text x="716" y="466" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="716" y="490" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">betterAuth()</text>
+      <rect x="992" y="252" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="992" y="252" width="224" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      
+      <text x="1104" y="288" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Roles</text>
+      <text x="1104" y="310" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="1104" y="334" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">auth-roles</text>
+      <rect x="992" y="408" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="992" y="408" width="224" height="96" rx="8" fill="rgba(45, 49, 66, 0.05)" stroke="#4f5d75" stroke-width="1"/>
+      
+      <text x="1104" y="444" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">SQLite Auth</text>
+      <text x="1104" y="466" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[BASE DE DATOS]</text>
+      <text x="1104" y="490" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">auth.sqlite</text>
+      <rect x="604" y="632" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="604" y="632" width="224" height="96" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      
+      <text x="716" y="668" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Guards</text>
+      <text x="716" y="690" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[COMPONENTE]</text>
+      <text x="716" y="714" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">session/redirect</text>
+      <rect x="992" y="632" width="224" height="96" rx="8" fill="#f5f5f5"/>
+      <rect x="992" y="632" width="224" height="96" rx="8" fill="rgba(45, 49, 66, 0.03)" stroke="rgba(45, 49, 66, 0.30)" stroke-width="1"/>
+      
+      <text x="1104" y="668" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Google OAuth</text>
+      <text x="1104" y="690" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[SISTEMA EXTERNO]</text>
+      <text x="1104" y="714" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">social provider</text>
+    </svg>
+  </div>
+</body>
+</html>

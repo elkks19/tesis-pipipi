@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { SaveIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,9 +84,22 @@ function InventarioItemRow({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [cantidad, setCantidad] = useState(String(item.cantidadDisponible ?? item.cantidadPlanificada));
+  const [touched, setTouched] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const parsedCantidad = Number(cantidad);
+  const cantidadError = !cantidad.trim() || !Number.isInteger(parsedCantidad) || parsedCantidad < 0
+    ? "Ingresa una cantidad entera no negativa"
+    : "";
+  const showCantidadError = cantidadError && (touched || submitted);
 
   function handleSave() {
     if (!formRef.current) return;
+    setSubmitted(true);
+    if (cantidadError) {
+      formRef.current.querySelector<HTMLInputElement>('[name="cantidadDisponible"]')?.focus();
+      return;
+    }
 
     startTransition(async () => {
       const formData = new FormData(formRef.current!);
@@ -112,11 +125,6 @@ function InventarioItemRow({
     });
   }
 
-  const disponible =
-    typeof item.cantidadDisponible === "number"
-      ? item.cantidadDisponible
-      : item.cantidadPlanificada;
-
   return (
     <TableRow>
       <TableCell className="max-w-[200px]">
@@ -135,15 +143,20 @@ function InventarioItemRow({
         {item.cantidadPlanificada}
       </TableCell>
       <TableCell>
-        <form ref={formRef}>
+        <form ref={formRef} noValidate>
           <Input
+            aria-invalid={Boolean(showCantidadError)}
+            aria-describedby={showCantidadError ? `cantidad-${item.id}-error` : undefined}
             className="h-8 w-24 tabular-nums"
-            defaultValue={disponible}
             min={0}
             name="cantidadDisponible"
+            onBlur={() => setTouched(true)}
+            onChange={(event) => setCantidad(event.target.value)}
             step={1}
             type="number"
+            value={cantidad}
           />
+          {showCantidadError ? <p className="mt-1 text-xs text-destructive" id={`cantidad-${item.id}-error`} role="alert">{cantidadError}</p> : null}
           <input name="nombre" type="hidden" value={item.nombre} />
           <input
             name="observaciones"

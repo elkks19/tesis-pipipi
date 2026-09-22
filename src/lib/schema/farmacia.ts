@@ -108,7 +108,10 @@ export const CreateViajeInventarioItemSchema = z
   .object({
     atcCode: z.string().trim().optional(),
     cantidadDisponible: z.coerce.number().min(0).optional(),
-    cantidadPlanificada: z.coerce.number().min(0),
+    cantidadPlanificada: z.preprocess(
+      (value) => value === "" ? Number.NaN : value,
+      z.coerce.number().int("La cantidad debe ser entera").nonnegative("La cantidad no puede ser negativa"),
+    ),
     categoria: z.enum(inventarioCategorias),
     concentracion: z.string().trim().optional(),
     fechaVencimiento: z.string().trim().optional(),

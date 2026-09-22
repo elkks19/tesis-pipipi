@@ -1,0 +1,39 @@
+%% Documenta la trazabilidad y los reportes. Muestra que la actividad nace de los server actions, alimenta vistas de estación y dashboard, y que el diagnóstico encola reportes PDF procesados por worker.
+C4Component
+  title Componentes - Reportes, actividad y dashboard
+
+  Container(nextApp, "Aplicación web", "Next.js 16", "Dashboard, reportes y rutas de estación")
+  Container(reportWorker, "Worker reportes", "Node.js + BullMQ", "Procesa reporteHistoria")
+  ContainerQueue(reportQueue, "Cola reportes", "Redis/BullMQ", "Jobs reporteHistoria")
+  ContainerDb(couchdb, "CouchDB", "PouchDB/CouchDB", "Historias, pacientes, viajes y actividad")
+  ContainerDb(fileStorage, "Flydrive Storage", "FS/S3", "PDFs generados")
+  System_Ext(carbone, "Carbone v5", "Renderizado PDF")
+
+  Container_Boundary(reportes, "Módulos de reportes y auditoría") {
+    Component(activityLog, "src/lib/activity-log.ts", "Server utility", "Diff before/after y documento type actividad")
+    Component(activityQueries, "src/lib/activity-queries.ts", "Server query", "Consulta actividad por viaje, estación y actor")
+    Component(adminDashboard, "src/lib/admin-dashboard.ts", "Server query", "Diagnósticos, género, actividad y métricas de cambios")
+    Component(dashboardApi, "src/app/api/admin/dashboard/*", "Route handlers", "Paginación de actividad y métricas")
+    Component(stationPerformance, "src/lib/docente-station-performance.ts", "Server query", "Rendimiento por actor y estación")
+    Component(reportQueueClient, "src/lib/queues/reportes.ts", "BullMQ client", "Encola reporteHistoria")
+    Component(historiaReport, "src/lib/reports/historia-carbone-report.ts", "Carbone data builder", "Construye datos y archivo de historia clínica")
+    Component(viajeReport, "src/lib/reports/viaje-students-report.ts", "PDF report", "Reporte de viaje, estaciones y asignaciones")
+    Component(performanceReport, "src/lib/reports/docente-station-performance-pdf.ts", "PDF report", "Reporte de rendimiento por estación")
+  }
+
+  Rel(activityLog, couchdb, "Guarda type actividad", "PouchDB")
+  Rel(activityQueries, couchdb, "Lee actividad y documentos relacionados", "Mango find")
+  Rel(adminDashboard, couchdb, "Lee historias, pacientes y actividad", "Mango find")
+  Rel(dashboardApi, adminDashboard, "Entrega páginas y métricas", "JSON")
+  Rel(stationPerformance, couchdb, "Calcula rendimiento real", "Mango find")
+  Rel(reportQueueClient, reportQueue, "Encola reporteHistoria", "BullMQ")
+  Rel(reportWorker, reportQueue, "Consume jobs", "BullMQ")
+  Rel(reportWorker, historiaReport, "Genera datos del PDF")
+  Rel(historiaReport, couchdb, "Lee historia y paciente", "PouchDB")
+  Rel(historiaReport, carbone, "Renderiza PDF", "Carbone SDK")
+  Rel(historiaReport, fileStorage, "Guarda PDF", "Flydrive")
+  Rel(historiaReport, couchdb, "Actualiza reporteHistoria/reportesHistoria", "PouchDB")
+  Rel(viajeReport, couchdb, "Lee viaje y usuarios asignados", "Server query")
+  Rel(performanceReport, stationPerformance, "Usa resumen de rendimiento")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

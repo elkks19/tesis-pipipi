@@ -3,14 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  CalendarIcon,
   FilePlus2Icon,
-  GlobeIcon,
   IdCardIcon,
   InfoIcon,
   MapPinIcon,
   PencilIcon,
-  PhoneIcon,
   PlusIcon,
   SearchIcon,
   UserRoundIcon,
@@ -19,6 +16,10 @@ import {
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import {
+  PacienteClinicalSummaryModal,
+  PacienteClinicalSummaryPreview,
+} from "@/components/historias/historia-clinical-summary";
 import {
   Dialog,
   DialogContent,
@@ -44,11 +45,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
+import type { Historia } from "@/lib/schema/historia";
+
+type HistoriaWithId = Historia & {
+  _id?: string;
+};
 
 type PacienteSearchResultsProps = {
   createHistoriaRoute?: string;
   editPacienteRoute?: string;
   hideCreateHistoriaAction?: boolean;
+  historiasByPacienteId?: Record<string, HistoriaWithId[]>;
   pacientes: PacienteSearchResult[];
   query: string;
   newPacienteRoute: string;
@@ -100,8 +107,10 @@ function DetailField({ label, value }: { label: string; value?: string }) {
 }
 
 function PacienteDetailContent({
+  historias = [],
   paciente,
 }: {
+  historias?: HistoriaWithId[];
   paciente: PacienteSearchResult;
 }) {
   const datos = paciente.datosPersonales;
@@ -157,6 +166,11 @@ function PacienteDetailContent({
           <p className="text-sm italic text-muted-foreground/60">Sin registro</p>
         )}
       </section>
+
+      <PacienteClinicalSummaryPreview
+        paciente={paciente}
+        previousHistorias={historias}
+      />
 
       <Separator />
 
@@ -226,8 +240,10 @@ function PacienteDetailContent({
 }
 
 function PacienteDetailDialog({
+  historias = [],
   paciente,
 }: {
+  historias?: HistoriaWithId[];
   paciente: PacienteSearchResult;
 }) {
   const [open, setOpen] = useState(false);
@@ -242,7 +258,7 @@ function PacienteDetailDialog({
           Detalle
         </Button>
         <Sheet onOpenChange={setOpen} open={open}>
-          <SheetContent className="overflow-y-auto" side="bottom">
+          <SheetContent className="max-h-[94svh] overflow-y-auto" side="bottom">
             <SheetHeader>
               <SheetTitle>{name}</SheetTitle>
               <SheetDescription>
@@ -250,7 +266,7 @@ function PacienteDetailDialog({
               </SheetDescription>
             </SheetHeader>
             <div className="px-6 pb-6">
-              <PacienteDetailContent paciente={paciente} />
+              <PacienteDetailContent historias={historias} paciente={paciente} />
             </div>
           </SheetContent>
         </Sheet>
@@ -264,14 +280,14 @@ function PacienteDetailDialog({
         <InfoIcon data-icon="inline-start" />
         Detalle
       </Button>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-[78rem]">
         <DialogHeader>
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>
             Informacion registrada del paciente.
           </DialogDescription>
         </DialogHeader>
-        <PacienteDetailContent paciente={paciente} />
+        <PacienteDetailContent historias={historias} paciente={paciente} />
       </DialogContent>
     </Dialog>
   );
@@ -281,6 +297,7 @@ export function PacienteSearchResults({
   createHistoriaRoute = "/estudiante/anamnesis/create-historia",
   editPacienteRoute = "/estudiante/anamnesis/pacientes",
   hideCreateHistoriaAction = false,
+  historiasByPacienteId,
   pacientes,
   query,
   selectedPacienteId,
@@ -327,6 +344,7 @@ export function PacienteSearchResults({
       {pacientes.map((paciente) => {
         const datos = paciente.datosPersonales;
         const isSelected = paciente.id === selectedPacienteId;
+        const historias = historiasByPacienteId?.[paciente.id] ?? [];
 
         return (
           <Item
@@ -360,7 +378,12 @@ export function PacienteSearchResults({
               </ItemDescription>
             </ItemContent>
             <ItemActions className="basis-full justify-end sm:basis-auto">
-              <PacienteDetailDialog paciente={paciente} />
+              <PacienteClinicalSummaryModal
+                paciente={paciente}
+                previousHistorias={historias}
+                triggerLabel="Resumen clinico"
+              />
+              <PacienteDetailDialog historias={historias} paciente={paciente} />
               <Button asChild size="sm" variant="outline">
                 <Link
                   href={`${editPacienteRoute}/${encodeURIComponent(paciente.id)}/edit`}

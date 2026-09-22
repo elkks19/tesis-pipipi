@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de estados - Job de reporte</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f5f5f5; color: #2d3142; font-family: 'Geist', system-ui, sans-serif; }
+    .frame { width: 100%; max-width: 1480px; }
+    h1 { margin-bottom: 1.5rem; color: #2d3142; font-family: 'Instrument Serif', 'Noto Serif KR', serif; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; line-height: 1.15; }
+    svg { width: 100%; min-width: 1120px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de estados - Job de reporte</h1>
+    <svg viewBox="0 0 1480 920" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="estado-job-reporte-title estado-job-reporte-desc">
+      <title id="estado-job-reporte-title">Diagrama de estados - Job de reporte</title>
+      <desc id="estado-job-reporte-desc">Estados reales del job de reporte PDF, incluyendo validación de diagnóstico, carga de documentos, render, guardado, reintento, omisión y falla.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1e40af"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect x="72" y="92" width="1336" height="760" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+      <circle cx="124" cy="376" r="6" fill="#2d3142"/>
+      
+      <path d="M 130,376 H 188" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="136" y="348" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="172" y="360" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ADD JOB</text>
+      <path d="M 356,376 H 444" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="364" y="348" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="416" y="360" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WORKER TOMA</text>
+      <path d="M 612,376 H 700" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="616" y="348" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="668" y="360" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LEE HISTORIA</text>
+      <path d="M 868,376 H 956" fill="none" stroke="#1e40af" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="868" y="348" width="124" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="930" y="360" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FINGERPRINT OK</text>
+      <path d="M 1124,376 H 1212" fill="none" stroke="#1e40af" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="1140" y="348" width="80" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1180" y="360" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PDF OK</text>
+      <path d="M 1296,420 V 488 Q 1296,496 1288,496 H 1168 Q 1160,496 1160,504 V 548" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="1176" y="468" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1212" y="480" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PUT S3</text>
+      <path d="M 1076,624 H 868" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="916" y="596" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="968" y="608" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">GUARDA REF</text>
+      <path d="M 700,404 H 636 Q 628,404 628,412 V 548" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="596" y="436" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="648" y="448" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">CAMBIO DIAG</text>
+      <path d="M 784,548 V 492 Q 784,484 776,484 H 532 Q 524,484 524,452" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="792" y="500" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="828" y="512" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ERROR</text>
+      <path d="M 524,548 V 488 Q 524,480 516,480 H 276 Q 268,480 268,452" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="376" y="452" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="428" y="464" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RETRY &lt;= 3</text>
+      <path d="M 608,624 H 700" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="620" y="596" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="672" y="608" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SIN INTENTOS</text>
+      <circle cx="944" cy="664" r="8" fill="none" stroke="#2d3142" stroke-width="1.2"/><circle cx="944" cy="664" r="5" fill="#2d3142"/>
+      <path d="M 868,624 H 936" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="872" y="636" width="72" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="908" y="648" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TERMINA</text>
+      <rect x="188" y="340" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="188" y="340" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="272" y="370" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Pendiente</text>
+      <text x="272" y="390" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="272" y="406" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">BullMQ waiting</text>
+      <rect x="444" y="340" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="444" y="340" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="528" y="370" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Tomado</text>
+      <text x="528" y="390" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="528" y="406" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">worker activo</text>
+      <rect x="700" y="340" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="700" y="340" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="784" y="370" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Datos cargados</text>
+      <text x="784" y="390" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="784" y="406" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">historia/paciente</text>
+      <rect x="956" y="340" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="956" y="340" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1040" y="370" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Renderizando</text>
+      <text x="1040" y="390" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="1040" y="406" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Carbone v5</text>
+      <rect x="1212" y="340" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="1212" y="340" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1296" y="370" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">PDF generado</text>
+      <text x="1296" y="390" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="1296" y="406" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">buffer listo</text>
+      <rect x="1076" y="548" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="1076" y="548" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="1160" y="578" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">PDF guardado</text>
+      <text x="1160" y="598" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="1160" y="614" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">storage key</text>
+      <rect x="700" y="548" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="700" y="548" width="168" height="76" rx="8" fill="rgba(30,64,175,0.08)" stroke="#1e40af" stroke-width="1.2"/>
+      <text x="784" y="578" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Registrado</text>
+      <text x="784" y="598" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="784" y="614" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">referencia CouchDB</text>
+      <rect x="444" y="548" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="444" y="548" width="168" height="76" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="528" y="578" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Reintentando</text>
+      <text x="528" y="598" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="528" y="614" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">backoff exponencial</text>
+      <rect x="188" y="548" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="188" y="548" width="168" height="76" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="272" y="578" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Omitido</text>
+      <text x="272" y="598" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="272" y="614" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">diagnóstico cambió</text>
+      <rect x="700" y="700" width="168" height="76" rx="8" fill="#f5f5f5"/>
+      <rect x="700" y="700" width="168" height="76" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="784" y="730" fill="#2d3142" font-size="16" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Fallido</text>
+      <text x="784" y="750" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">[ESTADO]</text>
+      <text x="784" y="766" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">sin intentos</text>
+    </svg>
+  </div>
+</body>
+</html>

@@ -40,6 +40,7 @@ import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia } from "@/lib/schema/historia";
 
 type SummaryScope =
+  | "anamnesis"
   | "examenFisicoGeneral"
   | "examenFisicoSegmentario"
   | "complementarios"
@@ -73,6 +74,7 @@ type SummarySection = {
 };
 
 const scopeLabels: Record<SummaryScope, string> = {
+  anamnesis: "Anamnesis",
   complementarios: "Complementarios",
   diagnostico: "Diagnostico",
   examenFisicoGeneral: "Examen fisico general",
@@ -124,7 +126,7 @@ export function HistoriaClinicalSummaryModal({
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[92rem] overflow-y-auto p-0 sm:max-w-[92rem]">
+          <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[104rem] overflow-y-auto p-0 sm:max-w-[104rem]">
             <DialogHeader className="border-b px-6 py-5 text-left">
               <DialogTitle>Resumen de la historia</DialogTitle>
               <DialogDescription>
@@ -147,6 +149,127 @@ export function HistoriaClinicalSummaryModal({
   );
 }
 
+export function PacienteClinicalSummaryModal({
+  paciente,
+  previousHistorias = [],
+  triggerLabel = "Ver resumen clinico",
+}: {
+  paciente: PacienteSearchResult;
+  previousHistorias?: HistoriaWithId[];
+  triggerLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-2"
+        onClick={() => setOpen(true)}
+      >
+        <EyeIcon className="size-4" />
+        {triggerLabel}
+      </Button>
+
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="bottom" className="max-h-[94svh] overflow-y-auto p-0">
+            <SheetHeader className="border-b px-4 py-4 text-left">
+              <SheetTitle>Resumen clinico del paciente</SheetTitle>
+              <SheetDescription>
+                Datos del paciente e historias anteriores disponibles.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-4 py-4">
+              <PacienteSummaryBody
+                paciente={paciente}
+                previousHistorias={previousHistorias}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[104rem] overflow-y-auto p-0 sm:max-w-[104rem]">
+            <DialogHeader className="border-b px-6 py-5 text-left">
+              <DialogTitle>Resumen clinico del paciente</DialogTitle>
+              <DialogDescription>
+                Datos del paciente e historias anteriores disponibles.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="px-6 py-5">
+              <PacienteSummaryBody
+                paciente={paciente}
+                previousHistorias={previousHistorias}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
+export function PacienteClinicalSummaryPreview({
+  paciente,
+  previousHistorias = [],
+}: {
+  paciente: PacienteSearchResult;
+  previousHistorias?: HistoriaWithId[];
+}) {
+  const completedBlocks = previousHistorias.reduce((total, historia) => {
+    return total + buildSections(historia, "anamnesis").filter((section) => section.completed).length;
+  }, 0);
+  const latestDiagnosis = previousHistorias[0]
+    ? getPrimaryDiagnosis(previousHistorias[0])
+    : "Sin historias previas";
+
+  return (
+    <section className="rounded-lg border bg-muted/20 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Resumen clinico</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {previousHistorias.length > 0
+              ? `${previousHistorias.length} historias anteriores · ${completedBlocks} bloques con datos`
+              : "Sin historias anteriores registradas."}
+          </p>
+          <p className="mt-2 truncate text-sm">
+            <span className="text-muted-foreground">Ultimo diagnostico: </span>
+            {latestDiagnosis}
+          </p>
+        </div>
+        <PacienteClinicalSummaryModal
+          paciente={paciente}
+          previousHistorias={previousHistorias}
+        />
+      </div>
+    </section>
+  );
+}
+
+function PacienteSummaryBody({
+  paciente,
+  previousHistorias,
+}: {
+  paciente: PacienteSearchResult;
+  previousHistorias: HistoriaWithId[];
+}) {
+  return (
+    <div className="space-y-5">
+      <PatientIdentityPanel paciente={paciente} />
+      <PreviousHistoriesPanel
+        paciente={paciente}
+        previousHistorias={previousHistorias}
+        scope="anamnesis"
+      />
+    </div>
+  );
+}
+
 function HistoriaSummaryBody({
   historia,
   paciente,
@@ -165,51 +288,10 @@ function HistoriaSummaryBody({
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-lg border bg-background">
-        <div className="grid gap-0 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="border-b bg-muted/35 p-4 md:border-b-0 md:border-r md:p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <UserRoundIcon className="size-5" />
-              </div>
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Paciente
-                </p>
-                <h3 className="break-words text-lg font-semibold leading-tight">
-                  {getPacienteName(paciente)}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {paciente
-                    ? `${paciente.datosPersonales.documentoIdentidad}: ${paciente.datosPersonales.numeroDocumentoIdentidad}`
-                    : `Paciente ${historia.pacienteId}`}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 md:p-5">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <MetaItem label="Genero" value={paciente?.genero ?? "Sin dato"} />
-              <MetaItem
-                label="Nacimiento"
-                value={formatDate(paciente?.datosPersonales.fechaNacimiento)}
-              />
-              <MetaItem
-                label="Lugar"
-                value={
-                  paciente
-                    ? [paciente.lugarNacimiento.departamento, paciente.lugarNacimiento.pais]
-                        .filter(Boolean)
-                        .join(", ")
-                    : "Sin dato"
-                }
-              />
-              <MetaItem label="Nacionalidad" value={paciente?.nacionalidad ?? "Sin dato"} />
-            </div>
-          </div>
-        </div>
-      </section>
+      <PatientIdentityPanel
+        fallbackPacienteId={historia.pacienteId}
+        paciente={paciente}
+      />
 
       {showPrevious ? (
         <PreviousHistoriesPanel
@@ -231,6 +313,62 @@ function HistoriaSummaryBody({
         )}
       </section>
     </div>
+  );
+}
+
+function PatientIdentityPanel({
+  fallbackPacienteId,
+  paciente,
+}: {
+  fallbackPacienteId?: string;
+  paciente?: PacienteSearchResult;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border bg-background">
+      <div className="grid gap-0 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="border-b bg-muted/35 p-4 md:border-b-0 md:border-r md:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <UserRoundIcon className="size-5" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Paciente
+              </p>
+              <h3 className="break-words text-lg font-semibold leading-tight">
+                {getPacienteName(paciente)}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {paciente
+                  ? `${paciente.datosPersonales.documentoIdentidad}: ${paciente.datosPersonales.numeroDocumentoIdentidad}`
+                  : `Paciente ${fallbackPacienteId ?? "sin identificador"}`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-5">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <MetaItem label="Genero" value={paciente?.genero ?? "Sin dato"} />
+            <MetaItem
+              label="Nacimiento"
+              value={formatDate(paciente?.datosPersonales.fechaNacimiento)}
+            />
+            <MetaItem
+              label="Lugar"
+              value={
+                paciente
+                  ? [paciente.lugarNacimiento.departamento, paciente.lugarNacimiento.pais]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "Sin dato"
+              }
+            />
+            <MetaItem label="Nacionalidad" value={paciente?.nacionalidad ?? "Sin dato"} />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -343,7 +481,7 @@ function PreviousHistoryRow({
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-6xl overflow-y-auto p-0 sm:max-w-6xl">
+          <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[92rem] overflow-y-auto p-0 sm:max-w-[92rem]">
             <DialogHeader className="border-b px-6 py-5 text-left">
               <DialogTitle>Historia anterior</DialogTitle>
               <DialogDescription>{diagnosis}</DialogDescription>
@@ -425,6 +563,7 @@ function buildSections(historia: HistoriaWithId, scope: SummaryScope): SummarySe
       description: "Motivo de consulta y antecedentes principales.",
       icon: ClipboardListIcon,
       completed: Boolean(anamnesis),
+      highlight: scope === "anamnesis",
       items: anamnesis
         ? [
             { label: "Motivo de consulta", value: anamnesis.motivoConsulta || "Sin dato" },

@@ -31,7 +31,7 @@ export function SelectField<T extends string>({
   value,
 }: SelectFieldProps<T>) {
   return (
-    <Field error={error}>
+    <Field error={error} name={name}>
       <Label htmlFor={name}>
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
@@ -42,7 +42,7 @@ export function SelectField<T extends string>({
         required={required}
         value={value ?? ""}
       >
-        <SelectTrigger aria-invalid={Boolean(error)} id={name}>
+        <SelectTrigger aria-describedby={error ? `${name}-error` : undefined} aria-invalid={Boolean(error)} id={name}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

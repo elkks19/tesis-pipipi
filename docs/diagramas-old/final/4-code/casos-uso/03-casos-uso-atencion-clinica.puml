@@ -1,0 +1,52 @@
+@startuml
+title Casos de uso - atencion clinica por estaciones
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+actor Estudiante
+actor Docente
+
+rectangle "Trabajo clinico del viaje" {
+  usecase "Iniciar sesion" as UCLogin
+  usecase "Acceder al viaje activo" as UCAcceso
+  usecase "Ver historias pendientes" as UCPendientes
+  usecase "Crear paciente e historia" as UCCrearHistoria
+  usecase "Registrar bloque de estacion" as UCRegistrarBloque
+  usecase "Editar historia clinica" as UCEditarHistoria
+  usecase "Solicitar complementarios" as UCSolicitarComplementarios
+  usecase "Registrar diagnostico" as UCDiagnostico
+  usecase "Ver actividad de estacion" as UCActividad
+  usecase "Generar reporte de historia" as UCReporteHistoria
+}
+
+Estudiante --> UCLogin
+Estudiante --> UCAcceso
+Estudiante --> UCPendientes
+Estudiante --> UCCrearHistoria
+Estudiante --> UCRegistrarBloque
+Estudiante --> UCSolicitarComplementarios
+
+Docente --> UCLogin
+Docente --> UCAcceso
+Docente --> UCPendientes
+Docente --> UCEditarHistoria
+Docente --> UCDiagnostico
+Docente --> UCActividad
+Docente --> UCReporteHistoria
+
+UCPendientes .> UCAcceso : requiere
+UCCrearHistoria .> UCAcceso : requiere
+UCRegistrarBloque .> UCPendientes : usa
+UCEditarHistoria .> UCPendientes : usa
+UCDiagnostico .> UCEditarHistoria : completa
+UCReporteHistoria .> UCDiagnostico : se genera desde
+
+@enduml

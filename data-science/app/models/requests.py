@@ -25,7 +25,7 @@ class ChatScope(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    chart_type: Literal["auto", "table", "bar", "line", "pie"] = Field(
+    chart_type: Literal["auto", "table", "bar", "line", "pie", "scatter", "heatmap"] = Field(
         default="auto",
         alias="chartType",
     )
@@ -41,4 +41,8 @@ class ArtifactUpdateRequest(BaseModel):
 
 class ReportRequest(BaseModel):
     conversation_id: str | None = Field(default=None, alias="conversationId")
+    report_type: Literal["general", "perfil_epidemiologico", "diagnosticos_poblacion"] = Field(
+        default="general",
+        alias="reportType",
+    )
     scope: ChatScope = Field(default_factory=ChatScope)

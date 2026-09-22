@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { Field, TextareaField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,31 +110,6 @@ function buildPayload(state: ElectrocardiogramaFormValue) {
   };
 }
 
-function getErrorMap(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<Record<string, string>>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 function createInitialValue(defaultValue?: Partial<ElectrocardiogramaFormValue>) {
   return {
     ...baseFormValue,
@@ -199,7 +175,6 @@ export function ElectrocardiogramaForm({
   );
   const [form, setForm] =
     useState<ElectrocardiogramaFormValue>(initialValue);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -209,10 +184,11 @@ export function ElectrocardiogramaForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar electrocardiograma",
     });
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
+  const validation = CreateElectrocardiogramaSchema.safeParse(buildPayload(form));
+  const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
+    value: form, actionState, isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!actionState.message) {
@@ -233,17 +209,9 @@ export function ElectrocardiogramaForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreateElectrocardiogramaSchema.safeParse(
-      buildPayload(form),
-    );
-
-    if (!result.success) {
-      event.preventDefault();
-      setErrors(getErrorMap(result.error));
+    if (revealErrors(event)) {
       return;
     }
-
-    setErrors({});
 
     if (!confirmSubmit(event, getConfirmationSections(form))) {
       return;
@@ -254,6 +222,8 @@ export function ElectrocardiogramaForm({
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      noValidate
+      onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
@@ -541,7 +511,7 @@ function NumberField({
   value: string;
 }) {
   return (
-    <Field error={error}>
+    <Field error={error} name={name}>
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor={name}>{label}</Label>
         {suffix ? (
@@ -550,6 +520,7 @@ function NumberField({
       </div>
       <Input
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${name}-error` : undefined}
         id={name}
         min={0}
         name={name}

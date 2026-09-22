@@ -28,8 +28,10 @@ import { Label } from "@/components/ui/label";
 import {
   CreatePacienteSchema,
   generos,
+  getPacienteAge,
   tiposDocumentoIdentidad,
 } from "@/lib/schema/pacientes";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 import {
   booleanSummary,
   listSummary,
@@ -91,8 +93,6 @@ export type PacienteFormDefaultValue = Partial<
   lugarNacimiento?: Partial<PacienteFormValue["lugarNacimiento"]>;
   padres?: PadreFormDefaultValue[];
 };
-
-type FieldErrors = Record<string, string>;
 
 type PacienteFormProps = {
   action?: PacienteFormAction;
@@ -223,38 +223,13 @@ function normalizeOptional(value: string) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function getAge(fechaNacimiento: string) {
-  if (!fechaNacimiento) {
-    return null;
-  }
-
-  const birthDate = new Date(`${fechaNacimiento}T00:00:00`);
-
-  if (Number.isNaN(birthDate.getTime())) {
-    return null;
-  }
-
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const hasNotHadBirthdayThisYear =
-    today.getMonth() < birthDate.getMonth() ||
-    (today.getMonth() === birthDate.getMonth() &&
-      today.getDate() < birthDate.getDate());
-
-  if (hasNotHadBirthdayThisYear) {
-    age -= 1;
-  }
-
-  return age;
-}
-
 function isMinor(fechaNacimiento: string) {
-  const age = getAge(fechaNacimiento);
+  const age = getPacienteAge(fechaNacimiento);
 
   return age !== null && age < 18;
 }
 
-function buildPayload(state: PacienteFormValue, shouldIncludePadres: boolean) {
+function buildPayload(state: PacienteFormValue) {
   return {
     datosPersonales: {
       ...state.datosPersonales,
@@ -273,7 +248,7 @@ function buildPayload(state: PacienteFormValue, shouldIncludePadres: boolean) {
     nacionalidad: state.nacionalidad.trim(),
     etnia: normalizeOptional(state.etnia),
     padres:
-      shouldIncludePadres && state.padres.length > 0
+      state.padres.length > 0
         ? state.padres.map((padre) => ({
             datosPersonales: {
               ...padre.datosPersonales,
@@ -291,31 +266,6 @@ function buildPayload(state: PacienteFormValue, shouldIncludePadres: boolean) {
   };
 }
 
-function getErrorMap(error: unknown): FieldErrors {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues)
-  ) {
-    return error.issues.reduce<FieldErrors>((acc, issue) => {
-      if (
-        typeof issue === "object" &&
-        issue !== null &&
-        "path" in issue &&
-        "message" in issue &&
-        Array.isArray(issue.path)
-      ) {
-        acc[issue.path.join(".")] = String(issue.message);
-      }
-
-      return acc;
-    }, {});
-  }
-
-  return {};
-}
-
 export function PacienteForm({
   action,
   defaultValue,
@@ -327,8 +277,9 @@ export function PacienteForm({
     [defaultValue],
   );
   const [form, setForm] = useState<PacienteFormValue>(initialValue);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [status, setStatus] = useState<"idle" | "validated">("idle");
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
+  const [submitted, setSubmitted] = useState(false);
+  const [submission, setSubmission] = useState<{ form: PacienteFormValue; actionState: PacienteFormActionState } | null>(null);
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -338,7 +289,17 @@ export function PacienteForm({
       actionAvailable: Boolean(action),
       confirmLabel: "Guardar paciente",
     });
-  const shouldShowPadres = isMinor(form.datosPersonales.fechaNacimiento);
+  const isPacienteMenor = isMinor(form.datosPersonales.fechaNacimiento);
+  const shouldShowPadres = isPacienteMenor || form.padres.length > 0;
+  const validation = useMemo(() => CreatePacienteSchema.safeParse(buildPayload(form)), [form]);
+  const allErrors = validation.success ? {} : firstFieldErrors(validation.error);
+  const serverErrors = submission?.form === form && submission.actionState !== actionState
+    ? actionState.errors ?? {}
+    : {};
+  const showValidation = !isPending && !actionState.ok;
+  const visibleErrors = Object.fromEntries(
+    Object.entries({ ...serverErrors, ...allErrors }).filter(([path]) => showValidation && (submitted || touched.has(path))),
+  );
 
   function updateDatosPersonales<T extends keyof DatosPersonalesForm>(
     field: T,
@@ -382,6 +343,7 @@ export function PacienteForm({
   }
 
   function removePadre(index: number) {
+    setTouched((current) => new Set([...current].filter((path) => !path.startsWith("padres."))));
     setForm((current) => ({
       ...current,
       padres: current.padres.filter((_, padreIndex) => padreIndex !== index),
@@ -389,29 +351,19 @@ export function PacienteForm({
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const result = CreatePacienteSchema.safeParse(
-      buildPayload(form, shouldShowPadres),
-    );
-
-    if (!result.success) {
+    setSubmitted(true);
+    setSubmission({ form, actionState });
+    if (!validation.success) {
       event.preventDefault();
-      setErrors(getErrorMap(result.error));
-      setStatus("idle");
+      const firstPath = Object.keys(allErrors)[0];
+      window.requestAnimationFrame(() => document.getElementById(firstPath)?.focus());
       return;
     }
-
-    setErrors({});
-    setStatus("validated");
 
     if (!confirmSubmit(event, getConfirmationSections(form, shouldShowPadres))) {
       return;
     }
   }
-
-  const visibleErrors = {
-    ...actionState.errors,
-    ...errors,
-  };
 
   useEffect(() => {
     if (!actionState.message) {
@@ -431,11 +383,25 @@ export function PacienteForm({
     }
   }, [actionState, router, successRedirectHref]);
 
+  if (actionState.ok && successRedirectHref) {
+    return (
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8" role="status">
+        <p className="text-sm text-muted-foreground">Paciente guardado. Redirigiendo...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
       <form
         action={formAction}
         className="flex flex-col gap-6"
+        noValidate
+        onBlurCapture={(event) => {
+          const control = event.target as HTMLElement;
+          const path = control.id || control.getAttribute("name");
+          if (path) setTouched((current) => new Set(current).add(path));
+        }}
         onSubmit={handleSubmit}
         ref={formRef}
       >
@@ -469,7 +435,6 @@ export function PacienteForm({
               onChange={(value) =>
                 updateDatosPersonales("apellidoMaterno", value)
               }
-              required
               value={form.datosPersonales.apellidoMaterno}
             />
             <DateField
@@ -558,6 +523,7 @@ export function PacienteForm({
               value={form.lugarNacimiento.departamento}
             />
             <TextField
+              error={visibleErrors["lugarNacimiento.distrito"]}
               label="Distrito o municipio"
               name="lugarNacimiento.distrito"
               onChange={(value) =>
@@ -585,6 +551,7 @@ export function PacienteForm({
               value={form.nacionalidad}
             />
             <TextField
+              error={visibleErrors.etnia}
               label="Etnia"
               name="etnia"
               onChange={(value) =>
@@ -602,6 +569,9 @@ export function PacienteForm({
           <FormSection
             action={
               <Button
+                aria-describedby={visibleErrors.padres ? "padres-error" : undefined}
+                aria-invalid={Boolean(visibleErrors.padres)}
+                id="padres"
                 onClick={addPadre}
                 size="sm"
                 type="button"
@@ -614,6 +584,7 @@ export function PacienteForm({
             description="Informacion del responsable legal del paciente menor de edad."
             title="Padres o responsables"
           >
+            {visibleErrors.padres ? <p className="mb-3 text-sm text-destructive" id="padres-error" role="alert">{visibleErrors.padres}</p> : null}
             {form.padres.length === 0 ? (
               <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
                 Sin responsables registrados.
@@ -668,7 +639,6 @@ export function PacienteForm({
                         onChange={(value) =>
                           updatePadreDatos(index, "apellidoMaterno", value)
                         }
-                        required
                         value={padre.datosPersonales.apellidoMaterno}
                       />
                       <DateField
@@ -795,17 +765,10 @@ export function PacienteForm({
 
         <footer className="sticky bottom-0 flex flex-col gap-3 rounded-lg border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <p
-            className={cn(
-              "text-sm text-muted-foreground",
-              (status === "validated" || actionState.message) &&
-                "text-foreground",
-            )}
+            className={cn("text-sm text-muted-foreground", actionState.message && "text-foreground")}
             aria-live="polite"
           >
-            {actionState.message ??
-              (status === "validated"
-                ? "Paciente validado. Enviando a la accion del formulario."
-                : "Completa los campos obligatorios para registrar la ficha.")}
+            {actionState.message ?? "Completa los campos obligatorios para registrar la ficha."}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
@@ -814,8 +777,9 @@ export function PacienteForm({
               disabled={isPending}
               onClick={() => {
                 setForm(initialValue);
-                setErrors({});
-                setStatus("idle");
+                setTouched(new Set());
+                setSubmitted(false);
+                setSubmission(null);
               }}
             >
               Limpiar

@@ -49,7 +49,7 @@ describe("esquemas clinicos y operativos", () => {
         apellidoMaterno: "Quispe",
         apellidoPaterno: "Mamani",
         documentoIdentidad: "CI",
-        fechaNacimiento: "2010-05-10",
+        fechaNacimiento: "2000-05-10",
         nombres: "Ana",
         numeroDocumentoIdentidad: "1234567",
       },

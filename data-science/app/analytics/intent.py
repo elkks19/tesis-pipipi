@@ -1,6 +1,21 @@
 def detect_intent(message: str) -> str:
     text = message.lower()
-    if any(word in text for word in ["grafica", "gráfica", "grafico", "gráfico", "chart"]):
+    if any(word in text for word in [
+        "cluster", "clúster", "agrupamiento", "atipic", "atípic",
+        "outlier", "anomalia", "anomalía", "correlacion", "correlación",
+    ]):
+        return "advanced_analysis"
+    if any(
+        word in text
+        for word in [
+            "grafica",
+            "gráfica",
+            "grafico",
+            "gráfico",
+            "chart",
+            "histograma",
+        ]
+    ):
         return "chart"
     if any(
         word in text
@@ -11,9 +26,11 @@ def detect_intent(message: str) -> str:
             "distribucion",
             "distribución",
             "frecuencia",
+            "frecuencias",
             "listado",
             "porcentaje",
             "promedio",
+            "rangos",
             "tabla",
         ]
     ):

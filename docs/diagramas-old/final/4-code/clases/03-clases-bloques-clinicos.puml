@@ -1,0 +1,134 @@
+@startuml
+title Clases - bloques clinicos de la historia
+
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #172033
+}
+
+class Historia {
+  +type: "historia"
+  +anamnesis?: Anamnesis
+  +examenFisicoGeneral?: ExamenFisicoGeneral
+  +examenFisicoSegmentario?: ExamenFisicoSegmentario
+  +electrocardiograma?: Electrocardiograma
+  +espirometria?: Espirometria
+  +ecografia?: Ecografia
+  +laboratorios?: Laboratorios
+  +diagnostico?: Diagnostico
+  +receta?: Receta
+}
+
+class Anamnesis {
+  +estadoCivil: EstadoCivil
+  +nivelEducativo: NivelEducativo
+  +motivoConsulta: string
+  +historiaEnfermedadActual: string
+  +antecedentesNoPatologicos: AntecedentesNoPatologicos
+  +antecedentesPatologicos: AntecedentesPatologicos
+}
+
+class ExamenFisicoGeneral {
+  +presionArterialMedia: number
+  +frecuenciaRespiratoria: number
+  +frecuenciaCardiaca: number
+  +temperaturaAxilar: number
+  +peso: number
+  +talla: number
+  +imc: number
+  +diagnosticoIMC: DiagnosticoIMC
+}
+
+class ExamenFisicoSegmentario {
+  +cabeza: string
+  +cuello: string
+  +aparatoRespiratorio: string
+  +aparatoCardiovascular: string
+  +abdomenPelvis: string
+  +sistemaNerviosoCentral: string
+}
+
+class Electrocardiograma {
+  +ritmo: string
+  +frecuenciaCardiaca: number
+  +intervaloPR: number
+  +intervaloQTc: number
+  +diagnostico: string
+}
+
+class Espirometria {
+  +FEV1: number
+  +FVC: number
+  +FEV1FVC: number
+  +flujoEspiratorioPicoPEF: number
+  +observaciones: TipoObservacion[]
+  +diagnostico: string
+}
+
+class Ecografia {
+  +imagen?: ImagenEcografia
+  +higado: HigadoEcografia
+  +vesiculaBiliar: VesiculaBiliar
+  +rinones: RinonesEcografia
+}
+
+class Laboratorios {
+  +glicemiaCapilar: string
+  +grupoSanguineo: GrupoSanguineo
+  +otrosEstudios?: EstudioLaboratorio[]
+}
+
+class Diagnostico {
+  +principal: DiagnosticoCie11
+  +secundarios: DiagnosticoCie11[]
+  +planTrabajo: string
+  +recetaId?: string
+}
+
+class Receta {
+  +type: "receta"
+  +medicamentos: RecetaMedicamento[]
+}
+
+class AntecedentesNoPatologicos
+class AntecedentesPatologicos
+class ImagenEcografia
+class HigadoEcografia
+class VesiculaBiliar
+class RinonesEcografia
+class EstudioLaboratorio
+class DiagnosticoCie11
+class RecetaMedicamento
+
+class EstadoCivil <<enum>>
+class NivelEducativo <<enum>>
+class DiagnosticoIMC <<enum>>
+class TipoObservacion <<enum>>
+class GrupoSanguineo <<enum>>
+
+Historia *-- Anamnesis
+Historia *-- ExamenFisicoGeneral
+Historia *-- ExamenFisicoSegmentario
+Historia *-- Electrocardiograma
+Historia *-- Espirometria
+Historia *-- Ecografia
+Historia *-- Laboratorios
+Historia *-- Diagnostico
+Historia *-- Receta
+Anamnesis *-- AntecedentesNoPatologicos
+Anamnesis *-- AntecedentesPatologicos
+Ecografia *-- ImagenEcografia
+Ecografia *-- HigadoEcografia
+Ecografia *-- VesiculaBiliar
+Ecografia *-- RinonesEcografia
+Laboratorios *-- "0..*" EstudioLaboratorio
+Diagnostico *-- DiagnosticoCie11
+Receta *-- "0..*" RecetaMedicamento
+
+@enduml

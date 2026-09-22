@@ -25,7 +25,11 @@ def build_chat_client(settings: Settings) -> ChatClient:
         return GroqClient(
             api_key=settings.groq_api_key,
             base_url=settings.groq_base_url,
+            max_completion_tokens=settings.max_completion_tokens,
             model=settings.chat_model,
+            reasoning_effort=settings.reasoning_effort,
+            reasoning_format=settings.reasoning_format,
+            temperature=settings.temperature,
         )
 
     return OllamaClient(settings.ollama_url, settings.chat_model)

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de secuencia - Crear historia clínica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: #f5f5f5; color: #2d3142; font-family: 'Geist', system-ui, sans-serif; }
+    .frame { width: 100%; max-width: 1440px; }
+    h1 { margin-bottom: 1.5rem; color: #2d3142; font-family: 'Instrument Serif', 'Noto Serif KR', serif; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; line-height: 1.15; }
+    svg { width: 100%; min-width: 1120px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Diagrama de secuencia - Crear historia clínica</h1>
+    <svg viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seq-historia-title seq-historia-desc">
+      <title id="seq-historia-title">Diagrama de secuencia - Crear historia clínica</title>
+      <desc id="seq-historia-desc">Secuencia de creación de anamnesis e historia clínica con validación, viaje activo, CouchDB y actividad.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1e40af"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        <marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect x="64" y="120" width="192" height="64" rx="8" fill="rgba(79,93,117,0.10)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="160" y="148" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Usuario</text>
+      <text x="160" y="168" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">[PERSONA]</text>
+      <line x1="160" y1="184" x2="160" y2="808" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="344" y="120" width="192" height="64" rx="8" fill="#ffffff" stroke="#1e40af" stroke-width="1.2"/>
+      <text x="440" y="148" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Formulario</text>
+      <text x="440" y="168" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">[UI]</text>
+      <line x1="440" y1="184" x2="440" y2="808" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="624" y="120" width="192" height="64" rx="8" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+      <text x="720" y="148" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Action</text>
+      <text x="720" y="168" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">[SERVER]</text>
+      <line x1="720" y1="184" x2="720" y2="808" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="904" y="120" width="192" height="64" rx="8" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+      <text x="1000" y="148" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">CouchDB</text>
+      <text x="1000" y="168" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">[DOCS]</text>
+      <line x1="1000" y1="184" x2="1000" y2="808" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="1184" y="120" width="192" height="64" rx="8" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+      <text x="1280" y="148" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Actividad</text>
+      <text x="1280" y="168" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">[LOG]</text>
+      <line x1="1280" y1="184" x2="1280" y2="808" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <path d="M 160,244 H 440" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="248" y="216" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="300" y="228" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMPLETA</text>
+      <path d="M 440,292 H 720" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="528" y="264" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="580" y="276" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FORMDATA</text>
+      <path d="M 720,340 H 720" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="668" y="312" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="720" y="324" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">VALIDA</text>
+      <path d="M 720,388 H 1000" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="808" y="360" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="860" y="372" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">GET PAC</text>
+      <path d="M 1000,436 H 720" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="808" y="408" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="860" y="420" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PACIENTE</text>
+      <path d="M 720,484 H 1000" fill="none" stroke="#1e40af" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="808" y="456" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="860" y="468" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PUT HIST</text>
+      <path d="M 720,532 H 1280" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+      <rect x="948" y="504" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="1000" y="516" fill="#7a8399" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">REGISTRA</text>
+      <path d="M 720,580 H 440" fill="none" stroke="#1e40af" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+      <rect x="528" y="552" width="104" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="580" y="564" fill="#1e40af" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">OK</text>
+    </svg>
+  </div>
+</body>
+</html>

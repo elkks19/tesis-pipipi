@@ -216,15 +216,17 @@ export function IcdCodePicker({
   }, [instanceId, open]);
 
   return (
-    <Field error={error}>
-      <Label>{label}</Label>
+    <Field error={error} name={baseName}>
+      <Label htmlFor={baseName}>{label}</Label>
       <input name={`${baseName}.code`} type="hidden" value={value.code} />
       <input name={`${baseName}.title`} type="hidden" value={value.title} />
       <input name={`${baseName}.iNo`} type="hidden" value={value.iNo} />
       <Button
+        aria-describedby={error ? `${baseName}-error` : undefined}
         aria-invalid={Boolean(error)}
         className="h-auto min-h-10 justify-start text-left font-normal"
         onClick={() => setOpen(true)}
+        id={baseName}
         type="button"
         variant="outline"
       >

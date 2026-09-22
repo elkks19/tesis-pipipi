@@ -18,14 +18,36 @@ def raise_for_groq_error(response: httpx.Response) -> None:
             detail = response.json()
         except ValueError:
             detail = response.text
+        if response.status_code == 429:
+            retry_after = response.headers.get("retry-after")
+            suffix = f" Reintenta en {retry_after}s." if retry_after else ""
+            raise RuntimeError(
+                "Groq alcanzo el limite del plan actual. "
+                "Reduce el alcance, espera a que se libere cuota o usa un modelo mas ligero."
+                f"{suffix}"
+            ) from exc
         raise RuntimeError(f"Groq HTTP {response.status_code}: {detail}") from exc
 
 
 class GroqClient:
-    def __init__(self, api_key: str, base_url: str, model: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str,
+        model: str,
+        *,
+        max_completion_tokens: int,
+        reasoning_effort: str,
+        reasoning_format: str,
+        temperature: float,
+    ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
+        self.max_completion_tokens = max_completion_tokens
         self.model = model
+        self.reasoning_effort = reasoning_effort.strip()
+        self.reasoning_format = reasoning_format.strip()
+        self.temperature = temperature
 
     async def check(self) -> tuple[bool, str]:
         if not self.api_key:
@@ -59,8 +81,10 @@ class GroqClient:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": self._normalize_messages(messages),
-            "temperature": 0.2,
+            "max_completion_tokens": self.max_completion_tokens,
+            "temperature": self.temperature,
         }
+        self._add_reasoning_options(payload)
         if tools:
             payload["tools"] = tools
         started_at = perf_counter()
@@ -101,9 +125,11 @@ class GroqClient:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": self._normalize_messages(messages),
-            "temperature": 0.2,
+            "max_completion_tokens": self.max_completion_tokens,
+            "temperature": self.temperature,
             "stream": True,
         }
+        self._add_reasoning_options(payload)
         started_at = perf_counter()
         logger.info(
             "Groq stream request started model=%s messages=%s",
@@ -149,6 +175,12 @@ class GroqClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+    def _add_reasoning_options(self, payload: dict[str, Any]) -> None:
+        if self.reasoning_format:
+            payload["reasoning_format"] = self.reasoning_format
+        if self.reasoning_effort:
+            payload["reasoning_effort"] = self.reasoning_effort
 
     @staticmethod
     def _normalize_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

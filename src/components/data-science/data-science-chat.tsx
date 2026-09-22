@@ -31,8 +31,11 @@ import {
   LineChart,
   Pie,
   PieChart,
+  Scatter,
+  ScatterChart,
   XAxis as RechartsXAxis,
   YAxis as RechartsYAxis,
+  ZAxis,
 } from "recharts";
 import { toast } from "sonner";
 
@@ -89,6 +92,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   DataScienceTripOption,
   DataScienceTripSearchResponse,
@@ -98,7 +107,11 @@ import { cn } from "@/lib/utils";
 type Artifact = {
   data: unknown;
   spec?: {
+    description?: string;
+    group?: string;
     kind?: string;
+    role?: "primary" | "summary" | "breakdown" | "evidence" | string;
+    series?: string;
     x?: string;
     y?: string;
   } | null;
@@ -115,7 +128,8 @@ type Source = {
   title: string;
 };
 
-type ChartType = "auto" | "bar" | "line" | "pie" | "table";
+type ChartType = "auto" | "bar" | "line" | "pie" | "table" | "scatter" | "heatmap";
+type ReportType = "general" | "perfil_epidemiologico" | "diagnosticos_poblacion";
 
 type ChatResponse = {
   answer: string;
@@ -171,10 +185,10 @@ const stationOptions = [
 ];
 
 const promptSuggestions = [
-  "Muestrame la distribucion por genero",
-  "Cuantas historias tienen diagnostico principal registrado?",
-  "Resume los antecedentes frecuentes en el viaje filtrado",
-  "Calcula el IMC promedio de las historias con examen fisico general",
+  "Grafica la frecuencia de IMC",
+  "Compara IMC por genero",
+  "Cruza diagnosticos por grupo de edad",
+  "Muestra glicemia por viaje",
 ];
 
 const chartTypeOptions = [
@@ -183,7 +197,27 @@ const chartTypeOptions = [
   { label: "Barras", value: "bar" },
   { label: "Lineas", value: "line" },
   { label: "Torta", value: "pie" },
+  { label: "Dispersion", value: "scatter" },
+  { label: "Mapa de calor", value: "heatmap" },
 ] satisfies { label: string; value: ChartType }[];
+
+const reportTypeOptions = [
+  {
+    label: "Estadistico general",
+    question: "Generar reporte estadistico",
+    value: "general",
+  },
+  {
+    label: "Perfil epidemiologico",
+    question: "Generar perfil epidemiologico",
+    value: "perfil_epidemiologico",
+  },
+  {
+    label: "Diagnosticos por poblacion",
+    question: "Generar reporte de diagnosticos por poblacion",
+    value: "diagnosticos_poblacion",
+  },
+] satisfies { label: string; question: string; value: ReportType }[];
 
 const chartConfig = {
   value: {
@@ -210,6 +244,7 @@ export function DataScienceChat() {
   const [tripSearch, setTripSearch] = useState("");
   const [stationKey, setStationKey] = useState("all");
   const [chartType, setChartType] = useState<ChartType>("auto");
+  const [reportType, setReportType] = useState<ReportType>("general");
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState(false);
   const [reportPending, setReportPending] = useState(false);
@@ -222,6 +257,9 @@ export function DataScienceChat() {
   );
   const selectedStation = stationOptions.find(
     (station) => station.value === stationKey,
+  );
+  const selectedReportType = reportTypeOptions.find(
+    (option) => option.value === reportType,
   );
   const tripScopeLabel =
     selectedTrips.length === 0
@@ -517,6 +555,36 @@ export function DataScienceChat() {
       </Select>
       <span className="truncate text-xs text-muted-foreground">
         El asistente usara este formato cuando aplique.
+      </span>
+      </div>
+    );
+  }
+
+  function renderReportPicker() {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">
+        Tipo de reporte
+      </span>
+      <Select
+        onValueChange={(value) => setReportType(value as ReportType)}
+        value={reportType}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {reportTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <span className="truncate text-xs text-muted-foreground">
+        Se aplicara al boton Generar reporte.
       </span>
       </div>
     );
@@ -898,6 +966,7 @@ export function DataScienceChat() {
       const response = await fetch("/api/data-science/reports", {
         body: JSON.stringify({
           conversationId,
+          reportType,
           scope: {
             stationKey: stationKey === "all" ? undefined : stationKey,
             viajeIds:
@@ -919,7 +988,7 @@ export function DataScienceChat() {
         artifacts: result.artifacts,
         id: createClientId(),
         intent: result.intent,
-        question: "Generar reporte estadistico",
+        question: selectedReportType?.question ?? "Generar reporte estadistico",
         sources: result.sources,
       };
       setConversationId(result.conversation_id ?? conversationId);
@@ -986,54 +1055,58 @@ export function DataScienceChat() {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      <header className="flex shrink-0 flex-col gap-3 border-b px-3 py-2.5 sm:px-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="truncate text-base font-semibold sm:text-lg">
+      <header className="shrink-0 border-b px-3 py-2 sm:px-5">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <h2 className="truncate text-sm font-semibold sm:text-base">
               Asistente de investigacion
             </h2>
-            <p className="hidden text-sm text-muted-foreground sm:block">
-              Elige el alcance y consulta las historias con lenguaje natural.
-            </p>
-            <p className="truncate text-xs text-muted-foreground sm:hidden">
+            <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
               {tripScopeLabel} · {selectedStation?.label ?? "Todas las estaciones"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <SlidersHorizontalIcon
-                    aria-hidden="true"
-                    data-icon="inline-start"
-                  />
-                  Alcance
-                </Button>
-              </SheetTrigger>
+          <TooltipProvider>
+            <div className="flex shrink-0 items-center gap-1">
+              <Sheet>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SheetTrigger asChild>
+                      <Button aria-label="Ajustar alcance y formato" size="icon-sm" variant="ghost">
+                        <SlidersHorizontalIcon aria-hidden="true" />
+                      </Button>
+                    </SheetTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Ajustar alcance y formato</TooltipContent>
+                </Tooltip>
               <SheetContent
                 className="mx-auto max-h-[88svh] w-full max-w-[760px] rounded-t-3xl"
                 side="bottom"
               >
-                <SheetHeader className="border-b">
+                <SheetHeader className="border-b p-4">
                   <SheetTitle>Alcance del analisis</SheetTitle>
                   <SheetDescription>
                     Ajusta viajes, estacion y formato de respuesta.
                   </SheetDescription>
                 </SheetHeader>
-                <div className="grid gap-4 overflow-y-auto p-4">
-                  {renderTripPicker()}
+                <div className="grid min-h-0 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">{renderTripPicker()}</div>
                   {renderStationPicker()}
                   {renderResultPicker()}
+                  {renderReportPicker()}
                 </div>
               </SheetContent>
-            </Sheet>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button className="px-2 sm:px-3" size="sm" variant="outline">
-                  <HistoryIcon aria-hidden="true" data-icon="inline-start" />
-                  <span className="hidden sm:inline">Conversaciones</span>
-                </Button>
-              </SheetTrigger>
+              </Sheet>
+              <Sheet>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SheetTrigger asChild>
+                      <Button aria-label="Conversaciones" size="icon-sm" variant="ghost">
+                        <HistoryIcon aria-hidden="true" />
+                      </Button>
+                    </SheetTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Conversaciones</TooltipContent>
+                </Tooltip>
               <SheetContent side="left">
                 <SheetHeader className="border-b">
                   <SheetTitle>Conversaciones recientes</SheetTitle>
@@ -1080,31 +1153,32 @@ export function DataScienceChat() {
                   )}
                 </div>
               </SheetContent>
-            </Sheet>
-            <Button
-              className="px-2 sm:px-3"
-              disabled={reportPending}
-              onClick={() => void generateReport()}
-              size="sm"
-              variant="outline"
-            >
-              {reportPending ? (
-                <LoaderCircleIcon
-                  aria-hidden="true"
-                  className="animate-spin"
-                  data-icon="inline-start"
-                />
-              ) : (
-                <FileTextIcon aria-hidden="true" data-icon="inline-start" />
-              )}
-              <span className="hidden sm:inline">Generar y descargar reporte</span>
-            </Button>
-          </div>
+              </Sheet>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={`Generar reporte: ${selectedReportType?.label ?? "Estadistico general"}`}
+                    disabled={reportPending}
+                    onClick={() => void generateReport()}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    {reportPending ? (
+                      <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
+                    ) : (
+                      <FileTextIcon aria-hidden="true" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Generar reporte · {selectedReportType?.label}</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
       </header>
 
       <div
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4"
+        className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-4 sm:gap-5 sm:px-5"
         ref={chatScrollRef}
       >
         {messages.length === 0 ? (
@@ -1122,11 +1196,11 @@ export function DataScienceChat() {
         )}
       </div>
 
-      <footer className="shrink-0 border-t p-2.5 sm:p-4">
-        <InputGroup>
+      <footer className="shrink-0 border-t px-3 py-2 sm:px-5 sm:py-3">
+        <InputGroup className="border-border bg-muted/40">
           <InputGroupTextarea
             aria-label="Pregunta para investigacion"
-            className="min-h-20 sm:min-h-24"
+            className="min-h-11 max-h-32 py-2 sm:min-h-12"
             onChange={(event) => setMessage(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -1138,10 +1212,8 @@ export function DataScienceChat() {
             ref={messageRef}
             value={message}
           />
-          <InputGroupAddon align="block-end" className="justify-between gap-3">
-            <span className="truncate text-xs sm:text-sm">
-              {pending ? "Procesando consulta" : "Ctrl/⌘ + Enter para enviar"}
-            </span>
+          <InputGroupAddon align="block-end" className="justify-end gap-3 py-1.5">
+            {pending ? <span className="text-xs text-muted-foreground">Procesando</span> : null}
             <InputGroupButton
               disabled={!canSubmit}
               onClick={() => void submitChat()}
@@ -1192,23 +1264,15 @@ function EmptyConversation({
   onPickPrompt: (prompt: string) => void;
 }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-4 rounded-xl bg-muted/20 p-4 sm:gap-5 sm:p-6">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-semibold sm:text-xl">
-          Haz una consulta investigativa
-        </h3>
-        <p className="hidden max-w-2xl text-sm text-muted-foreground sm:block">
-          Puedes pedir conteos, resumenes clinicos, distribuciones o datos para
-          comparaciones. Usa filtros de viaje y estacion cuando quieras acotar
-          la revision.
-        </p>
-      </div>
-      <div className="grid gap-2 md:grid-cols-2">
+    <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-4 py-6">
+      <h3 className="text-base font-semibold">Nueva consulta</h3>
+      <div className="grid gap-2 sm:grid-cols-2">
         {promptSuggestions.map((prompt) => (
           <Button
-            className="h-auto justify-start whitespace-normal rounded-xl px-4 py-3 text-left"
+            className="h-auto min-h-10 justify-start whitespace-normal rounded-md px-3 py-2 text-left"
             key={prompt}
             onClick={() => onPickPrompt(prompt)}
+            size="sm"
             variant="outline"
           >
             {prompt}
@@ -1229,14 +1293,46 @@ function ConversationMessage({
     chartType: Exclude<ChartType, "auto">,
   ) => void;
 }) {
+  const primaryArtifactIndex = message.artifacts.findIndex(
+    (artifact) => artifact.spec?.role === "primary",
+  );
+  const highlightedArtifactIndex =
+    primaryArtifactIndex >= 0 ? primaryArtifactIndex : message.artifacts.length > 0 ? 0 : -1;
+  const highlightedArtifact =
+    highlightedArtifactIndex >= 0 ? message.artifacts[highlightedArtifactIndex] : null;
+  const secondaryArtifacts = message.artifacts
+    .map((artifact, index) => ({ artifact, index }))
+    .filter((item) => item.index !== highlightedArtifactIndex);
+  const artifactContent = message.artifacts.length > 0 ? (
+    <div className="flex min-w-0 flex-col gap-3">
+      {highlightedArtifact ? (
+        <ArtifactView
+          artifact={highlightedArtifact}
+          emphasis="primary"
+          onChange={(chartType) => onChangeArtifact(highlightedArtifactIndex, chartType)}
+        />
+      ) : null}
+      {secondaryArtifacts.length > 0 ? (
+        <div className="grid min-w-0 gap-3 xl:grid-cols-2">
+          {secondaryArtifacts.map(({ artifact, index }) => (
+            <ArtifactView
+              artifact={artifact}
+              key={`${artifact.title}-${index}`}
+              onChange={(chartType) => onChangeArtifact(index, chartType)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
-    <article className="flex flex-col gap-3">
-      <div className="ml-auto max-w-[92%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[85%]">
+    <article className="flex min-w-0 flex-col gap-3">
+      <div className="ml-auto max-w-[90%] rounded-md bg-primary/10 px-3 py-2 text-sm text-foreground sm:max-w-[75%]">
         {message.question}
       </div>
-      <div className="max-w-full rounded-2xl border bg-muted/25 px-4 py-3 sm:max-w-[92%]">
-        <div className="flex flex-col gap-3">
-          <p className="whitespace-pre-wrap text-sm leading-6">{message.answer}</p>
+      <div className="flex min-w-0 max-w-full flex-col gap-3 border-l-2 border-primary/50 pl-3 sm:pl-4">
+          <p className="max-w-prose whitespace-pre-wrap wrap-break-word text-sm leading-6">{message.answer}</p>
           {message.intent === "report" && message.artifacts.length > 0 ? (
             <Button
               className="w-fit"
@@ -1248,7 +1344,7 @@ function ConversationMessage({
               Descargar reporte
             </Button>
           ) : null}
-          {message.artifacts.length > 0 || message.sources.length > 0 ? (
+          {message.sources.length > 0 ? (
             <Tabs defaultValue={message.artifacts.length > 0 ? "artifacts" : "sources"}>
               <TabsList>
                 {message.artifacts.length > 0 ? (
@@ -1259,14 +1355,8 @@ function ConversationMessage({
                 ) : null}
               </TabsList>
               {message.artifacts.length > 0 ? (
-                <TabsContent className="flex flex-col gap-3" value="artifacts">
-                  {message.artifacts.map((artifact, index) => (
-                    <ArtifactView
-                      artifact={artifact}
-                      key={`${artifact.title}-${index}`}
-                      onChange={(chartType) => onChangeArtifact(index, chartType)}
-                    />
-                  ))}
+                <TabsContent value="artifacts">
+                  {artifactContent}
                 </TabsContent>
               ) : null}
               {message.sources.length > 0 ? (
@@ -1275,8 +1365,7 @@ function ConversationMessage({
                 </TabsContent>
               ) : null}
             </Tabs>
-          ) : null}
-        </div>
+          ) : artifactContent}
       </div>
     </article>
   );
@@ -1284,19 +1373,39 @@ function ConversationMessage({
 
 function ArtifactView({
   artifact,
+  emphasis = "secondary",
   onChange,
 }: {
   artifact: Artifact;
+  emphasis?: "primary" | "secondary";
   onChange: (chartType: Exclude<ChartType, "auto">) => void;
 }) {
   const canChangeVisualization = Boolean(artifact.spec?.x && artifact.spec?.y);
   const selectedType =
     artifact.type === "table" ? "table" : artifact.spec?.kind ?? "bar";
+  const roleLabel = artifactRoleLabel(artifact.spec?.role, emphasis);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-background p-3">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-2 rounded-md border bg-background p-3",
+        emphasis === "primary" ? "border-border" : "border-border/60",
+      )}
+    >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h4 className="font-medium">{artifact.title}</h4>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[0.68rem] font-semibold uppercase text-primary">
+              {roleLabel}
+            </span>
+            <h4 className="min-w-0 wrap-break-word text-sm font-medium">{artifact.title}</h4>
+          </div>
+          {artifact.spec?.description ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {artifact.spec.description}
+            </p>
+          ) : null}
+        </div>
         {canChangeVisualization ? (
           <Select
             onValueChange={(value) =>
@@ -1304,7 +1413,7 @@ function ArtifactView({
             }
             value={selectedType}
           >
-            <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="h-8 w-full sm:w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1335,25 +1444,69 @@ function ArtifactView({
   );
 }
 
+function artifactRoleLabel(role: string | undefined, emphasis: "primary" | "secondary") {
+  if (role === "summary") {
+    return "Resumen";
+  }
+  if (role === "breakdown") {
+    return "Cruce";
+  }
+  if (role === "evidence") {
+    return "Evidencia";
+  }
+  return emphasis === "primary" ? "Principal" : "Resultado";
+}
+
 function ArtifactChart({ artifact }: { artifact: Artifact }) {
+  const [showFullTable, setShowFullTable] = useState(false);
   const rows = artifact.data as Record<string, unknown>[];
   const xKey = artifact.spec?.x ?? Object.keys(rows[0] ?? {})[0] ?? "label";
   const yKey = artifact.spec?.y ?? Object.keys(rows[0] ?? {})[1] ?? "value";
-  const data = rows.map((row) => ({
+  const chartKind = artifact.spec?.kind ?? "bar";
+  const limit = chartKind === "line" ? 24 : 12;
+  const canLimit = chartKind !== "scatter" && rows.length > limit;
+  const visibleRows = canLimit ? rows.slice(0, chartKind === "pie" ? 11 : limit) : rows;
+  const data = visibleRows.map((row) => ({
     label: String(row[xKey] ?? "Sin dato"),
     value: Number(row[yKey] ?? 0),
   }));
-  const height = Math.max(220, data.length * 34);
+  if (canLimit && chartKind === "pie") {
+    data.push({
+      label: "Otros",
+      value: rows.slice(11).reduce((total, row) => total + Number(row[yKey] ?? 0), 0),
+    });
+  }
+  const height = chartKind === "bar" ? Math.max(220, data.length * 30) : 270;
+
+  if (showFullTable) {
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        <ArtifactTable rows={rows} />
+        <Button className="w-fit" onClick={() => setShowFullTable(false)} size="xs" variant="ghost">
+          Volver al gráfico
+        </Button>
+      </div>
+    );
+  }
+
+  if (chartKind === "heatmap") {
+    return <ArtifactHeatmap artifact={artifact} />;
+  }
+
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">No hay datos para visualizar.</p>;
+  }
 
   return (
-    <div className="flex flex-col gap-2">
-      <ChartContainer
-        className="w-full"
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="min-w-0">
+        <ChartContainer
+        className="aspect-auto w-full min-w-0"
         config={chartConfig}
-        initialDimension={{ height, width: 560 }}
+        initialDimension={{ height, width: 320 }}
         style={{ height }}
       >
-        {artifact.spec?.kind === "pie" ? (
+        {chartKind === "pie" ? (
           <PieChart accessibilityLayer data={data}>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie
@@ -1371,7 +1524,7 @@ function ArtifactChart({ artifact }: { artifact: Artifact }) {
               ))}
             </Pie>
           </PieChart>
-        ) : artifact.spec?.kind === "line" ? (
+        ) : chartKind === "line" ? (
           <LineChart
             accessibilityLayer
             data={data}
@@ -1389,6 +1542,27 @@ function ArtifactChart({ artifact }: { artifact: Artifact }) {
               type="monotone"
             />
           </LineChart>
+        ) : chartKind === "scatter" ? (
+          <ScatterChart
+            accessibilityLayer
+            data={toScatterData(visibleRows, xKey, yKey)}
+            margin={{ bottom: 4, left: 4, right: 28, top: 4 }}
+          >
+            <RechartsCartesianGrid />
+            <RechartsXAxis
+              dataKey="x"
+              tickFormatter={(value) =>
+                toScatterData(visibleRows, xKey, yKey).find((row) => row.x === value)?.label ??
+                String(value)
+              }
+              tickLine={false}
+              type="number"
+            />
+            <RechartsYAxis dataKey="y" tickLine={false} width={44} />
+            <ZAxis range={[64, 64]} />
+            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+            <Scatter dataKey="y" fill="var(--color-value)" />
+          </ScatterChart>
         ) : (
           <RechartsBarChart
             accessibilityLayer
@@ -1403,15 +1577,115 @@ function ArtifactChart({ artifact }: { artifact: Artifact }) {
               tickLine={false}
               tickMargin={8}
               type="category"
-              width={150}
+              width={112}
+              tickFormatter={(value: string) =>
+                value.length > 20 ? `${value.slice(0, 19)}…` : value
+              }
             />
             <RechartsXAxis dataKey="value" hide type="number" />
-            <ChartTooltip content={<ChartTooltipContent hideLabel />} cursor={false} />
+            <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
             <RechartsBar dataKey="value" fill="var(--color-value)" radius={6} />
           </RechartsBarChart>
         )}
-      </ChartContainer>
+        </ChartContainer>
+      </div>
+      {canLimit ? (
+        <Button
+          className="w-fit"
+          onClick={() => setShowFullTable(true)}
+          size="xs"
+          variant="ghost"
+        >
+          Ver todos los datos ({rows.length})
+        </Button>
+      ) : null}
     </div>
+  );
+}
+
+function toScatterData(
+  rows: Record<string, unknown>[],
+  xKey: string,
+  yKey: string,
+) {
+  return rows.map((row, index) => {
+    const rawX = Number(row[xKey]);
+    return {
+      label: String(row[xKey] ?? index + 1),
+      x: Number.isFinite(rawX) ? rawX : index + 1,
+      y: Number(row[yKey] ?? 0),
+    };
+  });
+}
+
+function ArtifactHeatmap({ artifact }: { artifact: Artifact }) {
+  const rows = artifact.data as Record<string, unknown>[];
+  const xKey = artifact.spec?.x ?? Object.keys(rows[0] ?? {})[0] ?? "x";
+  const yKey = artifact.spec?.group ?? artifact.spec?.series ?? Object.keys(rows[0] ?? {})[1] ?? "group";
+  const valueKey = artifact.spec?.y ?? "historias";
+  const xLabels = Array.from(new Set(rows.map((row) => String(row[xKey] ?? "Sin dato"))));
+  const yLabels = Array.from(new Set(rows.map((row) => String(row[yKey] ?? "Sin dato"))));
+  const values = new Map(
+    rows.map((row) => [
+      `${String(row[xKey] ?? "Sin dato")}::${String(row[yKey] ?? "Sin dato")}`,
+      Number(row[valueKey] ?? 0),
+    ]),
+  );
+  const max = Math.max(...Array.from(values.values()), 1);
+
+  return (
+    <div className="max-h-[420px] min-w-0 overflow-auto rounded-md border">
+      <div
+        className="grid w-max min-w-full text-xs"
+        style={{ gridTemplateColumns: `minmax(110px, 1fr) repeat(${xLabels.length}, minmax(72px, 1fr))` }}
+      >
+        <div className="bg-muted px-3 py-2 font-medium">{yKey}</div>
+        {xLabels.map((label) => (
+          <div className="bg-muted px-3 py-2 text-center font-medium" key={label}>
+            {label}
+          </div>
+        ))}
+        {yLabels.map((rowLabel) => (
+          <HeatmapRow
+            key={rowLabel}
+            max={max}
+            rowLabel={rowLabel}
+            values={values}
+            xLabels={xLabels}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HeatmapRow({
+  max,
+  rowLabel,
+  values,
+  xLabels,
+}: {
+  max: number;
+  rowLabel: string;
+  values: Map<string, number>;
+  xLabels: string[];
+}) {
+  return (
+    <>
+      <div className="border-t px-3 py-2 font-medium">{rowLabel}</div>
+      {xLabels.map((columnLabel) => {
+        const value = values.get(`${columnLabel}::${rowLabel}`) ?? 0;
+        return (
+          <div
+            className="border-t px-3 py-2 text-center tabular-nums"
+            key={columnLabel}
+            style={{ backgroundColor: `color-mix(in oklch, var(--primary) ${Math.max(8, (value / max) * 58)}%, transparent)` }}
+          >
+            {value}
+          </div>
+        );
+      })}
+    </>
   );
 }
 
@@ -1449,8 +1723,8 @@ function ArtifactTable({
   const columns = useMemo(() => Object.keys(rows[0] ?? {}), [rows]);
 
   return (
-    <div className="overflow-hidden rounded-xl border">
-      <div className="overflow-x-auto">
+    <div className="min-w-0 overflow-hidden rounded-md border">
+      <div className="max-h-[420px] overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

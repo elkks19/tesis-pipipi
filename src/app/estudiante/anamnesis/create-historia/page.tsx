@@ -5,7 +5,11 @@ import { PacienteSearchInput } from "@/components/pacientes/paciente-search-inpu
 import { PacienteSearchResults } from "@/components/pacientes/paciente-search-results";
 
 import { createAnamnesis } from "./actions";
-import { getPacienteById, searchPacientes } from "./queries";
+import {
+  getHistoriasByPacienteId,
+  getPacienteById,
+  searchPacientes,
+} from "./queries";
 
 export const metadata: Metadata = {
   title: "Nueva historia",
@@ -32,6 +36,9 @@ export default async function CreateHistoriaPage({
     searchPacientes(query),
     getPacienteById(pacienteId),
   ]);
+  const selectedPacienteHistorias = selectedPaciente
+    ? await getHistoriasByPacienteId(selectedPaciente.id)
+    : [];
   const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes;
 
   return (
@@ -53,6 +60,11 @@ export default async function CreateHistoriaPage({
       <PacienteSearchResults
         hideCreateHistoriaAction={Boolean(selectedPaciente)}
         pacientes={visiblePacientes}
+        historiasByPacienteId={
+          selectedPaciente
+            ? { [selectedPaciente.id]: selectedPacienteHistorias }
+            : undefined
+        }
         query={query}
         selectedPacienteId={selectedPaciente?.id}
         newPacienteRoute="/estudiante/anamnesis/create-paciente"
@@ -64,6 +76,8 @@ export default async function CreateHistoriaPage({
             action={createAnamnesis}
             defaultValue={{ pacienteId: selectedPaciente.id }}
             key={selectedPaciente.id}
+            pacienteGenero={selectedPaciente.genero}
+            pacienteFechaNacimiento={new Date(selectedPaciente.datosPersonales.fechaNacimiento).toISOString()}
             successRedirectHref="/estudiante/anamnesis/create-historia"
           />
         </section>

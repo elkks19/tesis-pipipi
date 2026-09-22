@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
+import { RegisterFormSchema } from "@/lib/schema/authForms";
 
 type RegisterFormProps = {
   callbackURL: string;
@@ -31,6 +33,8 @@ type RegisterFormProps = {
 function subscribeToHydration() {
   return () => {};
 }
+
+const clientState = { ok: false };
 
 export function RegisterForm({ callbackURL }: RegisterFormProps) {
   const router = useRouter();
@@ -49,6 +53,14 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
   const [isPending, setIsPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
   const isCheckingSession = hasMounted && isSessionPending;
+  const formValue = { name, email, password, passwordConfirmation };
+  const validation = RegisterFormSchema.safeParse(formValue);
+  const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
+    value: formValue,
+    actionState: clientState,
+    isPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!hasMounted) {
@@ -62,12 +74,8 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
 
   async function handleRegister(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (revealErrors(event)) return;
     setError("");
-
-    if (password !== passwordConfirmation) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
 
     setIsPending(true);
 
@@ -124,23 +132,28 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
           <CardTitle>Crear cuenta</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-6" onSubmit={handleRegister}>
+          <form className="flex flex-col gap-6" noValidate onBlurCapture={onBlurCapture} onSubmit={handleRegister}>
             <FieldGroup>
-              <Field>
+              <Field data-invalid={Boolean(visibleErrors.name)}>
                 <FieldLabel htmlFor="name">Nombre completo</FieldLabel>
                 <Input
                   autoComplete="name"
+                  aria-describedby={visibleErrors.name ? "register-name-error" : undefined}
+                  aria-invalid={Boolean(visibleErrors.name)}
                   id="name"
                   name="name"
                   onChange={(event) => setName(event.target.value)}
                   required
                   value={name}
                 />
+                <FieldError id="register-name-error">{visibleErrors.name}</FieldError>
               </Field>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(visibleErrors.email)}>
                 <FieldLabel htmlFor="email">Correo electronico</FieldLabel>
                 <Input
                   autoComplete="email"
+                  aria-describedby={visibleErrors.email ? "register-email-error" : undefined}
+                  aria-invalid={Boolean(visibleErrors.email)}
                   id="email"
                   name="email"
                   onChange={(event) => setEmail(event.target.value)}
@@ -148,11 +161,14 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
                   type="email"
                   value={email}
                 />
+                <FieldError id="register-email-error">{visibleErrors.email}</FieldError>
               </Field>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(visibleErrors.password)}>
                 <FieldLabel htmlFor="password">Contraseña</FieldLabel>
                 <Input
                   autoComplete="new-password"
+                  aria-describedby={visibleErrors.password ? "register-password-error" : undefined}
+                  aria-invalid={Boolean(visibleErrors.password)}
                   id="password"
                   minLength={8}
                   name="password"
@@ -162,13 +178,16 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
                   value={password}
                 />
                 <FieldDescription>Usa al menos 8 caracteres.</FieldDescription>
+                <FieldError id="register-password-error">{visibleErrors.password}</FieldError>
               </Field>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(error || visibleErrors.passwordConfirmation)}>
                 <FieldLabel htmlFor="passwordConfirmation">
                   Confirmar contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"
+                  aria-describedby={error || visibleErrors.passwordConfirmation ? "register-confirmation-error" : undefined}
+                  aria-invalid={Boolean(error || visibleErrors.passwordConfirmation)}
                   id="passwordConfirmation"
                   minLength={8}
                   name="passwordConfirmation"
@@ -179,7 +198,7 @@ export function RegisterForm({ callbackURL }: RegisterFormProps) {
                   type="password"
                   value={passwordConfirmation}
                 />
-                <FieldError>{error}</FieldError>
+                <FieldError id="register-confirmation-error">{visibleErrors.passwordConfirmation ?? error}</FieldError>
               </Field>
             </FieldGroup>
 

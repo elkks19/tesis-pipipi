@@ -1,6 +1,7 @@
 import unittest
 
 from app.analytics.reports import build_report
+from app.models.requests import ReportRequest
 
 
 ROWS = [
@@ -41,6 +42,14 @@ ROWS = [
 
 
 class ReportsTests(unittest.TestCase):
+    def test_report_request_can_skip_chat_persistence(self):
+        request = ReportRequest.model_validate({
+            "reportType": "general",
+            "saveToConversation": False,
+        })
+
+        self.assertFalse(request.save_to_conversation)
+
     def test_default_report_keeps_general_behavior(self):
         report = build_report(ROWS, "general")
 

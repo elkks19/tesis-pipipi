@@ -21,8 +21,11 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
+import { LoginFormSchema } from "@/lib/schema/authForms";
 
 const loginRedirectPath = "/";
+const clientState = { ok: false };
 
 function subscribeToHydration() {
   return () => {};
@@ -43,6 +46,14 @@ export function LoginForm() {
   const [isEmailPending, setIsEmailPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
   const isCheckingSession = hasMounted && isSessionPending;
+  const formValue = { email, password };
+  const validation = LoginFormSchema.safeParse(formValue);
+  const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
+    value: formValue,
+    actionState: clientState,
+    isPending: isEmailPending,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     if (!hasMounted) {
@@ -69,6 +80,7 @@ export function LoginForm() {
 
   async function handleEmailLogin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (revealErrors(event)) return;
     setError("");
     setIsEmailPending(true);
 
@@ -134,13 +146,17 @@ export function LoginForm() {
             action="/login"
             className="flex flex-col gap-6"
             method="post"
+            noValidate
+            onBlurCapture={onBlurCapture}
             onSubmit={handleEmailLogin}
           >
             <FieldGroup>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(visibleErrors.email)}>
                 <FieldLabel htmlFor="email">Correo electronico</FieldLabel>
                 <Input
                   autoComplete="email"
+                  aria-describedby={visibleErrors.email ? "login-email-error" : undefined}
+                  aria-invalid={Boolean(visibleErrors.email)}
                   id="email"
                   name="email"
                   onChange={(event) => setEmail(event.target.value)}
@@ -148,11 +164,14 @@ export function LoginForm() {
                   type="email"
                   value={email}
                 />
+                <FieldError id="login-email-error">{visibleErrors.email}</FieldError>
               </Field>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(error || visibleErrors.password)}>
                 <FieldLabel htmlFor="password">Contraseña</FieldLabel>
                 <Input
                   autoComplete="current-password"
+                  aria-describedby={error || visibleErrors.password ? "login-password-error" : undefined}
+                  aria-invalid={Boolean(error || visibleErrors.password)}
                   id="password"
                   name="password"
                   onChange={(event) => setPassword(event.target.value)}
@@ -160,7 +179,7 @@ export function LoginForm() {
                   type="password"
                   value={password}
                 />
-                <FieldError>{error}</FieldError>
+                <FieldError id="login-password-error">{visibleErrors.password ?? error}</FieldError>
               </Field>
             </FieldGroup>
 

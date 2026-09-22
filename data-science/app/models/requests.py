@@ -41,6 +41,7 @@ class ArtifactUpdateRequest(BaseModel):
 
 class ReportRequest(BaseModel):
     conversation_id: str | None = Field(default=None, alias="conversationId")
+    save_to_conversation: bool = Field(default=True, alias="saveToConversation")
     report_type: Literal["general", "perfil_epidemiologico", "diagnosticos_poblacion"] = Field(
         default="general",
         alias="reportType",

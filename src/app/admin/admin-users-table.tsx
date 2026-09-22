@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 
 import { inviteUser, updateUserRole } from "@/app/admin/actions";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -76,6 +77,9 @@ import {
   type AuthRole,
 } from "@/lib/auth-role-values";
 import type { AuthUserWithAccounts } from "@/lib/auth-users";
+import { InviteUserFormSchema } from "@/lib/schema/authForms";
+
+const inviteClientState = { ok: false };
 
 const roleLabels: Record<AuthRole, string> = {
   admin: "Admin",
@@ -112,8 +116,23 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [inviteError, setInviteError] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<AuthRole>("docente-investigador");
   const [isRolePending, startRoleTransition] = useTransition();
   const [isInvitePending, startInviteTransition] = useTransition();
+  const inviteValue = { email: inviteEmail, role: inviteRole };
+  const inviteValidation = InviteUserFormSchema.safeParse(inviteValue);
+  const {
+    visibleErrors: inviteFieldErrors,
+    onBlurCapture: onInviteBlur,
+    revealErrors: revealInviteErrors,
+    resetErrors: resetInviteErrors,
+  } = useInteractiveErrors({
+    value: inviteValue,
+    actionState: inviteClientState,
+    isPending: isInvitePending,
+    validationError: inviteValidation.success ? undefined : inviteValidation.error,
+  });
 
   const handleRoleChange = useCallback((userId: string, role: AuthRole) => {
     startRoleTransition(async () => {
@@ -131,6 +150,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
 
   function handleInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (revealInviteErrors(event)) return;
     setInviteError("");
     setTemporaryPassword("");
 
@@ -147,6 +167,9 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
       }
 
       form.reset();
+      setInviteEmail("");
+      setInviteRole("docente-investigador");
+      resetInviteErrors();
       setTemporaryPassword(result.temporaryPassword ?? "");
       toast.success(result.message);
       router.refresh();
@@ -280,6 +303,9 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                 if (!open) {
                   setInviteError("");
                   setTemporaryPassword("");
+                  setInviteEmail("");
+                  setInviteRole("docente-investigador");
+                  resetInviteErrors();
                 }
               }}
             >
@@ -301,23 +327,30 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                 <form
                   className="flex flex-col gap-6"
                   id="invite-user-form"
+                  noValidate
+                  onBlurCapture={onInviteBlur}
                   onSubmit={handleInvite}
                 >
                   <FieldGroup>
-                    <Field data-invalid={Boolean(inviteError)}>
+                    <Field data-invalid={Boolean(inviteFieldErrors.email)}>
                       <FieldLabel htmlFor="invite-email">Correo</FieldLabel>
                       <Input
                         autoComplete="email"
+                        aria-describedby={inviteFieldErrors.email ? "invite-email-error" : undefined}
+                        aria-invalid={Boolean(inviteFieldErrors.email)}
                         id="invite-email"
                         name="email"
+                        onChange={(event) => setInviteEmail(event.target.value)}
                         required
                         type="email"
+                        value={inviteEmail}
                       />
+                      <FieldError id="invite-email-error">{inviteFieldErrors.email}</FieldError>
                     </Field>
-                    <Field>
+                    <Field data-invalid={Boolean(inviteError || inviteFieldErrors.role)}>
                       <FieldLabel htmlFor="invite-role">Rol inicial</FieldLabel>
-                      <Select defaultValue="docente-investigador" name="role">
-                        <SelectTrigger id="invite-role">
+                      <Select name="role" onValueChange={(value) => setInviteRole(value as AuthRole)} value={inviteRole}>
+                        <SelectTrigger aria-describedby={inviteError || inviteFieldErrors.role ? "invite-role-error" : undefined} aria-invalid={Boolean(inviteError || inviteFieldErrors.role)} id="invite-role">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -330,7 +363,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      <FieldError>{inviteError}</FieldError>
+                      <FieldError id="invite-role-error">{inviteFieldErrors.role ?? inviteError}</FieldError>
                     </Field>
                   </FieldGroup>
 

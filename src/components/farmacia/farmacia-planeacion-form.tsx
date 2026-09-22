@@ -118,8 +118,10 @@ export function FarmaciaPlaneacionForm({
           <form ref={formRef} action={formAction} className="flex flex-col gap-4" noValidate
             onBlurCapture={onBlurCapture}
             onChangeCapture={(event) => {
-              const target = event.target as HTMLInputElement;
-              if (target.name in emptyFields) setFields((current) => ({ ...current, [target.name]: target.value }));
+              const target = event.nativeEvent.target;
+              if (target instanceof HTMLInputElement && target.name in emptyFields) {
+                setFields((current) => ({ ...current, [target.name]: target.value }));
+              }
             }}
             onSubmit={(event) => { revealErrors(event); }}>
             <FieldGroup>

@@ -11,8 +11,8 @@ import {
 import {
   CheckIcon,
   ChevronsUpDownIcon,
+  FileChartColumnIcon,
   FileDownIcon,
-  FileTextIcon,
   HistoryIcon,
   LoaderCircleIcon,
   MessageSquareTextIcon,
@@ -130,6 +130,7 @@ type Source = {
 
 type ChartType = "auto" | "bar" | "line" | "pie" | "table" | "scatter" | "heatmap";
 type ReportType = "general" | "perfil_epidemiologico" | "diagnosticos_poblacion";
+type ReportKey = ReportType | "resumen_viaje";
 
 type ChatResponse = {
   answer: string;
@@ -203,21 +204,24 @@ const chartTypeOptions = [
 
 const reportTypeOptions = [
   {
+    description: "Historias, diagnosticos, genero, IMC e indicadores disponibles en el alcance.",
     label: "Estadistico general",
-    question: "Generar reporte estadistico",
+    scope: "Uno o varios viajes · estacion opcional",
     value: "general",
   },
   {
+    description: "Perfil de la poblacion atendida, hallazgos clinicos y cobertura de datos.",
     label: "Perfil epidemiologico",
-    question: "Generar perfil epidemiologico",
+    scope: "Uno o varios viajes · estacion opcional",
     value: "perfil_epidemiologico",
   },
   {
+    description: "Frecuencias y cruces de diagnosticos por genero, edad, viaje e IMC.",
     label: "Diagnosticos por poblacion",
-    question: "Generar reporte de diagnosticos por poblacion",
+    scope: "Uno o varios viajes · estacion opcional",
     value: "diagnosticos_poblacion",
   },
-] satisfies { label: string; question: string; value: ReportType }[];
+] satisfies { description: string; label: string; scope: string; value: ReportType }[];
 
 const chartConfig = {
   value: {
@@ -244,10 +248,9 @@ export function DataScienceChat() {
   const [tripSearch, setTripSearch] = useState("");
   const [stationKey, setStationKey] = useState("all");
   const [chartType, setChartType] = useState<ChartType>("auto");
-  const [reportType, setReportType] = useState<ReportType>("general");
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState(false);
-  const [reportPending, setReportPending] = useState(false);
+  const [reportPending, setReportPending] = useState<ReportKey | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
   const tripRequestIdRef = useRef(0);
@@ -257,9 +260,6 @@ export function DataScienceChat() {
   );
   const selectedStation = stationOptions.find(
     (station) => station.value === stationKey,
-  );
-  const selectedReportType = reportTypeOptions.find(
-    (option) => option.value === reportType,
   );
   const tripScopeLabel =
     selectedTrips.length === 0
@@ -555,36 +555,6 @@ export function DataScienceChat() {
       </Select>
       <span className="truncate text-xs text-muted-foreground">
         El asistente usara este formato cuando aplique.
-      </span>
-      </div>
-    );
-  }
-
-  function renderReportPicker() {
-    return (
-      <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted-foreground">
-        Tipo de reporte
-      </span>
-      <Select
-        onValueChange={(value) => setReportType(value as ReportType)}
-        value={reportType}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {reportTypeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <span className="truncate text-xs text-muted-foreground">
-        Se aplicara al boton Generar reporte.
       </span>
       </div>
     );
@@ -959,14 +929,15 @@ export function DataScienceChat() {
     }
   }
 
-  async function generateReport() {
-    setReportPending(true);
+  async function generateReport(reportType: ReportType) {
+    setReportPending(reportType);
 
     try {
       const response = await fetch("/api/data-science/reports", {
         body: JSON.stringify({
           conversationId,
           reportType,
+          saveToConversation: false,
           scope: {
             stationKey: stationKey === "all" ? undefined : stationKey,
             viajeIds:
@@ -982,27 +953,48 @@ export function DataScienceChat() {
       }
 
       const result = data as ChatResponse;
-      const reportMessage = {
+      const reportMessage: Message = {
         answer: result.answer,
         assistantMessageIndex: result.assistant_message_index ?? undefined,
         artifacts: result.artifacts,
         id: createClientId(),
         intent: result.intent,
-        question: selectedReportType?.question ?? "Generar reporte estadistico",
+        question: "",
         sources: result.sources,
       };
-      setConversationId(result.conversation_id ?? conversationId);
-      setMessages((current) => [...current, reportMessage]);
-      scrollChatToBottom();
-      await downloadReport(reportMessage);
-      toast.success("Reporte generado y descargado.");
-      void loadChats();
+      await downloadReport(reportMessage, `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("Reporte descargado.");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "No se pudo generar el reporte.",
       );
     } finally {
-      setReportPending(false);
+      setReportPending(null);
+    }
+  }
+
+  async function downloadTripReport() {
+    const trip = selectedTrips[0];
+    if (selectedTrips.length !== 1 || !trip) {
+      toast.error("Selecciona exactamente un viaje para este reporte.");
+      return;
+    }
+
+    setReportPending("resumen_viaje");
+    try {
+      const response = await fetch(
+        `/api/investigacion/reportes/viaje/${encodeURIComponent(trip.id)}`,
+      );
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message ?? "No se pudo generar el reporte del viaje.");
+      }
+      await downloadResponse(response, `reporte-viaje-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("Reporte del viaje descargado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el reporte.");
+    } finally {
+      setReportPending(null);
     }
   }
 
@@ -1092,7 +1084,6 @@ export function DataScienceChat() {
                   <div className="sm:col-span-2">{renderTripPicker()}</div>
                   {renderStationPicker()}
                   {renderResultPicker()}
-                  {renderReportPicker()}
                 </div>
               </SheetContent>
               </Sheet>
@@ -1154,24 +1145,71 @@ export function DataScienceChat() {
                 </div>
               </SheetContent>
               </Sheet>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={`Generar reporte: ${selectedReportType?.label ?? "Estadistico general"}`}
-                    disabled={reportPending}
-                    onClick={() => void generateReport()}
-                    size="icon-sm"
-                    variant="ghost"
-                  >
-                    {reportPending ? (
-                      <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <FileTextIcon aria-hidden="true" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Generar reporte · {selectedReportType?.label}</TooltipContent>
-              </Tooltip>
+              <Sheet>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SheetTrigger asChild>
+                      <Button aria-label="Reportes" size="icon-sm" variant="ghost">
+                        <FileChartColumnIcon aria-hidden="true" />
+                      </Button>
+                    </SheetTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Reportes</TooltipContent>
+                </Tooltip>
+                <SheetContent className="w-full gap-0 p-0 sm:max-w-lg" side="right">
+                  <SheetHeader className="border-b px-5 py-4 text-left">
+                    <SheetTitle>Reportes</SheetTitle>
+                    <SheetDescription>
+                      Configura el alcance y descarga el PDF sin agregarlo al chat.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <section className="border-b px-5 py-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold">Alcance</h3>
+                          <p className="text-xs text-muted-foreground">Los filtros se aplican al reporte elegido.</p>
+                        </div>
+                        {(selectedTripIds.length > 0 || stationKey !== "all") ? (
+                          <Button
+                            onClick={() => { setSelectedTripIds([]); setSelectedTripOptions([]); setStationKey("all"); }}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            Limpiar
+                          </Button>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {renderTripPicker()}
+                        {renderStationPicker()}
+                      </div>
+                    </section>
+
+                    <div className="flex flex-col divide-y">
+                      <ReportDownloadItem
+                        description="Servicio, fechas, establecimiento y asignacion de docentes y estudiantes por estacion."
+                        disabled={selectedTrips.length !== 1 || Boolean(reportPending)}
+                        filterLabel="Requiere exactamente un viaje"
+                        loading={reportPending === "resumen_viaje"}
+                        onDownload={() => void downloadTripReport()}
+                        title="Resumen operativo del viaje"
+                      />
+                      {reportTypeOptions.map((report) => (
+                        <ReportDownloadItem
+                          description={report.description}
+                          disabled={Boolean(reportPending)}
+                          filterLabel={report.scope}
+                          key={report.value}
+                          loading={reportPending === report.value}
+                          onDownload={() => void generateReport(report.value)}
+                          title={report.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </TooltipProvider>
         </div>
@@ -1748,7 +1786,48 @@ function ArtifactTable({
   );
 }
 
-async function downloadReport(message: Message) {
+function ReportDownloadItem({
+  description,
+  disabled,
+  filterLabel,
+  loading,
+  onDownload,
+  title,
+}: {
+  description: string;
+  disabled: boolean;
+  filterLabel: string;
+  loading: boolean;
+  onDownload: () => void;
+  title: string;
+}) {
+  return (
+    <article className="flex flex-col gap-3 px-5 py-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
+          <FileChartColumnIcon aria-hidden="true" className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold leading-5">{title}</h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 text-xs text-muted-foreground">{filterLabel}</span>
+        <Button disabled={disabled} onClick={onDownload} size="sm">
+          {loading ? (
+            <LoaderCircleIcon aria-hidden="true" className="animate-spin" data-icon="inline-start" />
+          ) : (
+            <FileDownIcon aria-hidden="true" data-icon="inline-start" />
+          )}
+          {loading ? "Generando" : "Descargar"}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+async function downloadReport(message: Message, fileName?: string) {
   const response = await fetch("/api/investigacion/reporte", {
     body: JSON.stringify({
       answer: message.answer,
@@ -1764,15 +1843,27 @@ async function downloadReport(message: Message) {
     throw new Error("No se pudo descargar el PDF.");
   }
 
+  await downloadResponse(
+    response,
+    fileName ?? `reporte-investigacion-${new Date().toISOString().slice(0, 10)}.pdf`,
+  );
+}
+
+async function downloadResponse(response: Response, fallbackFileName: string) {
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `reporte-investigacion-${new Date().toISOString().slice(0, 10)}.pdf`;
+  link.download = getDownloadFileName(response.headers.get("Content-Disposition")) ?? fallbackFileName;
   document.body.appendChild(link);
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
+function getDownloadFileName(contentDisposition: string | null) {
+  const match = contentDisposition?.match(/filename="?([^";]+)"?/i);
+  return match?.[1];
 }
 
 async function downloadReportWithToast(message: Message) {

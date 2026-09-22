@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
+import { PasswordSetupFormSchema } from "@/lib/schema/authForms";
+
+const clientState = { ok: false };
 
 export function PasswordSetupGate() {
   const { data: session, isPending: isSessionPending } =
@@ -34,6 +38,14 @@ export function PasswordSetupGate() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const formValue = { password, passwordConfirmation };
+  const validation = PasswordSetupFormSchema.safeParse(formValue);
+  const { visibleErrors, onBlurCapture, revealErrors, resetErrors } = useInteractiveErrors({
+    value: formValue,
+    actionState: clientState,
+    isPending: isSubmitting,
+    validationError: validation.success ? undefined : validation.error,
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -86,12 +98,8 @@ export function PasswordSetupGate() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (revealErrors(event)) return;
     setError("");
-
-    if (password !== passwordConfirmation) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
 
     setIsSubmitting(true);
 
@@ -108,6 +116,7 @@ export function PasswordSetupGate() {
       setRequiresGoogleLink(!hasGoogleAccount);
       setPassword("");
       setPasswordConfirmation("");
+      resetErrors();
     } catch (setupError) {
       setError(
         setupError instanceof Error
@@ -185,14 +194,16 @@ export function PasswordSetupGate() {
             </DialogDescription>
           </DialogHeader>
 
-          <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-6" noValidate onBlurCapture={onBlurCapture} onSubmit={handleSubmit}>
             <FieldGroup>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(visibleErrors.password)}>
                 <FieldLabel htmlFor="password-setup-password">
                   Contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"
+                  aria-describedby={visibleErrors.password ? "password-setup-password-error" : undefined}
+                  aria-invalid={Boolean(visibleErrors.password)}
                   id="password-setup-password"
                   minLength={8}
                   onChange={(event) => setPassword(event.target.value)}
@@ -201,13 +212,16 @@ export function PasswordSetupGate() {
                   value={password}
                 />
                 <FieldDescription>Usa al menos 8 caracteres.</FieldDescription>
+                <FieldError id="password-setup-password-error">{visibleErrors.password}</FieldError>
               </Field>
-              <Field data-invalid={Boolean(error)}>
+              <Field data-invalid={Boolean(error || visibleErrors.passwordConfirmation)}>
                 <FieldLabel htmlFor="password-setup-confirmation">
                   Confirmar contraseña
                 </FieldLabel>
                 <Input
                   autoComplete="new-password"
+                  aria-describedby={error || visibleErrors.passwordConfirmation ? "password-setup-confirmation-error" : undefined}
+                  aria-invalid={Boolean(error || visibleErrors.passwordConfirmation)}
                   id="password-setup-confirmation"
                   minLength={8}
                   onChange={(event) =>
@@ -217,7 +231,7 @@ export function PasswordSetupGate() {
                   type="password"
                   value={passwordConfirmation}
                 />
-                <FieldError>{error}</FieldError>
+                <FieldError id="password-setup-confirmation-error">{visibleErrors.passwordConfirmation ?? error}</FieldError>
               </Field>
             </FieldGroup>
 

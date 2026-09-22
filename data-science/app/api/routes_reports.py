@@ -31,22 +31,24 @@ async def generate_report(
     pacientes = await repository.fetch_pacientes_for_historias(historias)
     report = build_report(build_story_rows(historias, pacientes), request.report_type)
     question = REPORT_QUESTIONS.get(request.report_type, REPORT_QUESTIONS["general"])
-    saved_chat = await ChatRepository(couch).append_exchange(
-        answer=report.answer,
-        artifacts=[artifact.model_dump() for artifact in report.artifacts],
-        conversation_id=request.conversation_id,
-        intent="report",
-        owner_id=request.scope.user_id or "anonymous",
-        question=question,
-        role=request.scope.role,
-        scope=request.scope.model_dump(by_alias=True),
-        sources=[],
-    )
+    saved_chat = None
+    if request.save_to_conversation:
+        saved_chat = await ChatRepository(couch).append_exchange(
+            answer=report.answer,
+            artifacts=[artifact.model_dump() for artifact in report.artifacts],
+            conversation_id=request.conversation_id,
+            intent="report",
+            owner_id=request.scope.user_id or "anonymous",
+            question=question,
+            role=request.scope.role,
+            scope=request.scope.model_dump(by_alias=True),
+            sources=[],
+        )
 
     return ChatResponse(
         answer=report.answer,
-        assistant_message_index=saved_chat.get("_assistantMessageIndex"),
-        conversation_id=saved_chat.get("_id"),
+        assistant_message_index=saved_chat.get("_assistantMessageIndex") if saved_chat else None,
+        conversation_id=saved_chat.get("_id") if saved_chat else request.conversation_id,
         intent="report",
         artifacts=report.artifacts,
         sources=[],

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contexto del proyecto Tesis"
+  short_description: "Arquitectura y reglas reales del sistema clinico"
+  default_prompt: "Lee el contexto relevante del proyecto antes de modificar su codigo."

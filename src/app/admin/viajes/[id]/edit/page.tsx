@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeftIcon } from "lucide-react";
 
 import {
   ViajeForm,
@@ -7,6 +9,7 @@ import {
   type ViajeUserOption,
 } from "@/components/forms/viaje-form";
 import { ViajeInventarioTable } from "@/components/farmacia/viaje-inventario-table";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -69,17 +72,21 @@ export default async function EditViajePage({
   const action = updateViaje.bind(null, viaje.docId);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Editar viaje</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Ajusta fechas, establecimiento y estaciones antes de que el viaje
-          inicie.
-        </p>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7">
+      <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Administración · Coordinación</p>
+          <h1 className="font-heading text-2xl font-semibold">Editar viaje</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Ajusta fechas, establecimiento y estaciones antes de que el viaje inicie.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline"><Link href="/admin/viajes"><ArrowLeftIcon data-icon="inline-start" />Volver a viajes</Link></Button>
       </div>
 
       <ViajeForm
         action={action}
+        backHref="/admin/viajes"
         defaultValue={getDefaultValue(viaje)}
         successRedirectHref="/admin/viajes"
         submitLabel="Actualizar viaje"

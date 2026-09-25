@@ -11,13 +11,13 @@ export default function AdminUsersPage() {
   const users = listAuthUsersWithAccounts();
 
   return (
-    <main className="flex h-[calc(100svh-7.5rem)] min-h-0 flex-col gap-3 sm:h-[calc(100svh-9rem)] lg:h-[calc(100svh-10rem)]">
-      <section className="flex shrink-0 flex-col gap-1">
-        <p className="text-xs font-medium text-muted-foreground">
-          Administracion
+    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 pb-10">
+      <section className="flex flex-col gap-1.5 border-b pb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          Administración · Coordinación
         </p>
-        <h1 className="text-xl font-semibold">Usuarios</h1>
-        <p className="max-w-3xl text-xs text-muted-foreground sm:text-sm">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">Usuarios</h1>
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
           Gestiona accesos, roles e invitaciones para docentes, estudiantes e
           investigadores.
         </p>

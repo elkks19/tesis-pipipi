@@ -13,6 +13,8 @@ export const generos = [
 
 export type Paciente = {
 	type: "paciente";
+	createdAt?: string;
+	updatedAt?: string;
 	datosPersonales: {
 		nombres: string;
 		apellidoPaterno: string;

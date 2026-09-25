@@ -49,6 +49,10 @@ const navItems = [
   },
 ];
 
+const activityHref = "/estudiante/anamnesis";
+const newHistoryHref = `${activityHref}/create-historia`;
+const createPatientHref = `${activityHref}/create-paciente`;
+
 export function AnamnesisSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -89,8 +93,12 @@ export function AnamnesisSidebar() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+                  item.href === activityHref
+                    ? pathname === activityHref
+                    : pathname === newHistoryHref ||
+                      pathname.startsWith(`${newHistoryHref}/`) ||
+                      pathname === createPatientHref ||
+                      pathname.startsWith(`${createPatientHref}/`);
 
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -99,7 +107,11 @@ export function AnamnesisSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link href={item.href} onClick={closeMobileSidebar}>
+                      <Link
+                        aria-current={isActive ? "page" : undefined}
+                        href={item.href}
+                        onClick={closeMobileSidebar}
+                      >
                         <Icon />
                         <span>{item.label}</span>
                       </Link>

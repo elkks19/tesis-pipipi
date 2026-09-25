@@ -6,6 +6,7 @@ import {
   type DiagnosticoFormValue,
 } from "@/components/forms/diagnostico-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { getRecetaById, listViajeInventario } from "@/lib/farmacia";
 import type { Diagnostico } from "@/lib/schema/diagnostico";
@@ -90,6 +91,8 @@ export default async function DocenteDiagnosticoCreatePage({
           trabajo para cerrar la historia.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="diagnostico" />
 

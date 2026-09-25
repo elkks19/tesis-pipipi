@@ -6,6 +6,7 @@ import {
   type EcografiaFormValue,
 } from "@/components/forms/ecografia-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { getFileUrl } from "@/lib/file-storage";
 import type { Ecografia } from "@/lib/schema/ecografia";
@@ -99,6 +100,8 @@ export default async function DocenteEcografiaCreatePage({
           Registra hallazgos ecograficos y adjunta una fotografia del estudio.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

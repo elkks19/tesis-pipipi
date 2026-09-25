@@ -5,12 +5,13 @@ import {
   ExamenFisicoSegmentarioForm,
   type ExamenFisicoSegmentarioFormValue,
 } from "@/components/forms/examen-fisico-segmentario-form";
-import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import type { ExamenFisicoSegmentario } from "@/lib/schema/examenFisicoSegmentario";
 import type { Historia } from "@/lib/schema/historia";
 
 import { saveExamenFisicoSegmentario } from "./actions";
+import { ExamenSegmentarioQuickActions } from "../examen-segmentario-quick-actions";
 
 export const metadata: Metadata = {
   title: "Examen fisico segmentario",
@@ -79,10 +80,11 @@ export default async function ExamenFisicoSegmentarioPage({
   const action = saveExamenFisicoSegmentario.bind(null, decodedIdHistoria);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · 02</span>
         <h1 className="font-heading text-2xl font-semibold">
-          Examen fisico segmentario
+          Examen físico segmentario
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Registra los hallazgos por regiones, aparatos y sistemas de la
@@ -90,9 +92,16 @@ export default async function ExamenFisicoSegmentarioPage({
         </p>
       </div>
 
-      <HistoriaClinicalSummaryModal
-        historia={historia}
-        scope="examenFisicoSegmentario"
+      <PatientStationBanner pacienteId={historia.pacienteId} />
+
+      <ExamenSegmentarioQuickActions
+        hasClinicalDetail={Boolean(
+          historia.anamnesis || historia.examenFisicoGeneral || historia.examenFisicoSegmentario ||
+          historia.laboratorios || historia.electrocardiograma || historia.espirometria ||
+          historia.ecografia || historia.diagnostico,
+        )}
+        historiaId={decodedIdHistoria}
+        showPdf
       />
 
       <ExamenFisicoSegmentarioForm

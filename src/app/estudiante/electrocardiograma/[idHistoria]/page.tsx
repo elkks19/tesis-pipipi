@@ -7,6 +7,7 @@ import {
 } from "@/components/forms/electrocardiograma-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import type { Electrocardiograma } from "@/lib/schema/electrocardiograma";
 import type { Historia } from "@/lib/schema/historia";
 
@@ -112,6 +113,8 @@ export default async function ElectrocardiogramaCreatePage({
           cardiaca.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

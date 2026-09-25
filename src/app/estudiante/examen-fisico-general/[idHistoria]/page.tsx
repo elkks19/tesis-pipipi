@@ -5,12 +5,13 @@ import {
   ExamenFisicoGeneralForm,
   type ExamenFisicoGeneralFormValue,
 } from "@/components/forms/examen-fisico-general-form";
-import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import type { ExamenFisicoGeneral } from "@/lib/schema/examenFisicoGeneral";
 import type { Historia } from "@/lib/schema/historia";
 
 import { saveExamenFisicoGeneral } from "./actions";
+import { ExamenGeneralQuickActions } from "../examen-general-quick-actions";
 
 export const metadata: Metadata = {
   title: "Examen fisico general",
@@ -97,20 +98,28 @@ export default async function ExamenFisicoGeneralPage({
   const action = saveExamenFisicoGeneral.bind(null, decodedIdHistoria);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · 01</span>
         <h1 className="font-heading text-2xl font-semibold">
-          Examen fisico general
+          Examen físico general
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Registra signos vitales, presion arterial y medidas antropometricas
+          Registra signos vitales, presión arterial y medidas antropométricas
           de la historia seleccionada.
         </p>
       </div>
 
-      <HistoriaClinicalSummaryModal
-        historia={historia}
-        scope="examenFisicoGeneral"
+      <PatientStationBanner pacienteId={historia.pacienteId} />
+
+      <ExamenGeneralQuickActions
+        hasClinicalDetail={Boolean(
+          historia.anamnesis || historia.examenFisicoGeneral || historia.examenFisicoSegmentario ||
+          historia.laboratorios || historia.electrocardiograma || historia.espirometria ||
+          historia.ecografia || historia.diagnostico,
+        )}
+        historiaId={decodedIdHistoria}
+        showPdf
       />
 
       <ExamenFisicoGeneralForm

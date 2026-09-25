@@ -41,6 +41,7 @@ export function PacienteSearchInput({
       }
 
       nextParams.delete("pacienteId");
+      nextParams.delete("page");
 
       const nextSearch = nextParams.toString();
       const nextHref = nextSearch ? `${pathname}?${nextSearch}` : pathname;

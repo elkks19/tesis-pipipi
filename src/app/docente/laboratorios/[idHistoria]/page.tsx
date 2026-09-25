@@ -6,6 +6,7 @@ import {
   type LaboratoriosFormValue,
 } from "@/components/forms/laboratorios-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Laboratorios } from "@/lib/schema/laboratorios";
 import { saveLaboratorios } from "@/app/estudiante/laboratorios/[idHistoria]/actions";
@@ -56,6 +57,8 @@ export default async function DocenteLaboratoriosCreatePage({
           Registra resultados basales y estudios adicionales solicitados.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

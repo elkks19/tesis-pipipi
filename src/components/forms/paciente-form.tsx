@@ -11,12 +11,17 @@ import {
 } from "react";
 import { toast } from "sonner";
 import {
+  ArrowLeftIcon,
+  UserRoundPenIcon,
+  UserRoundPlusIcon,
+  RotateCcwIcon,
   PlusIcon,
   SaveIcon,
   Trash2Icon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FieldGroup as UIFieldGroup } from "@/components/ui/field";
 import {
   DateField,
   Field,
@@ -95,6 +100,7 @@ export type PacienteFormDefaultValue = Partial<
 };
 
 type PacienteFormProps = {
+  mode?: "create" | "edit";
   action?: PacienteFormAction;
   defaultValue?: PacienteFormDefaultValue;
   successRedirectHref?: string;
@@ -267,16 +273,19 @@ function buildPayload(state: PacienteFormValue) {
 }
 
 export function PacienteForm({
+  mode = "create",
   action,
   defaultValue,
   successRedirectHref,
 }: PacienteFormProps) {
+  const isEditing = mode === "edit";
   const router = useRouter();
   const initialValue = useMemo(
     () => createInitialValue(defaultValue),
     [defaultValue],
   );
   const [form, setForm] = useState<PacienteFormValue>(initialValue);
+  const hasChanges = JSON.stringify(form) !== JSON.stringify(initialValue);
   const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const [submitted, setSubmitted] = useState(false);
   const [submission, setSubmission] = useState<{ form: PacienteFormValue; actionState: PacienteFormActionState } | null>(null);
@@ -287,7 +296,7 @@ export function PacienteForm({
   const { confirmationDialog, confirmSubmit, formRef } =
     useSubmitConfirmation({
       actionAvailable: Boolean(action),
-      confirmLabel: "Guardar paciente",
+      confirmLabel: isEditing ? "Guardar cambios" : "Guardar paciente",
     });
   const isPacienteMenor = isMinor(form.datosPersonales.fechaNacimiento);
   const shouldShowPadres = isPacienteMenor || form.padres.length > 0;
@@ -392,10 +401,52 @@ export function PacienteForm({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 py-2 sm:py-3">
+      {isEditing ? (
+        <header className="flex flex-col gap-5">
+          {successRedirectHref ? (
+            <div>
+              <Button variant="ghost" size="sm" disabled={isPending} onClick={() => router.push(successRedirectHref)}>
+                <ArrowLeftIcon data-icon="inline-start" />
+                Volver a pacientes
+              </Button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                <UserRoundPenIcon className="size-6" aria-hidden="true" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Ficha del paciente</p>
+                <h1 className="text-2xl font-semibold tracking-tight">Editar paciente</h1>
+                <p className="text-sm text-muted-foreground">{getFullName(initialValue.datosPersonales)}</p>
+              </div>
+            </div>
+            <p role="status" className={cn("text-xs text-muted-foreground", hasChanges && "text-primary")}>
+              {hasChanges ? "Cambios sin guardar" : "Sin cambios pendientes"}
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">Actualiza la información de la ficha. Los campos con <span className="text-destructive">*</span> son obligatorios.</p>
+        </header>
+      ) : (
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+              <UserRoundPlusIcon className="size-6" aria-hidden="true" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Registro de pacientes</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Nuevo paciente</h1>
+              <p className="text-sm text-muted-foreground">Registra su identidad y procedencia para abrir su ficha.</p>
+            </div>
+          </div>
+          <p className="shrink-0 text-xs text-muted-foreground"><span className="text-destructive">*</span> Campos obligatorios</p>
+        </header>
+      )}
       <form
         action={formAction}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5"
         noValidate
         onBlurCapture={(event) => {
           const control = event.target as HTMLElement;
@@ -406,7 +457,8 @@ export function PacienteForm({
         ref={formRef}
       >
         <FormSection
-          description="Identificacion y datos necesarios para abrir la historia."
+          number="01"
+          description="Identificación y datos personales del paciente."
           title="Datos personales"
         >
           <FieldGroup>
@@ -460,7 +512,7 @@ export function PacienteForm({
             />
             <TextField
               error={visibleErrors["datosPersonales.numeroDocumentoIdentidad"]}
-              label="Numero de documento"
+              label="Número de documento"
               name="datosPersonales.numeroDocumentoIdentidad"
               onChange={(value) =>
                 updateDatosPersonales("numeroDocumentoIdentidad", value)
@@ -470,7 +522,7 @@ export function PacienteForm({
             />
             <SelectField
               error={visibleErrors.genero}
-              label="Genero"
+              label="Género"
               name="genero"
               onChange={(value) =>
                 setForm((current) => ({
@@ -486,13 +538,14 @@ export function PacienteForm({
         </FormSection>
 
         <FormSection
-          description="Origen del paciente para organizar atencion por comunidad."
+          number="02"
+          description="Lugar de nacimiento y pertenencia cultural."
           title="Procedencia"
         >
           <FieldGroup>
             <TextField
               error={visibleErrors["lugarNacimiento.pais"]}
-              label="Pais"
+              label="País"
               name="lugarNacimiento.pais"
               onChange={(value) =>
                 setForm((current) => ({
@@ -567,6 +620,7 @@ export function PacienteForm({
 
         {shouldShowPadres ? (
           <FormSection
+            number="03"
             action={
               <Button
                 aria-describedby={visibleErrors.padres ? "padres-error" : undefined}
@@ -768,13 +822,13 @@ export function PacienteForm({
             className={cn("text-sm text-muted-foreground", actionState.message && "text-foreground")}
             aria-live="polite"
           >
-            {actionState.message ?? "Completa los campos obligatorios para registrar la ficha."}
+            {actionState.message ?? (isEditing ? (hasChanges ? "Revisa los datos antes de guardar los cambios." : "Los datos de la ficha están actualizados.") : "Completa los campos obligatorios para registrar la ficha.")}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              type="reset"
+              type="button"
               variant="outline"
-              disabled={isPending}
+              disabled={isPending || (isEditing && !hasChanges)}
               onClick={() => {
                 setForm(initialValue);
                 setTouched(new Set());
@@ -782,11 +836,12 @@ export function PacienteForm({
                 setSubmission(null);
               }}
             >
-              Limpiar
+              <RotateCcwIcon data-icon="inline-start" />
+              {isEditing ? "Restablecer" : "Limpiar"}
             </Button>
-            <Button disabled={isPending} type="submit">
+            <Button disabled={isPending || (isEditing && !hasChanges)} type="submit">
               <SaveIcon data-icon="inline-start" />
-              {isPending ? "Guardando..." : "Guardar paciente"}
+              {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar paciente"}
             </Button>
           </div>
         </footer>
@@ -797,36 +852,39 @@ export function PacienteForm({
 }
 
 function FormSection({
+  number,
   action,
   children,
   description,
   title,
 }: {
+  number: string;
   action?: ReactNode;
   children: ReactNode;
   description: string;
   title: string;
 }) {
   return (
-    <section className="rounded-lg border bg-background p-4 shadow-sm sm:p-6">
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <section className="overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4 sm:px-6">
         <div className="flex items-start gap-3">
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-xs font-semibold tabular-nums text-primary">{number}</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
               {description}
             </p>
           </div>
         </div>
         {action}
       </div>
-      {children}
+      <div className="min-w-0 p-5 sm:p-6">{children}</div>
     </section>
   );
 }
 
 function FieldGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+    <UIFieldGroup className="grid gap-x-5 gap-y-5 sm:grid-cols-2 xl:grid-cols-3 [&_[data-slot=select-trigger]]:w-full">{children}</UIFieldGroup>
   );
 }

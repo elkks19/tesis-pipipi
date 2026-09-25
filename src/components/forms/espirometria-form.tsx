@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { SaveIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, ActivityIcon, GaugeIcon, SaveIcon, WindIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 import {
   listSummary,
   textSummary,
@@ -77,6 +79,12 @@ const baseFormValue: EspirometriaFormValue = {
   porcentajePEFteorico: "",
 };
 
+const formSteps = [
+  { id: "volumenes", label: "Volúmenes", prefixes: ["FEV1", "porcentajeFEVteorico", "FVC", "porcentajeFVCteorico"] },
+  { id: "flujos", label: "Flujos", prefixes: ["FEV1FVC", "porcentajeFEV1FVCteorico", "flujoEspiratorioPicoPEF", "porcentajePEFteorico", "fuenteDatosTeoricos"] },
+  { id: "interpretacion", label: "Interpretación", prefixes: ["observaciones", "diagnostico"] },
+] as const;
+
 async function noopAction(): Promise<EspirometriaActionState> {
   return { ok: false };
 }
@@ -112,7 +120,7 @@ function createInitialValue(defaultValue?: Partial<EspirometriaFormValue>) {
 function getConfirmationSections(form: EspirometriaFormValue) {
   return [
     {
-      title: "Volumenes",
+      title: "Volúmenes",
       items: [
         {
           label: "FEV1",
@@ -137,11 +145,11 @@ function getConfirmationSections(form: EspirometriaFormValue) {
       ],
     },
     {
-      title: "Interpretacion",
+      title: "Interpretación",
       items: [
-        { label: "Fuente teorica", value: textSummary(form.fuenteDatosTeoricos) },
+        { label: "Fuente teórica", value: textSummary(form.fuenteDatosTeoricos) },
         { label: "Observaciones", value: listSummary(form.observaciones) },
-        { label: "Diagnostico", value: textSummary(form.diagnostico) },
+        { label: "Diagnóstico", value: textSummary(form.diagnostico) },
       ],
     },
   ];
@@ -158,6 +166,7 @@ export function EspirometriaForm({
     [defaultValue],
   );
   const [form, setForm] = useState<EspirometriaFormValue>(initialValue);
+  const [activeStep, setActiveStep] = useState(0);
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -165,7 +174,7 @@ export function EspirometriaForm({
   const { confirmationDialog, confirmSubmit, formRef } =
     useSubmitConfirmation({
       actionAvailable: Boolean(action),
-      confirmLabel: "Guardar espirometria",
+      confirmLabel: "Guardar espirometría",
     });
   const validation = CreateEspirometriaSchema.safeParse(buildPayload(form));
   const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
@@ -192,7 +201,28 @@ export function EspirometriaForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (activeStep < formSteps.length - 1) {
+      event.preventDefault();
+      goToStep(activeStep + 1);
+      return;
+    }
+
     if (revealErrors(event)) {
+      const firstPath = !validation.success
+        ? Object.keys(firstFieldErrors(validation.error))[0]
+        : Object.keys(actionState.errors ?? {})[0];
+      const errorStep = formSteps.findIndex((step) =>
+        step.prefixes.some((prefix) => firstPath === prefix || firstPath?.startsWith(`${prefix}.`)),
+      );
+      if (errorStep >= 0 && errorStep !== activeStep) {
+        setActiveStep(errorStep);
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+          const control = Array.from(formRef.current?.elements ?? []).find(
+            (element) => element.getAttribute("name") === firstPath,
+          ) as HTMLElement | undefined;
+          control?.focus();
+        }));
+      }
       return;
     }
 
@@ -201,23 +231,65 @@ export function EspirometriaForm({
     }
   }
 
+  function goToStep(index: number) {
+    setActiveStep(index);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`espirometria-${formSteps[index].id}-title`)?.focus({ preventScroll: true });
+      formRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  }
+
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6"
+      className="grid scroll-mt-20 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6"
       noValidate
       onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
+      <nav aria-label="Pasos de la espirometría" className="rounded-xl border bg-muted/20 p-3 lg:sticky lg:top-20">
+        <p className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">En este estudio</p>
+        <ol className="flex gap-1 overflow-x-auto lg:flex-col">
+          {formSteps.map((step, index) => {
+            const errorCount = Object.keys(visibleErrors).filter((path) =>
+              step.prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}.`)),
+            ).length;
+            return (
+              <li className="shrink-0 lg:shrink" key={step.id}>
+                <button
+                  aria-controls={`espirometria-${step.id}`}
+                  aria-current={activeStep === index ? "step" : undefined}
+                  className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", activeStep === index && "bg-accent font-semibold text-accent-foreground", errorCount > 0 && "text-destructive")}
+                  disabled={isPending}
+                  onClick={() => goToStep(index)}
+                  type="button"
+                >
+                  <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums text-muted-foreground", activeStep === index && "border-primary bg-primary text-primary-foreground")}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className="flex-1">{step.label}</span>
+                  {errorCount > 0 ? <span aria-label={`${errorCount} errores`} className="text-xs">({errorCount})</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="hidden px-2 pt-4 text-xs leading-relaxed text-muted-foreground lg:block">Puedes cambiar de apartado sin perder lo escrito. Guarda al finalizar.</p>
+      </nav>
+      <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p aria-live="polite">Paso {activeStep + 1} de {formSteps.length} · {formSteps[activeStep].label}</p><p>* Campos obligatorios</p></div>
+          <div aria-hidden="true" className="flex gap-1.5">{formSteps.map((step, index) => <span className={cn("h-1 flex-1 rounded-full bg-muted", index <= activeStep && "bg-primary")} key={step.id} />)}</div>
+        </div>
       <FormSection
-        description="Volumenes y porcentajes teoricos principales de la maniobra."
-        title="Volumenes"
+        description="Volúmenes medidos y porcentajes de referencia de la maniobra."
+        hidden={activeStep !== 0}
+        id="volumenes"
+        title="Volúmenes"
       >
         <FieldGrid>
           <NumberField
             error={visibleErrors.FEV1}
-            label="FEV1"
+            label="FEV1 · volumen espirado en el primer segundo (L)"
             name="FEV1"
             onChange={(value) =>
               setForm((current) => ({ ...current, FEV1: value }))
@@ -227,7 +299,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.porcentajeFEVteorico}
-            label="% FEV teorico"
+            label="FEV1 respecto al valor teórico (%)"
             name="porcentajeFEVteorico"
             onChange={(value) =>
               setForm((current) => ({
@@ -239,7 +311,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.FVC}
-            label="FVC"
+            label="FVC · capacidad vital forzada (L)"
             name="FVC"
             onChange={(value) =>
               setForm((current) => ({ ...current, FVC: value }))
@@ -249,7 +321,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.porcentajeFVCteorico}
-            label="% FVC teorico"
+            label="FVC respecto al valor teórico (%)"
             name="porcentajeFVCteorico"
             onChange={(value) =>
               setForm((current) => ({
@@ -263,13 +335,15 @@ export function EspirometriaForm({
       </FormSection>
 
       <FormSection
-        description="Relacion FEV1/FVC, flujo pico y fuente de valores teoricos."
+        description="Relación FEV1/FVC, flujo pico y fuente de los valores teóricos."
+        hidden={activeStep !== 1}
+        id="flujos"
         title="Flujos"
       >
         <FieldGrid>
           <NumberField
             error={visibleErrors.FEV1FVC}
-            label="FEV1/FVC"
+            label="Relación FEV1/FVC (%)"
             name="FEV1FVC"
             onChange={(value) =>
               setForm((current) => ({ ...current, FEV1FVC: value }))
@@ -279,7 +353,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.porcentajeFEV1FVCteorico}
-            label="% FEV1/FVC teorico"
+            label="FEV1/FVC respecto al valor teórico (%)"
             name="porcentajeFEV1FVCteorico"
             onChange={(value) =>
               setForm((current) => ({
@@ -291,7 +365,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.flujoEspiratorioPicoPEF}
-            label="PEF"
+            label="PEF · flujo espiratorio pico (L/min)"
             name="flujoEspiratorioPicoPEF"
             onChange={(value) =>
               setForm((current) => ({
@@ -304,7 +378,7 @@ export function EspirometriaForm({
           />
           <NumberField
             error={visibleErrors.porcentajePEFteorico}
-            label="% PEF teorico"
+            label="PEF respecto al valor teórico (%)"
             name="porcentajePEFteorico"
             onChange={(value) =>
               setForm((current) => ({
@@ -316,7 +390,7 @@ export function EspirometriaForm({
           />
           <TextField
             error={visibleErrors.fuenteDatosTeoricos}
-            label="Fuente datos teoricos"
+            label="Fuente de los valores teóricos"
             name="fuenteDatosTeoricos"
             onChange={(value) =>
               setForm((current) => ({
@@ -330,8 +404,10 @@ export function EspirometriaForm({
       </FormSection>
 
       <FormSection
-        description="Calidad de maniobra y diagnostico final de la estacion."
-        title="Interpretacion"
+        description="Calidad de la maniobra y diagnóstico final del estudio."
+        hidden={activeStep !== 2}
+        id="interpretacion"
+        title="Interpretación"
       >
         <CheckboxListField
           label="Observaciones"
@@ -344,7 +420,7 @@ export function EspirometriaForm({
         />
         <TextareaField
           error={visibleErrors.diagnostico}
-          label="Diagnostico"
+          label="Diagnóstico"
           name="diagnostico"
           onChange={(value) =>
             setForm((current) => ({ ...current, diagnostico: value }))
@@ -354,15 +430,20 @@ export function EspirometriaForm({
         />
       </FormSection>
 
-      <footer className="sticky bottom-0 flex flex-col gap-3 rounded-3xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <footer className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          {actionState.message ?? "Completa la espirometria para guardar."}
+          {actionState.message ?? (activeStep === formSteps.length - 1 ? "Revisa los resultados y guarda la espirometría." : "Continúa al siguiente apartado cuando termines.")}
         </p>
-        <Button disabled={isPending} type="submit">
-          <SaveIcon data-icon="inline-start" />
-          {isPending ? "Guardando..." : "Guardar espirometria"}
-        </Button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button disabled={isPending || activeStep === 0} onClick={() => goToStep(activeStep - 1)} type="button" variant="outline"><ArrowLeftIcon data-icon="inline-start" />Anterior</Button>
+          {activeStep < formSteps.length - 1 ? (
+            <Button disabled={isPending} onClick={() => goToStep(activeStep + 1)} type="button">Siguiente<ArrowRightIcon data-icon="inline-end" /></Button>
+          ) : (
+            <Button disabled={isPending} type="submit"><SaveIcon data-icon="inline-start" />{isPending ? "Guardando..." : "Guardar espirometría"}</Button>
+          )}
+        </div>
       </footer>
+      </div>
       {confirmationDialog}
     </form>
   );
@@ -377,21 +458,29 @@ function FieldGrid({ children }: { children: ReactNode }) {
 function FormSection({
   children,
   description,
+  hidden,
+  id,
   title,
 }: {
   children: ReactNode;
   description: string;
+  hidden?: boolean;
+  id: string;
   title: string;
 }) {
+  const index = formSteps.findIndex((step) => step.id === id);
+  const Icon = id === "volumenes" ? WindIcon : id === "flujos" ? GaugeIcon : ActivityIcon;
   return (
-    <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
+    <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={hidden} id={`espirometria-${id}`}>
+      <div className="flex items-start gap-3 border-b bg-muted/20 p-4 sm:p-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary"><Icon className="size-5" aria-hidden="true" /></span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Apartado {String(index + 1).padStart(2, "0")}</p>
+          <h2 className="text-base font-semibold" id={`espirometria-${id}-title`} tabIndex={-1}>{title}</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
       </div>
-      {children}
+      <div className="flex flex-col gap-5 p-4 sm:p-6">{children}</div>
     </section>
   );
 }

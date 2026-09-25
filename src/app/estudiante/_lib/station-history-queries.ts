@@ -25,7 +25,9 @@ export async function listPendingComplementaryExamHistories({
 }): Promise<StationHistoryPageResult> {
   return listStationHistories({
     cursor,
+    includeCompleted: true,
     mode: "estudiante",
+    newestFirst: true,
     query,
     stationKey: examKey,
   });

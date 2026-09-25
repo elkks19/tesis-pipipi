@@ -8,7 +8,8 @@ import type { Historia, Paciente } from "@/lib/schema";
 import type { Viaje } from "@/lib/schema/viajes";
 
 const PAGE_SIZE = 10;
-const HISTORY_FIND_BATCH_SIZE = 500;
+const HISTORY_FIND_BATCH_SIZE = 50;
+const PATIENT_READ_BATCH_SIZE = 10;
 
 export const stationConfigs = {
   anamnesis: {
@@ -64,6 +65,8 @@ type PacienteDocument = PouchDB.Core.ExistingDocument<Paciente>;
 type ViajeDocument = PouchDB.Core.ExistingDocument<Viaje>;
 
 export type StationHistoryRow = {
+  createdAt?: string;
+  hasClinicalDetail: boolean;
   historiaId: string;
   paciente: PacienteSearchResult;
   stationCompleted: boolean;
@@ -291,15 +294,17 @@ function isComplementaryRequested(doc: HistoriaDocument, stationKey: StationKey)
     return true;
   }
 
-  return Boolean(doc.examenesComplementariosSolicitados?.[config.complementaryKey]);
+  return doc.examenesComplementariosSolicitados?.[config.complementaryKey] === true;
 }
 
 async function serializeHistoria({
   doc,
+  includeCompleted,
   mode,
   stationKey,
 }: {
   doc: HistoriaDocument;
+  includeCompleted: boolean;
   mode: "docente" | "estudiante";
   stationKey: StationKey;
 }) {
@@ -311,7 +316,7 @@ async function serializeHistoria({
   }
 
   if (mode === "estudiante") {
-    if (doc.diagnostico || hasValue || !isComplementaryRequested(doc, stationKey)) {
+    if ((!includeCompleted && hasValue) || (doc.diagnostico && !hasValue) || !isComplementaryRequested(doc, stationKey)) {
       return null;
     }
   } else if (!isComplementaryRequested(doc, stationKey)) {
@@ -325,6 +330,12 @@ async function serializeHistoria({
   }
 
   return {
+    createdAt: doc.createdAt,
+    hasClinicalDetail: Boolean(
+      doc.anamnesis || doc.examenFisicoGeneral || doc.examenFisicoSegmentario ||
+      doc.laboratorios || doc.electrocardiograma || doc.espirometria ||
+      doc.ecografia || doc.diagnostico,
+    ),
     historiaId: doc._id,
     paciente,
     stationCompleted: hasValue,
@@ -333,13 +344,17 @@ async function serializeHistoria({
 
 export async function listStationHistories({
   cursor,
+  includeCompleted = false,
   mode,
+  newestFirst = false,
   query,
   stationKey,
   userId,
 }: {
   cursor?: string;
+  includeCompleted?: boolean;
   mode: "docente" | "estudiante";
+  newestFirst?: boolean;
   query: string;
   stationKey: StationKey;
   userId?: string;
@@ -348,16 +363,15 @@ export async function listStationHistories({
   const rows: StationHistoryRow[] = [];
   const startIndex = Number.parseInt(cursor ?? "0", 10);
   const offset = Number.isFinite(startIndex) && startIndex > 0 ? startIndex : 0;
-  let bookmark: string | undefined;
-
+  const requiredRows = offset + PAGE_SIZE + 1;
   await ensureTesisIndexes();
 
-  const activeViajeIds =
-    mode === "docente"
-      ? await getActiveAssignedViajeIds({ mode, stationKey, userId })
-      : [];
+  const scopeToActiveViaje = mode === "docente" || userId !== undefined;
+  const activeViajeIds = scopeToActiveViaje
+    ? await getActiveAssignedViajeIds({ mode, stationKey, userId })
+    : [];
 
-  if (mode === "docente" && activeViajeIds.length === 0) {
+  if (scopeToActiveViaje && activeViajeIds.length === 0) {
     return {
       hasNextPage: false,
       pageSize: PAGE_SIZE,
@@ -368,6 +382,9 @@ export async function listStationHistories({
   const historySelector: Record<string, unknown> = {
     type: "historia",
   };
+  if (newestFirst) {
+    historySelector.createdAt = { $exists: true };
+  }
   if (activeViajeIds.length === 1) {
     historySelector.viajeId = activeViajeIds[0];
   } else if (activeViajeIds.length > 1) {
@@ -376,36 +393,55 @@ export async function listStationHistories({
     };
   }
 
-  do {
-    const result = await findTesisDocs({
-      bookmark,
-      limit: HISTORY_FIND_BATCH_SIZE,
-      selector: historySelector,
-      use_index: activeViajeIds.length > 0 ? "idx_historias_viaje" : "idx_type",
-    });
-
-    bookmark = result.bookmark;
-
-    for (const doc of result.docs) {
-      if (!isHistoriaDocument(doc)) {
-        continue;
-      }
-
-      const row = await serializeHistoria({
-        doc,
-        mode,
-        stationKey,
+  async function collectRows(
+    selector: Record<string, unknown>,
+    useIndex: string,
+    sort?: unknown[],
+  ) {
+    let pageBookmark: string | undefined;
+    do {
+      const result = await findTesisDocs({
+        bookmark: pageBookmark,
+        limit: HISTORY_FIND_BATCH_SIZE,
+        selector,
+        ...(sort ? { sort } : {}),
+        use_index: useIndex,
       });
+      pageBookmark = result.bookmark;
 
-      if (row && rowMatchesQuery(row, normalizedQuery)) {
-        rows.push(row);
+      for (let index = 0; index < result.docs.length; index += PATIENT_READ_BATCH_SIZE) {
+        const batch = result.docs
+          .slice(index, index + PATIENT_READ_BATCH_SIZE)
+          .filter(isHistoriaDocument);
+        const batchRows = await Promise.all(batch.map((doc) =>
+          serializeHistoria({ doc, includeCompleted, mode, stationKey }),
+        ));
+
+        for (const row of batchRows) {
+          if (row && rowMatchesQuery(row, normalizedQuery)) {
+            rows.push(row);
+            if (rows.length >= requiredRows) break;
+          }
+        }
+        if (rows.length >= requiredRows) break;
       }
-    }
 
-    if (result.docs.length < HISTORY_FIND_BATCH_SIZE) {
-      break;
-    }
-  } while (bookmark);
+      if (rows.length >= requiredRows || result.docs.length < HISTORY_FIND_BATCH_SIZE) break;
+    } while (pageBookmark);
+  }
+
+  await collectRows(
+    historySelector,
+    newestFirst ? "idx_historias_fecha" : activeViajeIds.length > 0 ? "idx_historias_viaje" : "idx_type",
+    newestFirst ? [{ type: "desc" }, { createdAt: "desc" }] : undefined,
+  );
+
+  if (newestFirst && rows.length < requiredRows) {
+    await collectRows(
+      { ...historySelector, createdAt: { $exists: false } },
+      activeViajeIds.length > 0 ? "idx_historias_viaje" : "idx_type",
+    );
+  }
 
   const visibleRows = rows.slice(offset, offset + PAGE_SIZE);
   const nextOffset = offset + PAGE_SIZE;

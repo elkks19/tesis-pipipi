@@ -89,15 +89,15 @@ function ActorMetricChart({
   const chartHeight = Math.max(150, data.length * 34);
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardDescription>{description}</CardDescription>
-        <CardTitle className="flex items-baseline justify-between gap-3">
+    <Card className="gap-0 overflow-hidden rounded-xl border bg-card shadow-sm">
+      <CardHeader className="gap-3 border-b bg-muted/15 px-5 py-4">
+        <CardDescription className="text-xs font-medium uppercase tracking-wide">{description}</CardDescription>
+        <CardTitle className="flex items-baseline justify-between gap-3 text-base">
           <span>{title}</span>
-          <span className="text-3xl tabular-nums">{total}</span>
+          <span className="text-2xl font-semibold tabular-nums text-primary">{total}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5">
         {data.length > 0 ? (
           <ChartContainer
             className="w-full"
@@ -154,8 +154,9 @@ function ActorMetricChart({
             </BarChart>
           </ChartContainer>
         ) : (
-          <div className="flex h-36 items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
-            Sin actividad registrada.
+          <div className="flex h-36 flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-muted/15 text-center">
+            <span className="text-sm font-medium text-foreground">Sin actividad registrada</span>
+            <span className="text-xs text-muted-foreground">Aún no hay aportes para mostrar en esta categoría.</span>
           </div>
         )}
       </CardContent>

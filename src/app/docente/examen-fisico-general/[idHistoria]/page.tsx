@@ -6,6 +6,7 @@ import {
   type ExamenFisicoGeneralFormValue,
 } from "@/components/forms/examen-fisico-general-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { ExamenFisicoGeneral } from "@/lib/schema/examenFisicoGeneral";
 import { saveExamenFisicoGeneral } from "@/app/estudiante/examen-fisico-general/[idHistoria]/actions";
@@ -78,6 +79,8 @@ export default async function DocenteExamenFisicoGeneralCreatePage({
           de la historia seleccionada.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal
         historia={historia}

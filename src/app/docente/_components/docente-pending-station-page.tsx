@@ -52,6 +52,7 @@ export async function DocentePendingStationPage({
   const page = await listStationHistories({
     cursor,
     mode: "docente",
+    newestFirst: true,
     query,
     stationKey,
     userId: userId ?? undefined,

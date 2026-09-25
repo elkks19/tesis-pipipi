@@ -11,6 +11,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
   PlusIcon,
   SaveIcon,
   Trash2Icon,
@@ -28,9 +30,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { FieldGroup } from "@/components/ui/field";
+import { cn } from "@/lib/utils";
 import {
   booleanSummary,
-  listSummary,
   textSummary,
   useSubmitConfirmation,
 } from "@/components/forms/submit-confirmation";
@@ -310,10 +313,34 @@ function supportsGinecoObstetricos(genero: string | undefined) {
 }
 
 function diseaseSummary(enfermedad: EnfermedadForm) {
-  return enfermedad.title || enfermedad.code || enfermedad.iNo;
+  return [enfermedad.title, enfermedad.code].filter(Boolean).join(" · ") || "Sin registrar";
 }
 
-function getConfirmationSections(form: AnamnesisFormValue) {
+function getConfirmationSections(form: AnamnesisFormValue, includeGineco: boolean) {
+  const gineco = includeGineco ? form.antecedentesGinecoObstetricos : undefined;
+  const ginecoLabels: Record<keyof GinecoObstetricosForm, string> = {
+    estadioTanner: "Estadio Tanner",
+    menarca: "Menarca (años)",
+    ritmoMenstrual: "Ritmo menstrual",
+    gestaciones: "Gestaciones",
+    partos: "Partos",
+    abortos: "Abortos",
+    cesareas: "Cesáreas",
+    fechaUltimaGestacion: "Fecha de última gestación",
+    fechaUltimoParto: "Fecha de último parto",
+    fechaUltimoAborto: "Fecha de último aborto",
+    fechaUltimaCesarea: "Fecha de última cesárea",
+    edadMenopausia: "Edad de menopausia (años)",
+    terapiaAnticonceptiva: "Terapia anticonceptiva",
+    metodoAnticonceptivo: "Método anticonceptivo",
+    inicioVidaSexual: "Inicio de vida sexual (años)",
+    numeroParejasSexuales: "Número de parejas sexuales",
+    cirugiaPelviana: "Cirugía pelviana",
+    fechaPapanicolau: "Fecha de Papanicolau",
+    resultadoPapanicolau: "Resultado de Papanicolau",
+    colposcopia: "Colposcopia",
+    biopsiaCervical: "Biopsia cervical",
+  };
   return [
     {
       title: "Contexto",
@@ -335,41 +362,48 @@ function getConfirmationSections(form: AnamnesisFormValue) {
       ],
     },
     {
-      title: "Antecedentes",
+      title: "Hábitos y estilo de vida",
       items: [
+        { label: "Hábito tabáquico", value: textSummary(form.antecedentesNoPatologicos.habitoTabaquico) },
+        { label: "Consumo de alcohol", value: textSummary(form.antecedentesNoPatologicos.consumoAlcohol) },
+        { label: "Consumo de frutas y verduras", value: textSummary(form.antecedentesNoPatologicos.consumoFrutasVerduras) },
         {
-          label: "Personales",
-          value: listSummary(
-            form.antecedentesPatologicos.personales.map((item) =>
-              diseaseSummary(item.enfermedad),
-            ),
-          ),
-        },
-        {
-          label: "Familiares",
-          value: listSummary(
-            form.antecedentesPatologicos.familiares.map((item) =>
-              [item.parentesco, diseaseSummary(item.enfermedad)]
-                .filter(Boolean)
-                .join(": "),
-            ),
-          ),
-        },
-        {
-          label: "Actividad fisica",
+          label: "Actividad física",
           value: booleanSummary(
             form.antecedentesNoPatologicos.realizaActividadFisica,
           ),
         },
-        {
-          label: "Tabaco y alcohol",
-          value: listSummary([
-            form.antecedentesNoPatologicos.habitoTabaquico,
-            form.antecedentesNoPatologicos.consumoAlcohol,
-          ]),
-        },
       ],
     },
+    ...(form.antecedentesPatologicos.personales.length > 0
+      ? form.antecedentesPatologicos.personales.map((item, index) => ({
+          title: `Antecedente personal ${index + 1}`,
+          items: [
+            { label: "Enfermedad · CIE-11", value: diseaseSummary(item.enfermedad) },
+            { label: "Fecha de diagnóstico", value: textSummary(item.fechaDiagnostico) },
+            { label: "Tratamiento", value: textSummary(item.tratamiento) },
+          ],
+        }))
+      : [{ title: "Antecedentes personales", items: [{ label: "Registros", value: "Sin antecedentes registrados" }] }]),
+    ...(form.antecedentesPatologicos.familiares.length > 0
+      ? form.antecedentesPatologicos.familiares.map((item, index) => ({
+          title: `Antecedente familiar ${index + 1}`,
+          items: [
+            { label: "Parentesco", value: textSummary(item.parentesco) },
+            { label: "Enfermedad · CIE-11", value: diseaseSummary(item.enfermedad) },
+            { label: "Edad de diagnóstico (años)", value: textSummary(item.edadDiagnostico) },
+            { label: "Fallecimiento", value: booleanSummary(item.fallecimiento) },
+            ...(item.fallecimiento ? [{ label: "Edad de fallecimiento (años)", value: textSummary(item.edadFallecimiento) }] : []),
+          ],
+        }))
+      : [{ title: "Antecedentes familiares", items: [{ label: "Registros", value: "Sin antecedentes registrados" }] }]),
+    ...(gineco ? [{
+      title: "Antecedentes gineco-obstétricos",
+      items: (Object.keys(ginecoLabels) as (keyof GinecoObstetricosForm)[]).map((key) => ({
+        label: ginecoLabels[key],
+        value: typeof gineco[key] === "boolean" ? booleanSummary(gineco[key]) : textSummary(gineco[key]),
+      })),
+    }] : []),
   ];
 }
 
@@ -386,6 +420,7 @@ export function AnamnesisForm({
     [defaultValue],
   );
   const [form, setForm] = useState<AnamnesisFormValue>(initialValue);
+  const [activeStep, setActiveStep] = useState(0);
   const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const [submitted, setSubmitted] = useState(false);
   const [submission, setSubmission] = useState<{ form: AnamnesisFormValue; actionState: AnamnesisFormActionState } | null>(null);
@@ -425,6 +460,14 @@ export function AnamnesisForm({
     if (gineco.gestaciones && gestaciones > 15) warnings["antecedentesGinecoObstetricos.gestaciones"] = "Conteo inusual; revisa el dato antes de guardar.";
   }
   const visibleWarnings = Object.fromEntries(Object.entries(warnings).filter(([path]) => showValidation && (submitted || touched.has(path))));
+  const sections = [
+    { id: "contexto", label: "Contexto social", prefixes: ["estadoCivil", "nivelEducativo", "añosCursados", "situacionLaboral"] },
+    { id: "consulta", label: "Consulta actual", prefixes: ["motivoConsulta", "historiaEnfermedadActual"] },
+    { id: "habitos", label: "Hábitos y estilo de vida", prefixes: ["antecedentesNoPatologicos"] },
+    { id: "personales", label: "Antecedentes personales", prefixes: ["antecedentesPatologicos.personales"] },
+    { id: "familiares", label: "Antecedentes familiares", prefixes: ["antecedentesPatologicos.familiares"] },
+    ...(showGinecoObstetricos ? [{ id: "gineco", label: "Gineco-obstétricos", prefixes: ["antecedentesGinecoObstetricos"] }] : []),
+  ];
 
   useEffect(() => {
     if (!actionState.message) {
@@ -449,11 +492,18 @@ export function AnamnesisForm({
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (activeStep < sections.length - 1) {
+      event.preventDefault();
+      goToStep(activeStep + 1);
+      return;
+    }
     setSubmitted(true);
     setSubmission({ form, actionState });
     if (!validation.success) {
       event.preventDefault();
       const firstPath = Object.keys(allErrors)[0];
+      const errorStep = sections.findIndex((section) => section.prefixes.some((prefix) => firstPath === prefix || firstPath.startsWith(`${prefix}.`)));
+      if (errorStep >= 0) setActiveStep(errorStep);
       const control = firstPath?.includes(".enfermedad.")
         ? firstPath.slice(0, firstPath.indexOf(".enfermedad.") + ".enfermedad".length)
         : firstPath;
@@ -461,15 +511,24 @@ export function AnamnesisForm({
       return;
     }
 
-    if (!confirmSubmit(event, getConfirmationSections(form))) {
+    if (!confirmSubmit(event, getConfirmationSections(form, showGinecoObstetricos))) {
       return;
     }
+  }
+
+  function goToStep(index: number) {
+    setActiveStep(index);
+    window.requestAnimationFrame(() => {
+      const heading = document.getElementById(`anamnesis-${sections[index].id}-title`);
+      heading?.focus({ preventScroll: true });
+      formRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
   }
 
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6"
+      className="grid scroll-mt-20 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6"
       noValidate
       onBlurCapture={(event) => {
         const control = event.target as HTMLElement;
@@ -479,9 +538,40 @@ export function AnamnesisForm({
       onSubmit={handleSubmit}
       ref={formRef}
     >
+      <nav aria-label="Pasos de anamnesis" className="rounded-xl border bg-muted/20 p-3 lg:sticky lg:top-20">
+        <p className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">En esta anamnesis</p>
+        <ol className="flex gap-1 overflow-x-auto lg:flex-col">
+          {sections.map((section, index) => {
+            const errorCount = Object.keys(visibleErrors).filter((path) => section.prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}.`))).length;
+            return (
+              <li key={section.id} className="shrink-0 lg:shrink">
+                <button type="button" disabled={isPending} aria-current={activeStep === index ? "step" : undefined} aria-controls={`anamnesis-${section.id}`} onClick={() => goToStep(index)} className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", activeStep === index && "bg-accent font-semibold text-accent-foreground", errorCount > 0 && "text-destructive")}>
+                  <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums text-muted-foreground", activeStep === index && "border-primary bg-primary text-primary-foreground")}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className="flex-1">{section.label}</span>
+                  {errorCount > 0 ? <span className="text-xs" aria-label={`${errorCount} errores`}>({errorCount})</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="hidden px-2 pt-4 text-xs leading-relaxed text-muted-foreground lg:block">Puedes cambiar de paso sin perder lo escrito. Guarda al finalizar.</p>
+      </nav>
+      <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <p aria-live="polite">Paso {activeStep + 1} de {sections.length} · {sections[activeStep].label}</p>
+          <p>* Campos obligatorios</p>
+        </div>
+        <div className="flex gap-1.5" aria-hidden="true">
+          {sections.map((section, index) => <span key={section.id} className={cn("h-1 flex-1 rounded-full bg-muted", index <= activeStep && "bg-primary")} />)}
+        </div>
+      </div>
       <FormSection
-        description="Identificacion de la historia y contexto social del paciente."
-        title="Datos de anamnesis"
+        hidden={activeStep !== 0}
+        id="contexto"
+        number="01"
+        description="Situación familiar, educación y ocupación del paciente."
+        title="Contexto social"
       >
         <FieldGrid>
           <Input
@@ -532,10 +622,13 @@ export function AnamnesisForm({
             value={form.situacionLaboral}
           />
         </FieldGrid>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      </FormSection>
+      <FormSection hidden={activeStep !== 1} id="consulta" number="02" title="Consulta actual" description="Registra el motivo de atención y la evolución de los síntomas.">
+        <FieldGroup className="grid gap-5">
           <TextareaField
             error={visibleErrors.motivoConsulta}
             label="Motivo de consulta"
+            placeholder="Describe la razón principal por la que el paciente consulta."
             name="motivoConsulta"
             onChange={(value) =>
               setForm((current) => ({ ...current, motivoConsulta: value }))
@@ -547,6 +640,7 @@ export function AnamnesisForm({
           <TextareaField
             error={visibleErrors.historiaEnfermedadActual}
             label="Historia de enfermedad actual"
+            placeholder="Describe el inicio, la duración y la evolución de los síntomas."
             name="historiaEnfermedadActual"
             onChange={(value) =>
               setForm((current) => ({
@@ -558,12 +652,15 @@ export function AnamnesisForm({
             rows={5}
             value={form.historiaEnfermedadActual}
           />
-        </div>
+        </FieldGroup>
       </FormSection>
 
       <FormSection
-        description="Habitos relevantes para el riesgo y seguimiento clinico."
-        title="Antecedentes no patologicos"
+        id="habitos"
+        hidden={activeStep !== 2}
+        number="03"
+        description="Antecedentes no patológicos relevantes para el seguimiento clínico."
+        title="Hábitos y estilo de vida"
       >
         <FieldGrid>
           <SelectField
@@ -660,7 +757,10 @@ export function AnamnesisForm({
           </Button>
         }
         description="Enfermedades o diagnosticos previos del paciente."
-        title="Antecedentes patologicos personales"
+        id="personales"
+        hidden={activeStep !== 3}
+        number="04"
+        title="Antecedentes patológicos personales"
       >
         <PathologyList
           emptyText="Sin antecedentes personales registrados."
@@ -783,6 +883,9 @@ export function AnamnesisForm({
           </Button>
         }
         description="Antecedentes familiares clinicamente relevantes."
+        id="familiares"
+        hidden={activeStep !== 4}
+        number="05"
         title="Antecedentes familiares"
       >
         <PathologyList
@@ -893,7 +996,10 @@ export function AnamnesisForm({
             />
           }
           description="Completar cuando corresponda por el contexto clinico."
-          title="Antecedentes gineco-obstetricos"
+          id="gineco"
+          hidden={activeStep !== 5}
+          number="06"
+          title="Antecedentes gineco-obstétricos"
         >
           {form.antecedentesGinecoObstetricos ? (
             <GinecoFields
@@ -912,17 +1018,17 @@ export function AnamnesisForm({
             />
           ) : (
             <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-              Seccion no incluida.
+              Activa “Incluir” para registrar estos antecedentes cuando corresponda.
             </div>
           )}
         </FormSection>
       ) : null}
 
-      <footer className="sticky bottom-0 flex flex-col gap-3 rounded-lg border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <footer className="sticky bottom-0 flex flex-col gap-4 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur">
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          {actionState.message ?? "Completa los campos obligatorios."}
+          {actionState.message ?? (Object.keys(visibleErrors).length > 0 ? `Revisa ${Object.keys(visibleErrors).length} campos señalados antes de guardar.` : "Al guardar podrás revisar la información antes de confirmar.")}
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
             disabled={isPending}
             onClick={() => {
@@ -930,18 +1036,29 @@ export function AnamnesisForm({
               setTouched(new Set());
               setSubmitted(false);
               setSubmission(null);
+              goToStep(0);
             }}
-            type="reset"
-            variant="outline"
+            type="button"
+            variant="ghost"
           >
             Limpiar
           </Button>
-          <Button disabled={isPending} type="submit">
+          <div className="flex items-center gap-2">
+          <Button disabled={isPending || activeStep === 0} type="button" variant="outline" onClick={() => goToStep(activeStep - 1)}>
+            <ArrowLeftIcon data-icon="inline-start" />Anterior
+          </Button>
+          {activeStep < sections.length - 1 ? (
+            <Button disabled={isPending} type="button" onClick={() => goToStep(activeStep + 1)}>
+              Siguiente<ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          ) : <Button disabled={isPending} type="submit">
             <SaveIcon data-icon="inline-start" />
             {isPending ? "Guardando..." : "Guardar anamnesis"}
-          </Button>
+          </Button>}
+          </div>
         </div>
       </footer>
+      </div>
       {confirmationDialog}
     </form>
   );
@@ -1262,22 +1379,29 @@ function CheckboxField({
 }
 
 function FormSection({
+  hidden,
+  id,
+  number,
   action,
   children,
   description,
   title,
 }: {
+  hidden: boolean;
+  id: string;
+  number: string;
   action?: ReactNode;
   children: ReactNode;
   description: string;
   title: string;
 }) {
   return (
-    <section className="rounded-lg border bg-background p-4 shadow-sm sm:p-6">
+    <section hidden={hidden} id={`anamnesis-${id}`} aria-labelledby={`anamnesis-${id}-title`} className="scroll-mt-24 rounded-xl border bg-background p-4 sm:p-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold tabular-nums text-primary">{number}</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <h2 tabIndex={-1} id={`anamnesis-${id}-title`} className="text-lg font-semibold tracking-tight outline-none">{title}</h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               {description}
             </p>
@@ -1292,6 +1416,6 @@ function FormSection({
 
 function FieldGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+    <FieldGroup className="grid gap-5 md:grid-cols-2 [&_[data-slot=select-trigger]]:w-full">{children}</FieldGroup>
   );
 }

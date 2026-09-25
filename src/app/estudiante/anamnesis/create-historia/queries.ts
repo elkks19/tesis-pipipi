@@ -13,14 +13,6 @@ type PacienteDocument = Paciente & {
 
 type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
 
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
 function dateToInputValue(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
 
@@ -38,6 +30,8 @@ function serializePaciente(doc: PacienteDocument): PacienteSearchResult | null {
 
   return {
     id: doc._id,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
     datosPersonales: {
       ...doc.datosPersonales,
       fechaNacimiento: dateToInputValue(doc.datosPersonales.fechaNacimiento),
@@ -69,53 +63,48 @@ function isHistoriaDocument(doc: unknown): doc is HistoriaDocument {
   );
 }
 
-function pacienteMatchesQuery(paciente: PacienteSearchResult, query: string) {
-  const normalizedQuery = normalize(query);
-  const datos = paciente.datosPersonales;
-  const searchable = normalize(
-    [
-      datos.numeroDocumentoIdentidad,
-      datos.nombres,
-      datos.apellidoPaterno,
-      datos.apellidoMaterno,
-    ].join(" "),
-  );
-
-  return searchable.includes(normalizedQuery);
-}
-
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function searchPacientes(query: string) {
+export async function searchPacientes(query: string, requestedPage = 1) {
   const trimmedQuery = query.trim();
-
-  if (!trimmedQuery) {
-    return [];
-  }
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+    ? requestedPage : 1;
+  const pageSize = 20;
 
   await ensureTesisIndexes();
 
-  const safeQuery = escapeRegex(trimmedQuery);
+  const terms = trimmedQuery.split(/\s+/).filter(Boolean).map((term) => {
+    const accents: Record<string, string> = {
+      a: "[aáàäâ]", e: "[eéèëê]", i: "[iíìïî]",
+      o: "[oóòöô]", u: "[uúùüû]", n: "[nñ]",
+    };
+    const normalized = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return "(?i)" + [...normalized].map((char) => accents[char] ?? escapeRegex(char)).join("");
+  });
   const result = await findTesisDocs({
-    limit: 50,
+    limit: pageSize + 1,
+    skip: (page - 1) * pageSize,
+    sort: [{ type: "asc" }, { _id: "asc" }],
+    use_index: "idx_pacientes_listado",
     selector: {
-      $or: [
-        { "datosPersonales.numeroDocumentoIdentidad": { $regex: safeQuery } },
-        { "datosPersonales.nombres": { $regex: safeQuery } },
-        { "datosPersonales.apellidoPaterno": { $regex: safeQuery } },
-        { "datosPersonales.apellidoMaterno": { $regex: safeQuery } },
-      ],
       type: "paciente",
+      ...(terms.length ? { $and: terms.map((term) => ({
+        $or: [
+          { "datosPersonales.numeroDocumentoIdentidad": { $regex: term } },
+          { "datosPersonales.nombres": { $regex: term } },
+          { "datosPersonales.apellidoPaterno": { $regex: term } },
+          { "datosPersonales.apellidoMaterno": { $regex: term } },
+        ],
+      })) } : {}),
     },
   });
 
-  return result.docs
+  const pacientes = result.docs.slice(0, pageSize)
     .map((doc) => serializePaciente(doc as PacienteDocument))
-    .filter((paciente): paciente is PacienteSearchResult => Boolean(paciente))
-    .filter((paciente) => pacienteMatchesQuery(paciente, trimmedQuery))
-    .slice(0, 25);
+    .filter((paciente): paciente is PacienteSearchResult => Boolean(paciente));
+  return { pacientes, page, pageSize, hasNext: result.docs.length > pageSize };
 }
 
 export async function getPacienteById(id: string) {
@@ -149,4 +138,37 @@ export async function getHistoriasByPacienteId(id: string) {
   });
 
   return result.docs.filter(isHistoriaDocument).slice(0, 12);
+}
+
+export async function getHistoriasByPacienteIds(ids: string[]) {
+  const pacienteIds = [...new Set(ids.filter(Boolean))];
+
+  if (pacienteIds.length === 0) {
+    return {};
+  }
+
+  await ensureTesisIndexes();
+
+  const result = await findTesisDocs({
+    limit: pacienteIds.length * 12,
+    selector: {
+      pacienteId: { $in: pacienteIds },
+      type: "historia",
+    },
+    use_index: "idx_historias_paciente",
+  });
+  const historiasByPacienteId: Record<string, HistoriaDocument[]> =
+    Object.fromEntries(pacienteIds.map((id) => [id, []]));
+
+  for (const doc of result.docs) {
+    if (!isHistoriaDocument(doc) || !historiasByPacienteId[doc.pacienteId]) {
+      continue;
+    }
+
+    if (historiasByPacienteId[doc.pacienteId].length < 12) {
+      historiasByPacienteId[doc.pacienteId].push(doc);
+    }
+  }
+
+  return historiasByPacienteId;
 }

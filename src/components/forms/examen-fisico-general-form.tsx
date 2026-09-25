@@ -9,7 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { SaveIcon } from "lucide-react";
+import { ActivityIcon, ArrowLeftIcon, ArrowRightIcon, HeartPulseIcon, RulerIcon, SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { SelectField, TextField } from "@/components/forms/fields";
@@ -23,6 +23,8 @@ import {
   CreateExamenFisicoGeneralSchema,
   diagnosticosIMC,
 } from "@/lib/schema/examenFisicoGeneral";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
+import { cn } from "@/lib/utils";
 
 type Emptyable<T extends string> = T | "";
 
@@ -92,6 +94,12 @@ const baseFormValue: ExamenFisicoGeneralFormValue = {
   indiceCinturaCadera: "",
   diagnosticoIMC: "",
 };
+
+const formSteps = [
+  { id: "presion", label: "Presión arterial", prefixes: ["presionArterial", "presionArterialMedia"] },
+  { id: "signos", label: "Signos vitales", prefixes: ["pulsos", "frecuenciaRespiratoria", "frecuenciaCardiaca", "temperaturaAxilar"] },
+  { id: "antropometria", label: "Antropometría", prefixes: ["peso", "talla", "imc", "perimetroCadera", "perimetroCintura", "indiceCinturaCadera", "diagnosticoIMC"] },
+] as const;
 
 async function noopAction(): Promise<ExamenFisicoGeneralActionState> {
   return { ok: false };
@@ -254,6 +262,8 @@ function getConfirmationSections(form: ExamenFisicoGeneralFormValue) {
         { label: "Talla", value: textSummary(`${form.talla} cm`) },
         { label: "IMC", value: textSummary(form.imc) },
         { label: "Diagnostico IMC", value: textSummary(form.diagnosticoIMC) },
+        { label: "Perímetro de cintura", value: textSummary(`${form.perimetroCintura} cm`) },
+        { label: "Perímetro de cadera", value: textSummary(`${form.perimetroCadera} cm`) },
         {
           label: "Indice cintura/cadera",
           value: textSummary(form.indiceCinturaCadera),
@@ -275,6 +285,7 @@ export function ExamenFisicoGeneralForm({
   );
   const [form, setForm] =
     useState<ExamenFisicoGeneralFormValue>(initialValue);
+  const [activeStep, setActiveStep] = useState(0);
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -285,12 +296,19 @@ export function ExamenFisicoGeneralForm({
       confirmLabel: "Guardar examen general",
     });
   const validation = CreateExamenFisicoGeneralSchema.safeParse(buildPayload(form));
-  const { visibleErrors, onBlurCapture, revealErrors, showWarning } = useInteractiveErrors({
+  const { visibleErrors: allVisibleErrors, onBlurCapture, revealErrors, showWarning } = useInteractiveErrors({
     value: form,
     actionState,
     isPending,
     validationError: validation.success ? undefined : validation.error,
   });
+  const visibleErrors = { ...allVisibleErrors };
+  if (!form.peso || !form.talla) delete visibleErrors.imc;
+  if (!form.perimetroCintura || !form.perimetroCadera) delete visibleErrors.indiceCinturaCadera;
+  if (!form.presionArterial.derecha.max || !form.presionArterial.derecha.min ||
+      !form.presionArterial.izquierda.max || !form.presionArterial.izquierda.min) {
+    delete visibleErrors.presionArterialMedia;
+  }
 
   useEffect(() => {
     if (!actionState.message) {
@@ -311,6 +329,12 @@ export function ExamenFisicoGeneralForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (activeStep < formSteps.length - 1) {
+      event.preventDefault();
+      goToStep(activeStep + 1);
+      return;
+    }
+
     const nextForm = {
       ...form,
       imc: calculateBmi(form),
@@ -318,6 +342,23 @@ export function ExamenFisicoGeneralForm({
       presionArterialMedia: calculateMeanPressure(form),
     };
     if (revealErrors(event)) {
+      if (!validation.success) {
+        const firstPath = Object.keys(firstFieldErrors(validation.error))[0];
+        const errorStep = formSteps.findIndex((step) =>
+          step.prefixes.some((prefix) => firstPath === prefix || firstPath.startsWith(`${prefix}.`)),
+        );
+        if (errorStep >= 0 && errorStep !== activeStep) {
+          setActiveStep(errorStep);
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              const control = Array.from(formRef.current?.elements ?? []).find(
+                (element) => element.getAttribute("name") === firstPath,
+              ) as HTMLElement | undefined;
+              control?.focus();
+            });
+          });
+        }
+      }
       return;
     }
 
@@ -326,6 +367,14 @@ export function ExamenFisicoGeneralForm({
     if (!confirmSubmit(event, getConfirmationSections(nextForm))) {
       return;
     }
+  }
+
+  function goToStep(index: number) {
+    setActiveStep(index);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`examen-${formSteps[index].id}-title`)?.focus({ preventScroll: true });
+      formRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   }
 
   function updatePressure(
@@ -372,14 +421,57 @@ export function ExamenFisicoGeneralForm({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6"
+      className="grid scroll-mt-20 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6"
       noValidate
       onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
+      <nav aria-label="Pasos del examen físico" className="rounded-xl border bg-muted/20 p-3 lg:sticky lg:top-20">
+        <p className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">En este examen</p>
+        <ol className="flex gap-1 overflow-x-auto lg:flex-col">
+          {formSteps.map((step, index) => {
+            const errorCount = Object.keys(visibleErrors).filter((path) =>
+              step.prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}.`)),
+            ).length;
+            return (
+              <li className="shrink-0 lg:shrink" key={step.id}>
+                <button
+                  aria-controls={`examen-${step.id}`}
+                  aria-current={activeStep === index ? "step" : undefined}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50",
+                    activeStep === index && "bg-accent font-semibold text-accent-foreground",
+                    errorCount > 0 && "text-destructive",
+                  )}
+                  disabled={isPending}
+                  onClick={() => goToStep(index)}
+                  type="button"
+                >
+                  <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums text-muted-foreground", activeStep === index && "border-primary bg-primary text-primary-foreground")}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className="flex-1">{step.label}</span>
+                  {errorCount > 0 ? <span aria-label={`${errorCount} errores`} className="text-xs">({errorCount})</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="hidden px-2 pt-4 text-xs leading-relaxed text-muted-foreground lg:block">Puedes cambiar de paso sin perder lo escrito. Guarda al finalizar.</p>
+      </nav>
+      <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <p aria-live="polite">Paso {activeStep + 1} de {formSteps.length} · {formSteps[activeStep].label}</p>
+            <p>* Campos obligatorios</p>
+          </div>
+          <div aria-hidden="true" className="flex gap-1.5">
+            {formSteps.map((step, index) => <span className={cn("h-1 flex-1 rounded-full bg-muted", index <= activeStep && "bg-primary")} key={step.id} />)}
+          </div>
+        </div>
       <FormSection
         description="Registro bilateral de presion arterial y calculo automatico de presion arterial media."
+        hidden={activeStep !== 0}
+        id="presion"
         title="Presion arterial"
       >
         <FieldGrid>
@@ -437,6 +529,8 @@ export function ExamenFisicoGeneralForm({
 
       <FormSection
         description="Constantes basales registradas durante la estacion."
+        hidden={activeStep !== 1}
+        id="signos"
         title="Signos vitales"
       >
         <FieldGrid>
@@ -495,6 +589,8 @@ export function ExamenFisicoGeneralForm({
 
       <FormSection
         description="Mediciones antropometricas con calculo automatico de IMC e indice cintura/cadera."
+        hidden={activeStep !== 2}
+        id="antropometria"
         title="Antropometria"
       >
         <FieldGrid>
@@ -571,16 +667,28 @@ export function ExamenFisicoGeneralForm({
         </FieldGrid>
       </FormSection>
 
-      <footer className="sticky bottom-0 flex flex-col gap-3 rounded-3xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <footer className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {actionState.message ??
-            "Completa los signos vitales y mediciones para guardar."}
+            (activeStep === formSteps.length - 1 ? "Revisa las mediciones y guarda el examen." : "Continúa al siguiente apartado cuando termines.")}
         </p>
-        <Button disabled={isPending} type="submit">
-          <SaveIcon data-icon="inline-start" />
-          {isPending ? "Guardando..." : "Guardar examen general"}
-        </Button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button disabled={isPending || activeStep === 0} onClick={() => goToStep(activeStep - 1)} type="button" variant="outline">
+            <ArrowLeftIcon data-icon="inline-start" />Anterior
+          </Button>
+          {activeStep < formSteps.length - 1 ? (
+            <Button disabled={isPending} onClick={() => goToStep(activeStep + 1)} type="button">
+              Siguiente<ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          ) : (
+            <Button disabled={isPending} type="submit">
+              <SaveIcon data-icon="inline-start" />
+              {isPending ? "Guardando..." : "Guardar examen"}
+            </Button>
+          )}
+        </div>
       </footer>
+      </div>
       {confirmationDialog}
     </form>
   );
@@ -629,21 +737,35 @@ function NumberField({
 function FormSection({
   children,
   description,
+  hidden,
+  id,
   title,
 }: {
   children: ReactNode;
   description: string;
+  hidden?: boolean;
+  id: string;
   title: string;
 }) {
+  const section = title === "Presion arterial"
+    ? { number: "01", Icon: ActivityIcon }
+    : title === "Signos vitales"
+      ? { number: "02", Icon: HeartPulseIcon }
+      : { number: "03", Icon: RulerIcon };
+
   return (
-    <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
+    <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={hidden} id={`examen-${id}`}>
+      <div className="flex items-start gap-3 border-b bg-muted/20 p-4 sm:p-5">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary">
+          <section.Icon className="size-5" aria-hidden="true" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Apartado {section.number}</span>
+          <h2 className="text-base font-semibold" id={`examen-${id}-title`} tabIndex={-1}>{title}</h2>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
       </div>
-      {children}
+      <div className="p-4 sm:p-6">{children}</div>
     </section>
   );
 }

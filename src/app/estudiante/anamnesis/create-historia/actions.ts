@@ -324,9 +324,12 @@ export async function createAnamnesis(
       created_by: userId,
       updated_by: userId,
     };
+    const createdAt = new Date().toISOString();
     const historia: Historia = {
       type: "historia",
       created_by: userId,
+      createdAt,
+      updatedAt: createdAt,
       pacienteId,
       viajeId,
       anamnesis,
@@ -478,6 +481,7 @@ export async function updateAnamnesis(
     const nextHistoria = {
       ...historia,
       anamnesis,
+      updatedAt: new Date().toISOString(),
     };
 
     await db.put(nextHistoria);

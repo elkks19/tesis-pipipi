@@ -5,7 +5,7 @@ import { PendingHistoriesTable } from "../_components/pending-histories-table";
 import { listHistoriasForDiagnostico } from "./queries";
 
 export const metadata: Metadata = {
-  title: "Diagnostico",
+  title: "Diagnóstico",
 };
 
 export const runtime = "nodejs";
@@ -39,12 +39,12 @@ export default async function DiagnosticoPage({
   });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Diagnostico</h1>
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · Cierre de historia</span>
+        <h1 className="font-heading text-2xl font-semibold">Diagnóstico</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Selecciona una historia pendiente de cierre y registra el diagnostico
-          codificado CIE-11.
+          Selecciona una historia para registrar el diagnóstico CIE-11, el plan de trabajo y la receta.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default async function DiagnosticoPage({
         basePath="/estudiante/diagnostico"
         cursor={cursor}
         cursors={cursors}
-        emptyMessage="No hay historias pendientes de diagnostico que coincidan con la busqueda."
+        emptyMessage="No hay historias de diagnóstico que coincidan con la búsqueda."
         filterId="diagnostico-search"
         page={page}
         query={query}

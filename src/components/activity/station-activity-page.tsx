@@ -1,9 +1,7 @@
-import { ClipboardCheckIcon } from "lucide-react";
 
 import { StationActivityFeed } from "@/components/activity/station-activity-feed";
 import {
   getActivityDescription,
-  getActivityEmptyCopy,
   getActivityTitle,
   withActivityLinks,
 } from "@/components/activity/station-activity-links";
@@ -50,8 +48,11 @@ export async function StationActivityPage({
         </p>
       </div>
 
-      {page.rows.length > 0 ? (
         <StationActivityFeed
+          key={`${page.page}-${page.total}-${page.rows[0]?.id ?? "empty"}`}
+          initialPage={page.page}
+          total={page.total}
+          totalPages={page.totalPages}
           basePath={basePath}
           hasNextPage={page.hasNextPage}
           initialRows={withActivityLinks({
@@ -64,17 +65,6 @@ export async function StationActivityPage({
           nextCursor={page.nextCursor}
           stationKey={stationKey}
         />
-      ) : (
-        <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border border-dashed bg-background px-6 py-8 text-center">
-          <ClipboardCheckIcon className="text-muted-foreground" />
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Sin actividad</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              {getActivityEmptyCopy(mode)}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

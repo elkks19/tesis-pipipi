@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CalendarDaysIcon, PlusIcon } from "lucide-react";
+import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, PlusIcon, UsersRoundIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ type ViajesPageProps = {
     fecha?: string | string[];
     hasta?: string | string[];
     lugar?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -56,7 +57,21 @@ function formatDate(value: string) {
 }
 
 function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/La_Paz", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+const PAGE_SIZE = 8;
+
+function getPageHref(filters: { fechaDesde: string; fechaHasta: string; lugar: string }, page: number) {
+  const params = new URLSearchParams();
+  if (filters.lugar) params.set("lugar", filters.lugar);
+  if (filters.fechaDesde) params.set("desde", filters.fechaDesde);
+  if (filters.fechaHasta) params.set("hasta", filters.fechaHasta);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `/admin/viajes?${query}` : "/admin/viajes";
 }
 
 function canEditViaje(fechaEntrada: string) {
@@ -128,6 +143,12 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
     lugar: getParam(params.lugar),
   };
   const viajes = await listViajes(filters);
+  const requestedPage = Number(getParam(params.page));
+  const totalPages = Math.max(1, Math.ceil(viajes.length / PAGE_SIZE));
+  const currentPage = Number.isInteger(requestedPage) && requestedPage > 0
+    ? Math.min(requestedPage, totalPages)
+    : 1;
+  const visibleViajes = viajes.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const totalStations = viajes.reduce(
     (total, viaje) => total + viaje.estaciones.length,
     0,
@@ -142,12 +163,13 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Administración · Coordinación</p>
           <h1 className="font-heading text-2xl font-semibold">Viajes</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Listado de viajes programados y estaciones asignadas.
+            Organiza los viajes, consulta sus equipos y revisa las estaciones asignadas.
           </p>
         </div>
         <Button asChild>
@@ -158,16 +180,21 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-5 rounded-xl border bg-background p-4 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 border-b pb-4 text-xs text-muted-foreground sm:gap-3">
+          <span className="rounded-full border bg-muted/30 px-3 py-1.5"><strong className="text-foreground">{viajes.length}</strong> viajes encontrados</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/30 px-3 py-1.5"><MapPinIcon className="size-3.5" />{totalStations} estaciones</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/30 px-3 py-1.5"><UsersRoundIcon className="size-3.5" />{totalStudents} estudiantes asignados</span>
+        </div>
         <ViajesFilters filters={filters} />
 
         <div className="flex flex-col gap-3 md:hidden">
-          {viajes.length > 0 ? (
-            viajes.map((viaje) => {
+          {visibleViajes.length > 0 ? (
+            visibleViajes.map((viaje) => {
               const team = getTeamSummary(viaje);
 
               return (
-                <Card className="shadow-sm" key={viaje.docId} size="sm">
+                <Card className="rounded-xl shadow-sm" key={viaje.docId} size="sm">
                   <CardHeader>
                     <CardTitle className="truncate">{viaje.servicio}</CardTitle>
                     <CardDescription className="flex min-w-0 flex-col gap-1">
@@ -221,7 +248,7 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
           )}
         </div>
 
-        <div className="hidden overflow-hidden rounded-3xl border md:block">
+        <div className="hidden overflow-hidden rounded-xl border md:block">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
@@ -232,8 +259,8 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {viajes.length > 0 ? (
-                viajes.map((viaje) => {
+              {visibleViajes.length > 0 ? (
+                visibleViajes.map((viaje) => {
                   const team = getTeamSummary(viaje);
 
                   return (
@@ -307,13 +334,21 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
           </Table>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Mostrando {viajes.length} viaje{viajes.length === 1 ? "" : "s"},{" "}
-          {totalStations} estacion{totalStations === 1 ? "" : "es"},{" "}
-          {totalTeachers} docente{totalTeachers === 1 ? "" : "s"} y{" "}
-          {totalStudents} estudiante{totalStudents === 1 ? "" : "s"} asignado
-          {totalStudents === 1 ? "" : "s"}.
-        </p>
+        <div className="flex flex-col gap-3 border-t pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-muted-foreground">
+            {viajes.length === 0 ? "Sin resultados" : `Mostrando ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, viajes.length)} de ${viajes.length} viajes`}
+            <span className="ml-2 text-xs">· {totalTeachers} docentes asignados</span>
+          </p>
+          <nav aria-label="Páginas de viajes" className="flex items-center gap-2">
+            <Button asChild={currentPage > 1} disabled={currentPage <= 1} size="sm" variant="outline">
+              {currentPage > 1 ? <Link href={getPageHref(filters, currentPage - 1)}><ChevronLeftIcon data-icon="inline-start" />Anterior</Link> : <><ChevronLeftIcon data-icon="inline-start" />Anterior</>}
+            </Button>
+            <span className="min-w-20 text-center text-xs tabular-nums text-muted-foreground">{currentPage} de {totalPages}</span>
+            <Button asChild={currentPage < totalPages} disabled={currentPage >= totalPages} size="sm" variant="outline">
+              {currentPage < totalPages ? <Link href={getPageHref(filters, currentPage + 1)}>Siguiente<ChevronRightIcon data-icon="inline-end" /></Link> : <>Siguiente<ChevronRightIcon data-icon="inline-end" /></>}
+            </Button>
+          </nav>
+        </div>
       </div>
     </div>
   );

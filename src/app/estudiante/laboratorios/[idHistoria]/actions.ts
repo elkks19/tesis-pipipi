@@ -143,9 +143,8 @@ export async function saveLaboratorios(
       };
     }
 
-    const isRequested = Boolean(
-      historia.examenesComplementariosSolicitados?.laboratorios,
-    );
+    const isRequested =
+      historia.examenesComplementariosSolicitados?.laboratorios === true;
 
     if (!isRequested && !historia.laboratorios) {
       return {

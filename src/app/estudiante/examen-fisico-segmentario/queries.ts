@@ -18,7 +18,9 @@ export async function listHistoriasForExamenFisicoSegmentario({
 }): Promise<ExamenFisicoSegmentarioPageResult> {
   return listStationHistories({
     cursor,
+    includeCompleted: true,
     mode: "estudiante",
+    newestFirst: true,
     query,
     stationKey: "examenFisicoSegmentario",
   });

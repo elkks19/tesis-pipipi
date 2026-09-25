@@ -238,20 +238,22 @@ export function IcdCodePicker({
         </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-4xl">
+          <DialogHeader className="border-b px-5 py-5 pr-14 sm:px-6">
             <DialogTitle>Buscar enfermedad CIE-11</DialogTitle>
             <DialogDescription>
-              Escribe el diagnostico y selecciona una opcion del listado.
+              Escribe el diagnóstico o código y selecciona una opción del listado.
             </DialogDescription>
           </DialogHeader>
-          <div className="icd-ect-scope flex flex-col gap-3">
+          <div className="icd-ect-scope flex min-h-0 flex-col gap-4 p-4 sm:p-6">
+            <Label htmlFor={`${instanceId}-search`}>Diagnóstico o código CIE-11</Label>
             <Input
+              id={`${instanceId}-search`}
               autoComplete="off"
-              className="ctw-input"
+              className="ctw-input h-11"
               data-ctw-ino={instanceId}
               disabled={Boolean(loadError)}
-              placeholder="Buscar por diagnostico o codigo"
+              placeholder="Ej. dolor abdominal o un código CIE-11"
               onChange={(event) => {
                 if (isReady) {
                   window.ECT?.Handler.search(instanceId, event.target.value);
@@ -264,19 +266,132 @@ export function IcdCodePicker({
               </div>
             ) : null}
             <div
-              className="ctw-window min-h-72 rounded-3xl border bg-background p-2"
+              className="ctw-window min-h-64 rounded-xl border bg-background p-3"
               data-ctw-ino={instanceId}
             />
           </div>
           <style>{`
             .icd-ect-scope .ctw-window {
               overflow: auto;
-              max-height: min(58vh, 560px);
+              max-height: min(55dvh, 560px);
+              scrollbar-width: thin;
+              scrollbar-color: var(--border) transparent;
             }
 
             .icd-ect-scope .ctw-window,
             .icd-ect-scope .ctw-window * {
               font-family: inherit;
+            }
+
+            .icd-ect-scope .ectComponent,
+            .icd-ect-scope .ectComponent .defaultFontColor,
+            .icd-ect-scope .ectComponent .entityTitle,
+            .icd-ect-scope .ectComponent .propertyHeader,
+            .icd-ect-scope .ectComponent .propertyHeaderSelection {
+              color: var(--foreground);
+              line-height: 1.6;
+            }
+
+            .icd-ect-scope .ectComponent .entitylist ul.toplevel {
+              margin: 0;
+              padding: 0;
+              list-style: none;
+            }
+
+            .icd-ect-scope .ectComponent .entityInList {
+              padding: 6px 0;
+              border-bottom: 1px solid var(--border);
+            }
+
+            .icd-ect-scope .ectComponent .entityHead {
+              align-items: baseline;
+              gap: 12px;
+              padding: 10px 12px;
+              border-radius: 8px;
+            }
+
+            .icd-ect-scope .ectComponent .entityTheCode {
+              flex: 0 0 7em;
+              color: var(--muted-foreground);
+              font-size: 12px;
+              font-variant-numeric: tabular-nums;
+              overflow: visible;
+              white-space: normal;
+              overflow-wrap: anywhere;
+            }
+
+            .icd-ect-scope .ectComponent .entityTitleAndIcons,
+            .icd-ect-scope .ectComponent .entityTitle {
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+
+            .icd-ect-scope .ectComponent .entityHead.currentEntityHighlighted,
+            .icd-ect-scope .ectComponent .entityHead:not(.keyboardOnlyHighlight):hover,
+            .icd-ect-scope .ectComponent .highlightedEntity,
+            .icd-ect-scope .ectComponent .highlightedEntityPv,
+            .icd-ect-scope .ectComponent .importantlabelCurrentEntityHighlighted {
+              background-color: var(--accent) !important;
+              color: var(--accent-foreground);
+            }
+
+            .icd-ect-scope .ectComponent .pvs {
+              margin: 4px 12px 6px;
+              padding: 6px 12px;
+              border-radius: 6px;
+              background-color: var(--muted);
+              color: var(--muted-foreground);
+            }
+
+            .icd-ect-scope .ectComponent .entityPv,
+            .icd-ect-scope .ectComponent .highlightedEntityPv {
+              border-color: transparent !important;
+            }
+
+            .icd-ect-scope .ectComponent em.found,
+            .icd-ect-scope .ectComponent em.found em,
+            .icd-ect-scope .ectComponent em.wbe,
+            .icd-ect-scope .ectComponent em.nonwbe {
+              color: var(--primary);
+              font-style: normal;
+              font-weight: 600;
+            }
+
+            .icd-ect-scope .ectComponent .showlink,
+            .icd-ect-scope .ectComponent .showlinkNormalSize {
+              color: var(--primary) !important;
+              font-size: 12px;
+            }
+
+            .icd-ect-scope .ectComponent .showdetails {
+              padding-left: 8px;
+            }
+
+            .icd-ect-scope .ectComponent .statusFlexInfo {
+              padding: 8px 12px;
+              margin-bottom: 8px;
+              border-radius: 6px;
+              background: var(--muted);
+              text-align: left;
+              white-space: normal;
+              font-size: 12px;
+            }
+
+            .icd-ect-scope .ectComponent .chopped {
+              color: var(--foreground);
+            }
+
+            .icd-ect-scope .ectComponent .entityDetails,
+            .icd-ect-scope .ectComponent .entityDetailsSelection {
+              background-color: var(--muted) !important;
+              border-color: var(--border);
+              color: var(--foreground);
+              border-radius: 8px;
+            }
+
+            .icd-ect-scope .ectComponent .entityDetailsTheCode,
+            .icd-ect-scope .ectComponent .entityTheCodeInDetails {
+              color: var(--foreground);
             }
 
             .icd-ect-scope .ctw-window table {
@@ -309,6 +424,21 @@ export function IcdCodePicker({
             }
 
             @media (max-width: 640px) {
+              .icd-ect-scope .ectComponent .entityHead {
+                flex-wrap: wrap;
+                gap: 4px;
+                padding: 8px;
+              }
+
+              .icd-ect-scope .ectComponent .entityTheCode {
+                flex-basis: 100%;
+              }
+
+              .icd-ect-scope .ectComponent .entityTitleAndIcons {
+                flex-wrap: wrap;
+                row-gap: 6px;
+              }
+
               .icd-ect-scope .ctw-window table,
               .icd-ect-scope .ctw-window tbody,
               .icd-ect-scope .ctw-window tr,

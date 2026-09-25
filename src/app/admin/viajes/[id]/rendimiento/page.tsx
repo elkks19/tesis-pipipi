@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, FileTextIcon } from "lucide-react";
+import { ArrowLeftIcon, ChartNoAxesCombinedIcon, FileTextIcon } from "lucide-react";
 
 import { getViajeByDocId } from "@/app/admin/viajes/queries";
 import { StationPerformanceView } from "@/components/docente/station-performance-page";
@@ -80,14 +80,15 @@ export default async function AdminViajeRendimientoPage({
   );
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="sticky top-14 z-10 flex flex-col gap-4 border-b bg-background py-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-7 pb-10">
+      <div className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><ChartNoAxesCombinedIcon className="size-4" /> Informe del viaje</p>
+          <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
             Rendimiento por estaciones
           </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            {viaje.servicio} - {viaje.establecimiento.nombre}
+          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+            <span className="font-medium text-foreground">{viaje.servicio}</span> · {viaje.establecimiento.nombre}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -100,30 +101,33 @@ export default async function AdminViajeRendimientoPage({
           <Button asChild>
             <Link href={getGeneralPdfHref(viajeId)} target="_blank">
               <FileTextIcon data-icon="inline-start" />
-              PDF general
+              PDF de rendimiento del viaje
             </Link>
           </Button>
         </div>
       </div>
 
       {performances.length > 0 ? (
-        <Tabs defaultValue={performances[0]?.stationKey}>
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-muted-foreground">
-              Estacion a revisar
-            </p>
-            <div className="overflow-x-auto pb-1">
-              <TabsList className="w-max">
-                {performances.map(({ performance, stationKey }) => (
-                  <TabsTrigger key={stationKey} value={stationKey}>
+        <Tabs defaultValue={performances[0]?.stationKey} className="gap-5">
+          <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-base font-semibold">Estaciones del viaje</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">Selecciona una estación para consultar su rendimiento.</p>
+              </div>
+              <span className="rounded-full border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">{performances.length} estaciones</span>
+            </div>
+            <TabsList aria-label="Estaciones del viaje" className="!h-auto !w-full !flex-wrap !justify-start gap-2 !rounded-none !bg-transparent !p-0">
+                {performances.map(({ performance, stationKey }, index) => (
+                  <TabsTrigger className="!h-auto !flex-none !rounded-lg !border !border-border !bg-muted/20 px-3.5 py-2.5 !text-sm !font-medium !whitespace-normal !text-foreground/75 hover:!border-primary/40 hover:!text-foreground data-active:!border-primary/50 data-active:!bg-primary/10 data-active:!text-primary data-active:!shadow-none" key={stationKey} value={stationKey}>
+                    <span className="text-xs tabular-nums opacity-65">{String(index + 1).padStart(2, "0")}</span>
                     {performance.station.label}
                   </TabsTrigger>
                 ))}
-              </TabsList>
-            </div>
+            </TabsList>
           </div>
           {performances.map(({ performance, stationKey }) => (
-            <TabsContent className="mt-5" key={stationKey} value={stationKey}>
+            <TabsContent className="!mt-0" key={stationKey} value={stationKey}>
               <StationPerformanceView
                 compactTitle
                 pdfHref={getStationPdfHref(viajeId, stationKey)}

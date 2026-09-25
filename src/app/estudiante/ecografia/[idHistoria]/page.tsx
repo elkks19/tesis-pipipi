@@ -7,6 +7,7 @@ import {
 } from "@/components/forms/ecografia-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getFileUrl } from "@/lib/file-storage";
 import type { Ecografia } from "@/lib/schema/ecografia";
 import type { Historia } from "@/lib/schema/historia";
@@ -14,7 +15,7 @@ import type { Historia } from "@/lib/schema/historia";
 import { saveEcografia } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Ecografia",
+  title: "Ecografía",
 };
 
 export const runtime = "nodejs";
@@ -121,13 +122,16 @@ export default async function EcografiaPage({
   const imagenPreview = await getImagePreview(historia.ecografia);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Ecografia</h1>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 rounded-xl border bg-background px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
+      <div className="flex flex-col gap-1 border-b pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · Ecografía</p>
+        <h1 className="font-heading text-2xl font-semibold">Ecografía</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Registra hallazgos ecograficos y adjunta una fotografia del estudio.
+          Registra los hallazgos del estudio y adjunta una fotografía ecográfica.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

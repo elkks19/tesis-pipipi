@@ -14,7 +14,9 @@ export async function listHistoriasForDiagnostico({
 }): Promise<StationHistoryPageResult> {
   return listStationHistories({
     cursor,
+    includeCompleted: true,
     mode: "estudiante",
+    newestFirst: true,
     query,
     stationKey: "diagnostico",
   });

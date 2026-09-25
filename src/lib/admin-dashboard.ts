@@ -67,6 +67,8 @@ export type AdminDashboardSummary = {
   diagnosisRows: DiagnosisSummaryRow[];
   selectedTrip?: AdminDashboardTripOption;
   selectedTripId?: string;
+  stationRows: Array<{ label: string; value: number }>;
+  totalHistories: number;
   trips: AdminDashboardTripOption[];
 };
 
@@ -92,11 +94,13 @@ export async function getAdminDashboardSummary(
 ): Promise<AdminDashboardSummary> {
   await ensureTesisIndexes();
 
-  const trips = (await listViajes({}))
+  const viajes = await listViajes({});
+  const trips = viajes
     .map(toTripOption)
     .sort((a, b) => b.dateLabel.localeCompare(a.dateLabel));
   const selectedTrip =
     trips.find((trip) => trip.id === selectedTripId) ?? trips[0];
+  const selectedViaje = viajes.find((viaje) => viaje.docId === selectedTrip?.id);
 
   if (!selectedTrip) {
     return {
@@ -106,11 +110,13 @@ export async function getAdminDashboardSummary(
         rows: [],
       },
       diagnosisRows: [],
+      stationRows: [],
+      totalHistories: 0,
       trips: [],
     };
   }
 
-  const historias = await fetchHistorias(selectedTrip.id);
+  const historias = await fetchAllHistorias(selectedTrip.id);
   const pacientesById = await fetchPacientesById(
     historias.map((historia) => historia.pacienteId),
   );
@@ -124,6 +130,13 @@ export async function getAdminDashboardSummary(
     diagnosisRows: buildDiagnosisRows(historias, pacientesById),
     selectedTrip,
     selectedTripId: selectedTrip.id,
+    stationRows: Object.values(stationConfigs)
+      .filter((station) => selectedViaje?.estaciones.some((item) => item.tipo === station.viajeTipo))
+      .map((station) => ({
+        label: station.viajeTipo,
+        value: historias.filter((historia) => Boolean(historia[station.field])).length,
+      })),
+    totalHistories: historias.length,
     trips,
   };
 }
@@ -135,19 +148,6 @@ function toTripOption(viaje: Awaited<ReturnType<typeof listViajes>>[number]) {
     label: `${viaje.servicio} / ${viaje.establecimiento.nombre}`,
     secondaryLabel: viaje.establecimiento.direccion ?? "Sin direccion registrada",
   };
-}
-
-async function fetchHistorias(viajeId: string) {
-  const result = await findTesisDocs({
-    limit: 500,
-    selector: {
-      type: "historia",
-      viajeId,
-    },
-    use_index: "idx_historias_viaje",
-  });
-
-  return result.docs.filter(isHistoria);
 }
 
 async function fetchPacientesById(pacienteIds: string[]) {

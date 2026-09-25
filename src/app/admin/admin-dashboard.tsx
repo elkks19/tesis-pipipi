@@ -23,6 +23,8 @@ import {
 } from "recharts";
 import {
   CalendarDaysIcon,
+  ActivityIcon,
+  ChartNoAxesCombinedIcon,
   CheckIcon,
   ChevronsUpDownIcon,
   Maximize2Icon,
@@ -117,7 +119,7 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
     ...row,
     value: row.historias,
   }));
-  const chartWidth = Math.max(760, chartRows.length * 82);
+  const chartWidth = Math.max(760, chartRows.length * 94);
   const currentTripParam = searchParams.get("viajeId");
 
   const navigateTrip = useCallback(
@@ -173,27 +175,30 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
   }
 
   return (
-    <main className="flex flex-col gap-7 text-base">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Resumen rapido del viaje
+    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 pb-10 text-base">
+      <header className="flex flex-col gap-1.5 border-b pb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Administración · Coordinación</p>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+          Resumen del viaje
         </h1>
+        <p className="text-sm text-muted-foreground">Consulta los diagnósticos y la actividad reciente del equipo en un solo lugar.</p>
       </header>
 
-      <section className="flex flex-col gap-2.5">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Viaje seleccionado
+      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <section className="flex min-w-0 flex-col justify-center gap-2.5 rounded-xl border bg-card p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Viaje en consulta
         </p>
         <Popover onOpenChange={setTripPickerOpen} open={tripPickerOpen}>
           <PopoverTrigger asChild>
             <Button
               aria-expanded={tripPickerOpen}
-              className="h-auto min-h-12 w-full max-w-4xl justify-between bg-muted/20 px-4 py-2.5 text-left font-normal shadow-none hover:bg-muted/35"
+              className="h-auto min-h-14 w-full justify-between rounded-lg border bg-muted/15 px-4 py-2.5 text-left font-normal shadow-none hover:bg-muted/30"
               role="combobox"
               variant="ghost"
             >
-              <span className="flex min-w-0 flex-col gap-1.5">
-                <span className="truncate text-base font-semibold">
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="truncate text-sm font-semibold sm:text-base">
                   {selectedTrip?.label ?? "Selecciona un viaje"}
                 </span>
                 {loadingTrip ? (
@@ -201,7 +206,7 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
                     Cargando resumen del viaje...
                   </span>
                 ) : selectedTrip ? (
-                  <span className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
                     <span className="flex min-w-0 items-center gap-1">
                       <MapPinIcon aria-hidden="true" />
                       <span className="truncate">
@@ -219,12 +224,12 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
                   </span>
                 )}
               </span>
-              <ChevronsUpDownIcon aria-hidden="true" />
+              <ChevronsUpDownIcon aria-hidden="true" className="ml-3 shrink-0" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="w-[min(760px,calc(100vw-2rem))] overflow-hidden p-0"
+            className="w-[min(680px,calc(100vw-2rem))] overflow-hidden p-0"
           >
             <PopoverHeader className="p-4 pb-2">
               <PopoverTitle>Viajes</PopoverTitle>
@@ -307,29 +312,32 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
         </Popover>
       </section>
 
-      <div className="grid gap-6 xl:h-[calc(100dvh-16rem)] xl:min-h-[480px] xl:max-h-[680px] xl:grid-cols-[minmax(0,1fr)_400px]">
+      <section aria-label="Cambios en las historias del viaje">
+        {loadingTrip ? (
+          <div className="grid gap-3 sm:grid-cols-2"><ChangeStatsSkeleton /><ChangeStatsSkeleton /></div>
+        ) : (
+          <ChangeStatsCards viajeId={summary.selectedTripId} />
+        )}
+      </section>
+      </div>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
         {loadingTrip ? (
           <>
             <DiagnosisChartSkeleton />
-            <section className="flex min-h-0 min-w-0 flex-col gap-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ChangeStatsSkeleton />
-                <ChangeStatsSkeleton />
-              </div>
-              <ActivityLogSkeleton />
-            </section>
+            <ActivityLogSkeleton />
           </>
         ) : (
           <>
-            <section className="flex min-h-0 min-w-0 flex-col gap-3">
+            <section className="flex min-h-0 min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div className="flex flex-col gap-0.5">
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary"><ChartNoAxesCombinedIcon className="size-4" /> Panorama clínico</p>
                   <h2 className="text-lg font-semibold tracking-tight">
-                    Resultados por diagnostico
+                    Resultados por diagnóstico
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Desplaza horizontalmente para ver todos los diagnosticos.
-                    Haz click en una barra para ver la distribucion por genero.
+                    Diagnósticos registrados en las historias de este viaje.
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -348,6 +356,21 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
               </div>
 
               {chartRows.length > 0 ? (
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3 text-sm">
+                  <span className="text-muted-foreground">Más frecuente:</span>
+                  <span className="font-semibold text-foreground">{chartRows.find((row) => !row.isOther)?.label ?? chartRows[0].label}</span>
+                  <span className="font-medium tabular-nums text-primary">{chartRows.find((row) => !row.isOther)?.historias ?? chartRows[0].historias} historias</span>
+                </div>
+              ) : null}
+
+              {chartRows.length > 0 ? (
+                <div className="rounded-lg border bg-muted/10 px-3.5 py-3 text-xs leading-5 text-muted-foreground sm:text-sm">
+                  <span className="font-semibold text-foreground">Cómo leer la gráfica: </span>
+                  Cada barra cuenta las apariciones de un diagnóstico principal o secundario en las historias del viaje. Una historia puede aportar a varias barras. Selecciona una barra para ver el desglose por género.
+                </div>
+              ) : null}
+
+              {chartRows.length > 0 ? (
                 <DiagnosisBarChart
                   chartRows={chartRows}
                   chartWidth={chartWidth}
@@ -357,20 +380,18 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
                   setSelectedDiagnosis={setSelectedDiagnosis}
                 />
               ) : (
-                <div className="flex h-64 items-center justify-center rounded-sm bg-muted/30 text-base text-muted-foreground">
-                  Este viaje todavia no tiene diagnosticos registrados.
+                <div className="flex h-64 items-center justify-center rounded-lg border border-dashed bg-muted/15 text-base text-muted-foreground">
+                  Este viaje todavía no tiene diagnósticos registrados.
                 </div>
               )}
               {chartRows.length > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  * Los diagnosticos con muy pocos casos se juntan en Otros para
-                  que el grafico sea mas facil de leer.
+                <p className="text-xs leading-5 text-muted-foreground">
+                  «Otros» reúne diagnósticos con menos del 2 % de las menciones registradas. Desplázate horizontalmente para ver todas las barras.
                 </p>
               ) : null}
             </section>
 
-            <section className="flex min-h-0 min-w-0 flex-col gap-4">
-              <ChangeStatsCards viajeId={summary.selectedTripId} />
+            <section className="flex min-h-0 min-w-0 flex-col">
               <ActivityLog
                 actorOptions={summary.activityActors}
                 initialPage={summary.activityPage}
@@ -381,6 +402,16 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
           </>
         )}
       </div>
+      {!loadingTrip && summary.totalHistories > 0 ? (
+        <section aria-label="Registros por estación del viaje">
+          <TripBreakdownChart
+            description="Historias que contienen información registrada en cada estación. Una historia puede figurar en varias barras."
+            rows={summary.stationRows}
+            title="Registros por estación"
+            total={summary.totalHistories}
+          />
+        </section>
+      ) : null}
       <Dialog
         onOpenChange={(open) => {
           setChartExpanded(open);
@@ -418,6 +449,43 @@ export function AdminDashboard({ summary }: { summary: AdminDashboardSummary }) 
   );
 }
 
+function TripBreakdownChart({
+  description,
+  rows,
+  title,
+  total,
+}: {
+  description: string;
+  rows: Array<{ label: string; value: number }>;
+  title: string;
+  total: number;
+}) {
+  return (
+    <article className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="max-w-xl text-xs leading-5 text-muted-foreground">{description}</p>
+        </div>
+        <span className="rounded-full border bg-muted/20 px-2.5 py-1 text-xs text-muted-foreground">{total} historias</span>
+      </div>
+      <div className="grid gap-x-8 gap-y-4 lg:grid-cols-2 2xl:grid-cols-3">
+        {rows.map((row) => (
+          <div className="grid gap-1.5" key={row.label}>
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-foreground" title={row.label}>{row.label}</span>
+              <span className="shrink-0 font-semibold tabular-nums">{row.value}</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${row.label}: ${row.value} de ${total} historias`}>
+              <div className="h-full rounded-full bg-primary/80" style={{ width: `${total > 0 ? (row.value / total) * 100 : 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 function DiagnosisBarChart({
   chartRows,
   chartWidth,
@@ -444,7 +512,7 @@ function DiagnosisBarChart({
     "right",
   );
   const chartHeight = "100%";
-  const chartInitialHeight = expanded ? 600 : 460;
+  const chartInitialHeight = expanded ? 600 : 340;
   const chartScale = useMemo(() => getChartScale(chartRows), [chartRows]);
   const scrollContainerId = expanded
     ? "diagnosis-chart-scroll-expanded"
@@ -579,7 +647,7 @@ function DiagnosisBarChart({
     <div
       className={cn(
         "relative min-h-0 min-w-0",
-        expanded ? "h-full" : "flex flex-1 flex-col",
+        expanded ? "h-full" : "flex h-[340px] flex-col",
       )}
       onPointerDownCapture={(event) => {
         if (!expanded || !selectedDiagnosis) {
@@ -599,10 +667,10 @@ function DiagnosisBarChart({
       }}
       ref={chartFrameRef}
     >
-      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md bg-muted/10">
+      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-muted/5">
         <div className="relative min-h-0 flex-1">
           <div
-            className="h-full overflow-x-auto overflow-y-hidden px-2 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="h-full overflow-x-auto overflow-y-hidden px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             id={scrollContainerId}
             onWheel={handleChartWheel}
             ref={scrollContainerRef}
@@ -618,7 +686,7 @@ function DiagnosisBarChart({
                   }}
                   style={{
                     height: chartHeight,
-                    minHeight: expanded ? 420 : 320,
+                    minHeight: expanded ? 420 : 280,
                     width: 56,
                   }}
                 >
@@ -636,8 +704,9 @@ function DiagnosisBarChart({
                       allowDecimals={false}
                       axisLine={false}
                       domain={[0, chartScale.max]}
+                      tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                       tickLine={false}
-                      ticks={chartScale.ticks}
+                      ticks={chartScale.ticks.filter((_, index) => index % 2 === 0 || index === chartScale.ticks.length - 1)}
                       width={50}
                     />
                     <Bar dataKey="value" fill="transparent" />
@@ -653,7 +722,7 @@ function DiagnosisBarChart({
                 }}
                 style={{
                   height: chartHeight,
-                  minHeight: expanded ? 420 : 320,
+                  minHeight: expanded ? 420 : 280,
                   minWidth: chartWidth,
                 }}
               >
@@ -661,25 +730,26 @@ function DiagnosisBarChart({
                   accessibilityLayer
                   data={chartRows}
                   margin={{
-                    bottom: expanded ? 96 : 72,
+                    bottom: expanded ? 96 : 58,
                     left: expanded ? 24 : 18,
                     right: expanded ? 32 : 24,
                     top: 16,
                   }}
                 >
-                  <CartesianGrid vertical={false} />
+                  <CartesianGrid vertical={false} strokeOpacity={0.2} />
                   <XAxis
-                    angle={-35}
+                    angle={expanded ? -35 : -25}
                     axisLine={false}
                     dataKey="label"
-                    height={expanded ? 104 : 78}
+                    height={expanded ? 104 : 64}
                     interval={0}
                     padding={{ left: expanded ? 26 : 20, right: 16 }}
                     tickFormatter={(value) =>
-                      truncateAxisLabel(String(value), expanded ? 26 : 18)
+                      truncateAxisLabel(String(value), expanded ? 26 : 12)
                     }
                     tickLine={false}
-                    tickMargin={12}
+                    tickMargin={8}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                     textAnchor="end"
                   />
                   <YAxis
@@ -694,18 +764,18 @@ function DiagnosisBarChart({
                     cursor={false}
                   />
                   <Bar
-                    barSize={expanded ? 34 : 28}
+                    barSize={expanded ? 34 : 23}
                     dataKey="value"
                     fill="var(--color-value)"
                     onClick={(row, _index, event) =>
                       selectDiagnosisFromBar(row.payload, event)
                     }
-                    radius={3}
+                    radius={[4, 4, 0, 0]}
                   >
                     <LabelList
                       className="fill-foreground"
                       dataKey="value"
-                      fontSize={12}
+                      fontSize={11}
                       position="top"
                     />
                   </Bar>
@@ -721,7 +791,7 @@ function DiagnosisBarChart({
             aria-valuemax={100}
             aria-valuemin={0}
             aria-valuenow={0}
-            className="h-3 cursor-pointer rounded-full bg-muted data-[scrollable=false]:opacity-40"
+            className="h-1.5 cursor-pointer rounded-full bg-muted data-[scrollable=false]:opacity-40"
             data-scrollable="false"
             onPointerDown={startScrollDrag}
             onPointerMove={(event) => {
@@ -1048,13 +1118,13 @@ function ChangeStatsCards({ viajeId }: { viajeId?: string }) {
     <div className="grid gap-3 sm:grid-cols-2">
       <ChangeStatCard
         count={stats.changedHistories}
-        label="Historias con un cambio"
+        label="Historias modificadas"
         percent={stats.changedPercent}
         total={stats.totalHistories}
       />
       <ChangeStatCard
         count={stats.multipleChangedHistories}
-        label="Historias con 2+ cambios"
+        label="Historias con varios cambios"
         percent={stats.multipleChangedPercent}
         total={stats.totalHistories}
       />
@@ -1074,12 +1144,12 @@ function ChangeStatCard({
   total: number;
 }) {
   return (
-    <article className="min-h-32 rounded-md bg-background/60 p-4">
+    <article className="min-h-28 rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex h-full flex-col justify-between gap-4">
-        <p className="text-base font-medium">{label}</p>
+        <p className="text-sm font-medium leading-5 text-muted-foreground">{label}</p>
         <div className="grid gap-1">
-          <p className="text-4xl font-semibold tracking-tight">{percent}%</p>
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{percent}%</p>
+          <p className="text-xs font-medium text-muted-foreground">
             {count} de {total} historias
           </p>
         </div>
@@ -1281,14 +1351,14 @@ function ActivityLog({
   }, [hasNextPage, loadMore, rows.length]);
 
   return (
-    <section className="flex min-h-[280px] flex-col gap-4 rounded-md bg-muted/25 p-4">
+    <section className="flex min-h-[280px] flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Historial de actividad del viaje
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+            <ActivityIcon className="size-4" aria-hidden="true" /> Actividad del viaje
           </p>
           <p className="text-sm text-muted-foreground">
-            Cambios recientes hechos por el equipo durante el viaje.
+            Registros y cambios recientes del equipo.
           </p>
         </div>
         <SimpleCombobox
@@ -1312,17 +1382,17 @@ function ActivityLog({
         </div>
       ) : rows.length > 0 ? (
         <div
-          className="flex max-h-[330px] flex-col gap-3 overflow-y-auto pr-1"
+          className="flex max-h-[480px] flex-col gap-3 overflow-y-auto pr-1"
           ref={scrollRootRef}
         >
           {rows.map((row) => (
             <button
-              className="grid gap-1.5 rounded-sm bg-muted/15 p-3 text-left transition-colors hover:bg-muted/30"
+              className="grid gap-1.5 rounded-lg border bg-muted/10 p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
               key={row.id}
               onClick={() => setSelectedActivity(row)}
               type="button"
             >
-              <p className="line-clamp-1 text-sm font-medium">
+              <p className="line-clamp-1 text-sm font-semibold">
                 {activityActionLabel(row)}
               </p>
               <p className="line-clamp-1 text-sm text-muted-foreground">

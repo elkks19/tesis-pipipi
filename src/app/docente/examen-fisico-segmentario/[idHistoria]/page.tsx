@@ -6,6 +6,7 @@ import {
   type ExamenFisicoSegmentarioFormValue,
 } from "@/components/forms/examen-fisico-segmentario-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { ExamenFisicoSegmentario } from "@/lib/schema/examenFisicoSegmentario";
 import { saveExamenFisicoSegmentario } from "@/app/estudiante/examen-fisico-segmentario/[idHistoria]/actions";
@@ -66,6 +67,8 @@ export default async function DocenteExamenFisicoSegmentarioCreatePage({
           historia seleccionada.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal
         historia={historia}

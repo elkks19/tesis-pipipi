@@ -1,4 +1,5 @@
 import "server-only";
+import { paginateActivity } from "@/lib/activity-pagination";
 
 import { getAuthUsersByIds } from "@/lib/auth-users";
 import { db } from "@/lib/db";
@@ -46,6 +47,9 @@ export type ActivityListItem = {
 };
 
 export type ActivityPageResult = {
+  page: number;
+  total: number;
+  totalPages: number;
   hasNextPage: boolean;
   nextCursor?: string;
   pageSize: number;
@@ -259,11 +263,15 @@ async function getActiveViajeId({
 
 export async function listActivity({
   cursor,
+  page = 1,
+  query = "",
   mode,
   stationKey,
   userId,
 }: {
   cursor?: string;
+  page?: number;
+  query?: string;
   mode: "docente" | "estudiante";
   stationKey: StationKey;
   userId: string;
@@ -283,6 +291,9 @@ export async function listActivity({
 
   if (!activeViajeId) {
     return {
+      page: 1,
+      total: 0,
+      totalPages: 1,
       hasNextPage: false,
       pageSize: PAGE_SIZE,
       rows: [],
@@ -295,24 +306,29 @@ export async function listActivity({
     selector.actorId = userId;
   }
 
-  const result = await findTesisDocs({
-    bookmark: cursor || undefined,
-    limit: PAGE_SIZE + 1,
-    selector,
-  });
-
-  for (const doc of result.docs) {
-    if (isActivityDocument(doc)) {
-      rows.push(doc);
-    }
+  // Read the authorized trip/station before sorting: sorting a limited Mango
+  // result only orders that arbitrary subset and can hide recent events.
+  for (let skip = 0; ; skip += 500) {
+    const result = await findTesisDocs({ limit: 500, skip, selector });
+    rows.push(...result.docs.filter(isActivityDocument));
+    if (result.docs.length < 500) break;
   }
 
-  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-  const visibleRows = rows.slice(0, PAGE_SIZE);
-  const usersById = getAuthUsersByIds(visibleRows.map((row) => row.actorId));
+  const usersById = getAuthUsersByIds(rows.map((row) => row.actorId));
   const pacientes = new Map<string, PacienteDocument | null>();
   const historias = new Map<string, HistoriaDocument | null>();
+  if (query.trim()) {
+    const ids = [...new Set(rows.map((row) => row.pacienteId))];
+    for (let offset = 0; offset < ids.length; offset += 25) {
+      await Promise.all(ids.slice(offset, offset + 25).map((id) => getPaciente(id, pacientes)));
+    }
+  }
+  const selected = paginateActivity(rows.map((row) => ({
+    ...row,
+    id: row._id,
+    searchText: [getPacienteName(pacientes.get(row.pacienteId) ?? null), getPacienteDocument(pacientes.get(row.pacienteId) ?? null), usersById.get(row.actorId)?.name, row.subject === "paciente" ? "Paciente" : "Registro", row.action === "created" ? "creado" : "actualizado editado", row.createdAt].join(" "),
+  })), cursor ? Number(cursor) : page, query, PAGE_SIZE);
+  const visibleRows = selected.rows;
   const hydratedRows = await Promise.all(
     visibleRows.map(async (row) => {
       const [paciente, historia] = await Promise.all([
@@ -343,8 +359,11 @@ export async function listActivity({
     }),
   );
   return {
-    hasNextPage: rows.length > PAGE_SIZE,
-    nextCursor: rows.length > PAGE_SIZE ? result.bookmark : undefined,
+    page: selected.page,
+    total: selected.total,
+    totalPages: selected.totalPages,
+    hasNextPage: selected.page < selected.totalPages,
+    nextCursor: selected.page < selected.totalPages ? String(selected.page + 1) : undefined,
     pageSize: PAGE_SIZE,
     rows: hydratedRows,
   };

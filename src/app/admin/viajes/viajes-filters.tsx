@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MapPinIcon, XIcon } from "lucide-react";
 
 import { DateRangeField, Field } from "@/components/forms/fields";
@@ -20,6 +20,7 @@ type ViajesFiltersProps = {
 export function ViajesFilters({ filters }: ViajesFiltersProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lugar, setLugar] = useState(filters.lugar);
   const [fechaDesde, setFechaDesde] = useState(filters.fechaDesde);
   const [fechaHasta, setFechaHasta] = useState(filters.fechaHasta);
@@ -45,6 +46,10 @@ export function ViajesFilters({ filters }: ViajesFiltersProps) {
   }, [fechaDesde, fechaHasta, lugar]);
 
   useEffect(() => {
+    const currentFilters = new URLSearchParams(searchParams.toString());
+    const nextFilters = new URLSearchParams(nextQuery);
+    if (["lugar", "desde", "hasta"].every((key) => currentFilters.get(key) === nextFilters.get(key)) && !currentFilters.has("fecha")) return;
+
     const timeout = window.setTimeout(() => {
       router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
         scroll: false,
@@ -52,7 +57,7 @@ export function ViajesFilters({ filters }: ViajesFiltersProps) {
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [nextQuery, pathname, router]);
+  }, [nextQuery, pathname, router, searchParams]);
 
   function clearFilters() {
     setLugar("");

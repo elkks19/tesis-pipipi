@@ -35,17 +35,19 @@ export type ExamenFisicoGeneral = {
 	diagnosticoIMC: string;
 };
 
-const measured = (label: string, min: number, max: number) => z.number()
-  .finite(`${label}: ingresa un numero valido`)
-  .min(min, `${label}: minimo ${min}`)
-  .max(max, `${label}: maximo ${max}`);
+const measured = (label: string, min: number, max: number, missing?: string) => z.number({
+  error: missing ?? `Ingresa un valor válido para ${label.toLowerCase()}.`,
+})
+  .finite(`Revisa el valor de ${label.toLowerCase()}.`)
+  .min(min, `${label}: el valor mínimo permitido es ${min}.`)
+  .max(max, `${label}: el valor máximo permitido es ${max}.`);
 
 const pressure = z.object({
-  min: measured("Presion diastolica (mmHg)", 20, 250),
-  max: measured("Presion sistolica (mmHg)", 40, 350),
+  min: measured("Presión diastólica (mmHg)", 20, 250),
+  max: measured("Presión sistólica (mmHg)", 40, 350),
 }).refine((value) => value.max > value.min, {
   path: ["max"],
-  message: "La sistolica debe ser mayor que la diastolica",
+  message: "La presión sistólica debe ser mayor que la diastólica.",
 });
 
 export const CreateExamenFisicoGeneralSchema = z.object({
@@ -53,18 +55,18 @@ export const CreateExamenFisicoGeneralSchema = z.object({
 		derecha: pressure,
 		izquierda: pressure,
 	}),
-	presionArterialMedia: measured("Presion arterial media (mmHg)", 20, 350),
+	presionArterialMedia: measured("Presión arterial media (mmHg)", 20, 350, "Registra la presión arterial para calcular la media."),
 	pulsos: measured("Pulsos (lpm)", 20, 300),
 	frecuenciaRespiratoria: measured("Frecuencia respiratoria (rpm)", 2, 100),
-	frecuenciaCardiaca: measured("Frecuencia cardiaca (lpm)", 20, 300),
-	temperaturaAxilar: measured("Temperatura axilar (C)", 25, 45),
+	frecuenciaCardiaca: measured("Frecuencia cardíaca (lpm)", 20, 300),
+	temperaturaAxilar: measured("Temperatura axilar (°C)", 25, 45),
 	peso: measured("Peso (kg)", 0.1, 500),
 	talla: measured("Talla (cm)", 20, 250),
-	imc: measured("IMC", 1, 200),
-	perimetroCadera: measured("Perimetro cadera (cm)", 5, 300),
-	perimetroCintura: measured("Perimetro cintura (cm)", 5, 300),
-	indiceCinturaCadera: measured("Indice cintura/cadera", 0.05, 10),
-	diagnosticoIMC: z.enum(diagnosticosIMC),
+	imc: measured("IMC", 1, 200, "Ingresa peso y talla para calcular el IMC."),
+	perimetroCadera: measured("Perímetro de cadera (cm)", 5, 300),
+	perimetroCintura: measured("Perímetro de cintura (cm)", 5, 300),
+	indiceCinturaCadera: measured("Índice cintura/cadera", 0.05, 10, "Ingresa los perímetros de cintura y cadera para calcular el índice."),
+	diagnosticoIMC: z.enum(diagnosticosIMC, { error: "Selecciona un diagnóstico IMC." }),
 });
 
 export const UpdateExamenFisicoGeneralSchema = CreateExamenFisicoGeneralSchema.extend({

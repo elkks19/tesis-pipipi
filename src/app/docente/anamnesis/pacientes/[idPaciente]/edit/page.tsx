@@ -36,6 +36,7 @@ export default async function DocenteEditPacientePage({ params }: PageProps) {
 
   return (
     <PacienteForm
+      mode="edit"
       action={updatePaciente.bind(null, decodedIdPaciente)}
       defaultValue={paciente as PacienteFormDefaultValue}
       successRedirectHref={`/docente/anamnesis/create-historia?pacienteId=${encodeURIComponent(decodedIdPaciente)}`}

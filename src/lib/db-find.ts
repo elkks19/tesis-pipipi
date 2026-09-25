@@ -7,6 +7,7 @@ type ExistingTesisDocument = PouchDB.Core.ExistingDocument<TesisDocument>;
 type MangoFindRequest = {
   bookmark?: string;
   limit?: number;
+  skip?: number;
   selector: Record<string, unknown>;
   sort?: unknown[];
   use_index?: string | string[];

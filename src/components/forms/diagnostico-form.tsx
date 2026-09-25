@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { PackageSearchIcon, PlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, ClipboardListIcon, FileCheck2Icon, PackageSearchIcon, PillIcon, PlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -36,6 +36,8 @@ import {
 } from "@/components/forms/submit-confirmation";
 import { CreateDiagnosticoSchema } from "@/lib/schema/diagnostico";
 import type { ViajeInventarioItem } from "@/lib/schema/farmacia";
+import { cn } from "@/lib/utils";
+import { firstFieldErrors } from "@/lib/schema/field-errors";
 
 export type DiagnosticoFormValue = {
   historiaId: string;
@@ -102,6 +104,13 @@ const baseFormValue: DiagnosticoFormValue = {
   recetaId: "",
   secundarios: [],
 };
+
+const formSteps = [
+  { id: "principal", label: "Diagnóstico principal", prefixes: ["principal"] },
+  { id: "secundarios", label: "Diagnósticos adicionales", prefixes: ["secundarios"] },
+  { id: "plan", label: "Plan de trabajo", prefixes: ["planTrabajo"] },
+  { id: "receta", label: "Receta", prefixes: ["receta"] },
+] as const;
 
 async function noopAction(): Promise<DiagnosticoActionState> {
   return { ok: false };
@@ -257,6 +266,7 @@ export function DiagnosticoForm({
     [defaultValue],
   );
   const [form, setForm] = useState<DiagnosticoFormValue>(initialValue);
+  const [activeStep, setActiveStep] = useState(0);
   const [actionState, formAction, isPending] = useActionState(
     action ?? noopAction,
     { ok: false },
@@ -264,7 +274,7 @@ export function DiagnosticoForm({
   const { confirmationDialog, confirmSubmit, formRef } =
     useSubmitConfirmation({
       actionAvailable: Boolean(action),
-      confirmLabel: "Guardar diagnostico",
+      confirmLabel: "Guardar diagnóstico",
     });
   const validation = CreateDiagnosticoSchema.extend({ receta: CreateRecetaSchema }).safeParse(buildPayload(form));
   const { visibleErrors, onBlurCapture, revealErrors } = useInteractiveErrors({
@@ -291,13 +301,42 @@ export function DiagnosticoForm({
   }, [actionState, router, successRedirectHref]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (activeStep < formSteps.length - 1) {
+      event.preventDefault();
+      goToStep(activeStep + 1);
+      return;
+    }
+
     if (revealErrors(event)) {
+      const firstPath = !validation.success
+        ? Object.keys(firstFieldErrors(validation.error))[0]
+        : Object.keys(actionState.errors ?? {})[0];
+      const errorStep = formSteps.findIndex((step) =>
+        step.prefixes.some((prefix) => firstPath === prefix || firstPath?.startsWith(`${prefix}.`)),
+      );
+      if (errorStep >= 0 && errorStep !== activeStep) {
+        setActiveStep(errorStep);
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+          const control = Array.from(formRef.current?.elements ?? []).find(
+            (element) => element.getAttribute("name") === firstPath,
+          ) as HTMLElement | undefined;
+          control?.focus();
+        }));
+      }
       return;
     }
 
     if (!confirmSubmit(event, getConfirmationSections(form))) {
       return;
     }
+  }
+
+  function goToStep(index: number) {
+    setActiveStep(index);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`diagnostico-${formSteps[index].id}-title`)?.focus({ preventScroll: true });
+      formRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   }
 
   function updateSecondary(index: number, value: IcdCodeValue) {
@@ -362,7 +401,7 @@ export function DiagnosticoForm({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6"
+      className="grid scroll-mt-20 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6"
       noValidate
       onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
@@ -371,13 +410,43 @@ export function DiagnosticoForm({
       <input name="historiaId" type="hidden" value={form.historiaId} />
       <input name="recetaId" type="hidden" value={form.recetaId} />
 
-      <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Diagnostico principal</h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Selecciona el diagnostico principal usando la herramienta CIE-11.
-          </p>
+      <nav aria-label="Pasos del diagnóstico" className="rounded-xl border bg-muted/20 p-3 lg:sticky lg:top-20">
+        <p className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Para cerrar la historia</p>
+        <ol className="flex gap-1 overflow-x-auto lg:flex-col">
+          {formSteps.map((step, index) => {
+            const errorCount = Object.keys(visibleErrors).filter((path) =>
+              step.prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}.`)),
+            ).length;
+            return (
+              <li className="shrink-0 lg:shrink" key={step.id}>
+                <button
+                  aria-controls={`diagnostico-${step.id}`}
+                  aria-current={activeStep === index ? "step" : undefined}
+                  className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", activeStep === index && "bg-accent font-semibold text-accent-foreground", errorCount > 0 && "text-destructive")}
+                  disabled={isPending}
+                  onClick={() => goToStep(index)}
+                  type="button"
+                >
+                  <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums text-muted-foreground", activeStep === index && "border-primary bg-primary text-primary-foreground")}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className="flex-1">{step.label}</span>
+                  {errorCount > 0 ? <span aria-label={`${errorCount} errores`} className="text-xs">({errorCount})</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="hidden px-2 pt-4 text-xs leading-relaxed text-muted-foreground lg:block">Puedes cambiar de apartado sin perder lo escrito. Guarda al finalizar.</p>
+      </nav>
+
+      <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p aria-live="polite">Paso {activeStep + 1} de {formSteps.length} · {formSteps[activeStep].label}</p><p>* Campos obligatorios</p></div>
+          <div aria-hidden="true" className="flex gap-1.5">{formSteps.map((step, index) => <span className={cn("h-1 flex-1 rounded-full bg-muted", index <= activeStep && "bg-primary")} key={step.id} />)}</div>
         </div>
+
+      <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={activeStep !== 0} id="diagnostico-principal">
+        <StepHeader description="Selecciona el diagnóstico principal usando la búsqueda CIE-11." id="principal" title="Diagnóstico principal" />
+        <div className="p-4 sm:p-6">
         <IcdCodePicker
           baseName="principal"
           error={
@@ -385,22 +454,19 @@ export function DiagnosticoForm({
             visibleErrors["principal.iNo"] ??
             visibleErrors.principal
           }
-          label="Diagnostico CIE-11"
+          label="Diagnóstico CIE-11"
           onChange={(value) =>
             setForm((current) => ({ ...current, principal: value }))
           }
           value={form.principal}
         />
+        </div>
       </section>
 
-      <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
+      <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={activeStep !== 3} id="diagnostico-receta">
+        <StepHeader description="Indica el tratamiento y agrega medicamentos del inventario o de forma manual." id="receta" title="Receta" />
+        <div className="flex flex-col gap-5 p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">Receta</h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Arma la receta desde el inventario del viaje o agrega medicamentos manualmente.
-            </p>
-          </div>
           <div className="flex flex-wrap gap-2">
             <InventarioDialog
               inventarioItems={inventarioItems}
@@ -434,7 +500,7 @@ export function DiagnosticoForm({
           {form.receta.medicamentos.length > 0 ? (
             form.receta.medicamentos.map((medicamento, index) => (
               <div
-                className="grid gap-3 rounded-3xl border bg-muted/30 p-3"
+                className="grid gap-3 rounded-xl border bg-muted/20 p-4"
                 key={index}
               >
                 <input name={`receta.medicamentos.${index}.catalogoId`} type="hidden" value={medicamento.catalogoId} />
@@ -514,23 +580,18 @@ export function DiagnosticoForm({
               </div>
             ))
           ) : (
-            <p className="rounded-3xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
               No se agregaron medicamentos a la receta.
             </p>
           )}
         </div>
+        </div>
       </section>
 
-      <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
+      <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={activeStep !== 1} id="diagnostico-secundarios">
+        <StepHeader description="Agrega diagnósticos adicionales cuando corresponda." id="secundarios" title="Diagnósticos adicionales" />
+        <div className="flex flex-col gap-5 p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">
-              Diagnosticos secundarios
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Agrega diagnosticos adicionales cuando corresponda.
-            </p>
-          </div>
           <Button
             onClick={() =>
               setForm((current) => ({
@@ -542,14 +603,14 @@ export function DiagnosticoForm({
             variant="outline"
           >
             <PlusIcon data-icon="inline-start" />
-            Agregar diagnostico
+            Agregar diagnóstico
           </Button>
         </div>
         <div className="flex flex-col gap-3">
           {form.secundarios.length > 0 ? (
             form.secundarios.map((diagnostico, index) => (
               <div
-                className="grid gap-3 rounded-3xl border bg-muted/30 p-3 md:grid-cols-[1fr_auto]"
+                className="grid gap-3 rounded-xl border bg-muted/20 p-4 md:grid-cols-[1fr_auto]"
                 key={index}
               >
                 <IcdCodePicker
@@ -558,7 +619,7 @@ export function DiagnosticoForm({
                     visibleErrors[`secundarios.${index}.title`] ??
                     visibleErrors[`secundarios.${index}.iNo`]
                   }
-                  label={`Diagnostico secundario ${index + 1}`}
+                  label={`Diagnóstico adicional ${index + 1}`}
                   onChange={(value) => updateSecondary(index, value)}
                   value={diagnostico}
                 />
@@ -584,20 +645,17 @@ export function DiagnosticoForm({
               </div>
             ))
           ) : (
-            <p className="rounded-3xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-              No se agregaron diagnosticos secundarios.
+            <p className="rounded-xl border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
+              No se agregaron diagnósticos adicionales.
             </p>
           )}
         </div>
+        </div>
       </section>
 
-      <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Plan de trabajo</h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Registra indicaciones, conducta y seguimiento sugerido.
-          </p>
-        </div>
+      <section className="overflow-hidden rounded-xl border bg-background shadow-sm" hidden={activeStep !== 2} id="diagnostico-plan">
+        <StepHeader description="Registra la conducta clínica, indicaciones y seguimiento sugerido." id="plan" title="Plan de trabajo" />
+        <div className="p-4 sm:p-6">
         <TextareaField
           error={visibleErrors.planTrabajo}
           label="Plan de trabajo"
@@ -608,20 +666,40 @@ export function DiagnosticoForm({
           required
           value={form.planTrabajo}
         />
+        </div>
       </section>
 
-      <footer className="sticky bottom-0 flex flex-col gap-3 rounded-3xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <footer className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          {actionState.message ??
-            "Al guardar se enviara la generacion del reporte."}
+          {actionState.message ?? (activeStep === formSteps.length - 1 ? "Revisa los datos antes de guardar y generar el reporte." : "Continúa al siguiente apartado cuando termines.")}
         </p>
-        <Button disabled={isPending} type="submit">
-          <SaveIcon data-icon="inline-start" />
-          {isPending ? "Guardando..." : "Guardar diagnostico"}
-        </Button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button disabled={isPending || activeStep === 0} onClick={() => goToStep(activeStep - 1)} type="button" variant="outline"><ArrowLeftIcon data-icon="inline-start" />Anterior</Button>
+          {activeStep < formSteps.length - 1 ? (
+            <Button disabled={isPending} onClick={() => goToStep(activeStep + 1)} type="button">Siguiente<ArrowRightIcon data-icon="inline-end" /></Button>
+          ) : (
+            <Button disabled={isPending} type="submit"><SaveIcon data-icon="inline-start" />{isPending ? "Guardando..." : "Guardar diagnóstico"}</Button>
+          )}
+        </div>
       </footer>
+      </div>
       {confirmationDialog}
     </form>
+  );
+}
+
+function StepHeader({ description, id, title }: { description: string; id: string; title: string }) {
+  const index = formSteps.findIndex((step) => step.id === id);
+  const Icon = id === "receta" ? PillIcon : id === "plan" ? ClipboardListIcon : FileCheck2Icon;
+  return (
+    <div className="flex items-start gap-3 border-b bg-muted/20 p-4 sm:p-5">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary"><Icon className="size-5" aria-hidden="true" /></span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Apartado {String(index + 1).padStart(2, "0")}</p>
+        <h2 className="text-base font-semibold" id={`diagnostico-${id}-title`} tabIndex={-1}>{title}</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+    </div>
   );
 }
 

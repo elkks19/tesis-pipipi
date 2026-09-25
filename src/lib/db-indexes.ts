@@ -10,6 +10,11 @@ type IndexDefinition = {
 
 const indexes: IndexDefinition[] = [
   {
+    ddoc: "idx_pacientes_listado",
+    fields: ["type", "_id"],
+    name: "idx_pacientes_listado",
+  },
+  {
     ddoc: "idx_type",
     fields: ["type"],
     name: "idx_type",
@@ -23,6 +28,11 @@ const indexes: IndexDefinition[] = [
     ddoc: "idx_historias_viaje",
     fields: ["type", "viajeId"],
     name: "idx_historias_viaje",
+  },
+  {
+    ddoc: "idx_historias_fecha",
+    fields: ["type", "createdAt"],
+    name: "idx_historias_fecha",
   },
   {
     ddoc: "idx_historias_paciente",

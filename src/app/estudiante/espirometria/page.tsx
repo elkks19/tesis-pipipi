@@ -5,7 +5,7 @@ import { PendingHistoriesTable } from "../_components/pending-histories-table";
 import { listPendingComplementaryExamHistories } from "../_lib/station-history-queries";
 
 export const metadata: Metadata = {
-  title: "Espirometria",
+  title: "Espirometría",
 };
 
 export const runtime = "nodejs";
@@ -40,12 +40,12 @@ export default async function EspirometriaPage({
   });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Espirometria</h1>
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · Estudio complementario</span>
+        <h1 className="font-heading text-2xl font-semibold">Espirometría</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Selecciona una historia con espirometria solicitada y registra los
-          valores de funcion pulmonar.
+          Selecciona una historia derivada y registra los valores de función pulmonar.
         </p>
       </div>
 
@@ -53,7 +53,7 @@ export default async function EspirometriaPage({
         basePath="/estudiante/espirometria"
         cursor={cursor}
         cursors={cursors}
-        emptyMessage="No hay historias con espirometria solicitada pendientes de registro que coincidan con la busqueda."
+        emptyMessage="No hay historias con espirometría solicitada que coincidan con la búsqueda."
         filterId="espirometria-search"
         page={page}
         query={query}

@@ -43,6 +43,23 @@ describe("validacion de estaciones clinicas", () => {
     expect(CreateExamenFisicoGeneralSchema.safeParse({ ...general, temperaturaAxilar: 0 }).success).toBe(false);
   });
 
+  test("explica en español los datos faltantes del examen general", () => {
+    const result = CreateExamenFisicoGeneralSchema.safeParse({
+      ...general,
+      talla: Number.NaN,
+      imc: Number.NaN,
+      diagnosticoIMC: "",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = Object.fromEntries(result.error.issues.map((issue) => [issue.path.join("."), issue.message]));
+      expect(messages.talla).toBe("Ingresa un valor válido para talla (cm).");
+      expect(messages.imc).toBe("Ingresa peso y talla para calcular el IMC.");
+      expect(messages.diagnosticoIMC).toBe("Selecciona un diagnóstico IMC.");
+    }
+  });
+
   test("valida unidades de espirometria sin confundir relacion con porcentaje teorico", () => {
     const base = { FEV1: 2, porcentajeFEVteorico: 90, FVC: 3, porcentajeFVCteorico: 95,
       FEV1FVC: 0.67, porcentajeFEV1FVCteorico: 85, flujoEspiratorioPicoPEF: 400,

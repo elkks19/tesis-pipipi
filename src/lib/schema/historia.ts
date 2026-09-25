@@ -33,6 +33,8 @@ export type Historia = {
 	type: "historia";
 
 	created_by?: string;
+	createdAt?: string;
+	updatedAt?: string;
 	pacienteId: string;
 	viajeId?: string;
 	reporteHistoria?: ReporteHistoriaFile;

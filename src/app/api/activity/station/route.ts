@@ -61,6 +61,8 @@ export async function GET(request: Request) {
 
   const page = await listActivity({
     cursor,
+    page: Number(url.searchParams.get("page") ?? 1),
+    query: (url.searchParams.get("q") ?? "").slice(0, 200),
     mode,
     stationKey,
     userId: session.user.id,

@@ -6,6 +6,7 @@ import {
   type EspirometriaFormValue,
 } from "@/components/forms/espirometria-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import type { Espirometria } from "@/lib/schema/espirometria";
 import { saveEspirometria } from "@/app/estudiante/espirometria/[idHistoria]/actions";
@@ -68,6 +69,8 @@ export default async function DocenteEspirometriaCreatePage({
           Registra volumenes, flujos, calidad de maniobra y diagnostico.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

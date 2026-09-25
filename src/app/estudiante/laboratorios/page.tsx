@@ -40,8 +40,9 @@ export default async function LaboratoriosPage({
   });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · 04</span>
         <h1 className="font-heading text-2xl font-semibold">Laboratorios</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Selecciona una historia con laboratorios solicitados y registra sus
@@ -53,7 +54,7 @@ export default async function LaboratoriosPage({
         basePath="/estudiante/laboratorios"
         cursor={cursor}
         cursors={cursors}
-        emptyMessage="No hay historias con laboratorios solicitados pendientes de registro que coincidan con la busqueda."
+        emptyMessage="No hay historias con laboratorios solicitados que coincidan con la búsqueda."
         filterId="laboratorios-search"
         page={page}
         query={query}

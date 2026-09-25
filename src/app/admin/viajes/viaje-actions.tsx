@@ -6,8 +6,11 @@ import {
   BarChart3Icon,
   CalendarDaysIcon,
   DownloadIcon,
+  MapPinIcon,
   PencilIcon,
   ScrollTextIcon,
+  UserRoundIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -72,12 +74,16 @@ function getPerformancePdfHref(viaje: ViajeListItem) {
   return `/admin/viajes/${encodeURIComponent(viaje.docId)}/rendimiento/pdf`;
 }
 
-function getUserLabel(user: AuthUserListItem | undefined, fallbackId: string) {
-  if (!user) {
-    return fallbackId;
-  }
-
-  return `${user.name} (${user.email})`;
+function PersonCard({ user, fallbackId }: { user?: AuthUserListItem; fallbackId: string }) {
+  return (
+    <div className="flex min-w-0 items-start gap-2.5 rounded-lg border bg-muted/10 px-3 py-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><UserRoundIcon className="size-4" aria-hidden="true" /></span>
+      <div className="min-w-0">
+        <p className="break-words text-sm font-medium leading-5">{user?.name ?? "Usuario no encontrado"}</p>
+        <p className="mt-0.5 break-all text-xs leading-5 text-muted-foreground">{user?.email ?? fallbackId}</p>
+      </div>
+    </div>
+  );
 }
 
 export function ViajeActions({ canEdit, viaje }: ViajeActionsProps) {
@@ -164,16 +170,21 @@ function ViajeDetailsDialog({ canEdit, viaje }: ViajeActionsProps) {
         </TooltipTrigger>
         <TooltipContent>Ver detalle</TooltipContent>
       </Tooltip>
-      <DialogContent className="grid max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden p-4 sm:max-w-2xl sm:p-6">
-        <DialogHeader className="pr-10">
-          <DialogTitle>{viaje.servicio}</DialogTitle>
+      <DialogContent className="grid h-[min(90dvh,900px)] max-h-[calc(100dvh-1.5rem)] w-[min(96vw,1120px)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-none">
+        <DialogHeader className="border-b bg-muted/20 px-5 py-5 pr-14 text-left sm:px-8 sm:py-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Detalle del viaje</p>
+          <DialogTitle className="break-words font-heading text-xl sm:text-2xl">{viaje.servicio}</DialogTitle>
           <DialogDescription>
-            Detalle completo del viaje y sus estaciones configuradas.
+            {viaje.establecimiento.nombre} · Del {formatDate(viaje.fechaEntrada)} al {formatDate(viaje.fechaSalida)}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid min-h-0 gap-5 overflow-y-auto pr-1">
-          <div className="grid gap-3 rounded-3xl border bg-muted/20 p-4 sm:grid-cols-2">
+        <div className="min-h-0 space-y-6 overflow-y-auto px-5 py-5 [scrollbar-gutter:stable] sm:px-8 sm:py-6">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full border bg-primary/5 px-3 py-1.5 font-medium text-primary"><MapPinIcon className="size-3.5" aria-hidden="true" />{viaje.estaciones.length} estaciones</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/25 px-3 py-1.5 text-muted-foreground"><UsersRoundIcon className="size-3.5" aria-hidden="true" />{new Set(viaje.estaciones.flatMap((estacion) => estacion.estudiantesIds)).size} estudiantes</span>
+          </div>
+          <div className="grid gap-x-8 gap-y-5 rounded-xl border bg-muted/10 p-5 sm:grid-cols-2 lg:grid-cols-3">
             <DetailItem label="Fecha de entrada">
               {formatDate(viaje.fechaEntrada)}
             </DetailItem>
@@ -186,49 +197,48 @@ function ViajeDetailsDialog({ canEdit, viaje }: ViajeActionsProps) {
             <DetailItem label="Contacto">
               {formatOptional(viaje.establecimiento.contacto)}
             </DetailItem>
-            <DetailItem className="sm:col-span-2" label="Direccion">
+            <DetailItem className="sm:col-span-2" label="Dirección">
               {formatOptional(viaje.establecimiento.direccion)}
             </DetailItem>
           </div>
 
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-medium">Estaciones</h3>
-            <div className="rounded-3xl border">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-base font-semibold">Estaciones asignadas</h3>
+              <span className="rounded-full border bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground">{viaje.estaciones.length} estaciones</span>
+            </div>
+            <div className="grid gap-3">
               {viaje.estaciones.map((estacion, index) => (
-                <div className="flex flex-col gap-3 p-4" key={estacion.tipo}>
-                  {index > 0 ? <Separator /> : null}
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="font-medium">{estacion.tipo}</span>
-                    <span className="text-xs text-muted-foreground">
+                <section className="scroll-mt-4 overflow-hidden rounded-xl border bg-background shadow-xs" id={`viaje-estacion-${index}`} key={estacion.tipo}>
+                  <div className="flex flex-wrap items-center gap-3 border-b bg-muted/15 px-4 py-3 sm:px-5">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{String(index + 1).padStart(2, "0")}</span>
+                    <h4 className="min-w-0 flex-1 font-semibold">{estacion.tipo}</h4>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
                       {estacion.estudiantesIds.length} estudiante
                       {estacion.estudiantesIds.length === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    <span className="min-w-0">
-                      Docente:{" "}
-                      {getUserLabel(
-                        estacion.docenteEncargado,
-                        estacion.docenteEncargadoId,
-                      )}
-                    </span>
-                    <span className="min-w-0">
-                      Estudiantes:{" "}
-                      {[
-                        ...estacion.estudiantes.map((student) =>
-                          getUserLabel(student, student.id),
-                        ),
-                        ...estacion.estudiantesNoEncontrados,
-                      ].join(", ") || "Sin asignar"}
-                    </span>
+                  <div className="grid gap-5 px-4 py-4 text-sm sm:px-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                    <div className="min-w-0">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Docente encargado</p>
+                      <PersonCard fallbackId={estacion.docenteEncargadoId} user={estacion.docenteEncargado} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estudiantes</p>
+                      <ul className="grid gap-2 sm:grid-cols-2">
+                        {estacion.estudiantes.map((student) => <li key={student.id}><PersonCard fallbackId={student.id} user={student} /></li>)}
+                        {estacion.estudiantesNoEncontrados.map((id) => <li key={id}><PersonCard fallbackId={id} /></li>)}
+                        {estacion.estudiantesIds.length === 0 ? <li className="text-muted-foreground">Sin asignar</li> : null}
+                      </ul>
+                    </div>
                   </div>
-                </div>
+                </section>
               ))}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-3 sm:pt-4 [&_a]:w-full sm:[&_a]:w-auto">
+        <DialogFooter className="flex flex-wrap gap-2 border-t bg-background px-5 py-4 sm:px-8 [&_a]:w-full sm:[&_a]:w-auto">
           {canEdit ? (
             <Button asChild variant="outline">
               <Link href={getEditHref(viaje)}>

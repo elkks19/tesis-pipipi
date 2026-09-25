@@ -20,11 +20,14 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ArrowUpDownIcon,
   CopyIcon,
   Loader2Icon,
   MailPlusIcon,
   SearchIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -189,11 +192,16 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
       {
         accessorFn: (user) => `${user.name} ${user.email}`,
         cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="truncate font-medium">{row.original.name}</span>
-            <span className="truncate text-sm text-muted-foreground">
-              {row.original.email}
+          <div className="flex min-w-0 items-center gap-3">
+            <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">
+              {row.original.name.slice(0, 1).toUpperCase()}
             </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate font-semibold text-foreground">{row.original.name}</span>
+              <span className="truncate text-xs text-muted-foreground" title={row.original.email}>
+                {row.original.email}
+              </span>
+            </div>
           </div>
         ),
         header: ({ column }) => (
@@ -224,8 +232,8 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
           const role = row.original.role ?? defaultAuthRole;
 
           return (
-            <div className="flex flex-col gap-1">
-              <span className="font-medium">{roleLabels[role]}</span>
+            <div className="flex flex-col items-start gap-1.5">
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">{roleLabels[role]}</span>
               <span className="text-xs text-muted-foreground">
                 {rolePermissionSummary[role]}
               </span>
@@ -247,7 +255,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
               }
               value={role}
             >
-              <SelectTrigger aria-label={`Rol de ${row.original.name}`}>
+              <SelectTrigger aria-label={`Rol de ${row.original.name}`} className="w-full min-w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -290,11 +298,12 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <Card className="min-h-0 flex-1" size="sm">
-        <CardHeader>
-          <CardDescription>{users.length} usuarios registrados</CardDescription>
-          <CardTitle>Usuarios y roles</CardTitle>
+    <div className="w-full">
+      <Card className="gap-0 overflow-hidden rounded-xl border bg-card shadow-sm" size="sm">
+        <CardHeader className="border-b bg-muted/15 px-5 py-5 sm:px-6">
+          <CardDescription className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary"><UsersRoundIcon className="size-4" /> Directorio de usuarios</CardDescription>
+          <CardTitle className="text-lg">Usuarios y roles <span className="ml-2 rounded-full border bg-background px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{users.length}</span></CardTitle>
+          <CardDescription>Consulta los accesos y administra el rol de cada persona.</CardDescription>
           <CardAction>
             <Dialog
               open={inviteOpen}
@@ -312,28 +321,28 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
               <DialogTrigger asChild>
                 <Button>
                   <MailPlusIcon aria-hidden="true" data-icon="inline-start" />
-                  Invitar
+                  Invitar usuario
                 </Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invitar usuario</DialogTitle>
-                  <DialogDescription>
-                    Crea una cuenta con correo y rol inicial. Se generara una
-                    contraseña temporal para compartir por un canal seguro.
+              <DialogContent className="gap-0 overflow-hidden rounded-xl p-0 sm:max-w-lg">
+                <DialogHeader className="border-b bg-muted/15 px-6 py-5 pr-14">
+                  <span className="mb-2 flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><MailPlusIcon className="size-5" aria-hidden="true" /></span>
+                  <DialogTitle className="text-xl">Invitar usuario</DialogTitle>
+                  <DialogDescription className="leading-6">
+                    Define el correo y el rol inicial. Al invitar, se generará una contraseña temporal para compartir de forma segura.
                   </DialogDescription>
                 </DialogHeader>
 
                 <form
-                  className="flex flex-col gap-6"
+                  className="flex flex-col gap-6 px-6 py-6"
                   id="invite-user-form"
                   noValidate
                   onBlurCapture={onInviteBlur}
                   onSubmit={handleInvite}
                 >
-                  <FieldGroup>
+                  <FieldGroup className="gap-5">
                     <Field data-invalid={Boolean(inviteFieldErrors.email)}>
-                      <FieldLabel htmlFor="invite-email">Correo</FieldLabel>
+                      <FieldLabel htmlFor="invite-email">Correo electrónico</FieldLabel>
                       <Input
                         autoComplete="email"
                         aria-describedby={inviteFieldErrors.email ? "invite-email-error" : undefined}
@@ -341,6 +350,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                         id="invite-email"
                         name="email"
                         onChange={(event) => setInviteEmail(event.target.value)}
+                        placeholder="nombre@institucion.com"
                         required
                         type="email"
                         value={inviteEmail}
@@ -364,16 +374,17 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                         </SelectContent>
                       </Select>
                       <FieldError id="invite-role-error">{inviteFieldErrors.role ?? inviteError}</FieldError>
+                      <p className="text-xs text-muted-foreground">El rol determina las secciones a las que podrá acceder.</p>
                     </Field>
                   </FieldGroup>
 
                   {temporaryPassword ? (
-                    <div className="flex flex-col gap-2 rounded-2xl bg-muted/50 p-3">
+                    <div className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
                       <span className="text-sm font-medium">
                         Contraseña temporal
                       </span>
                       <div className="flex items-center gap-2">
-                        <code className="min-w-0 flex-1 truncate rounded-xl bg-background px-3 py-2 text-sm">
+                        <code className="min-w-0 flex-1 truncate rounded-md border bg-background px-3 py-2 text-sm">
                           {temporaryPassword}
                         </code>
                         <Button
@@ -392,13 +403,13 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Este dato no se mostrara de nuevo al cerrar el modal.
+                        Esta contraseña no se volverá a mostrar al cerrar la ventana.
                       </p>
                     </div>
                   ) : null}
                 </form>
 
-                <DialogFooter>
+                <DialogFooter className="border-t bg-muted/10 px-6 py-4">
                   <Button
                     disabled={isInvitePending}
                     form="invite-user-form"
@@ -423,14 +434,15 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
             </Dialog>
           </CardAction>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div className="relative md:w-80">
+        <CardContent className="flex flex-col gap-0 p-0">
+          <div className="flex flex-col gap-3 border-b px-5 py-4 md:flex-row md:items-center md:justify-between sm:px-6">
+            <div className="relative w-full md:max-w-md">
               <SearchIcon
                 aria-hidden="true"
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
               <Input
+                aria-label="Buscar usuarios por nombre o correo"
                 className="pl-9"
                 onChange={(event) => setGlobalFilter(event.target.value)}
                 placeholder="Buscar por nombre o correo"
@@ -441,7 +453,7 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
               onValueChange={(value) => setRoleFilter(value as AuthRole | "all")}
               value={roleFilter}
             >
-              <SelectTrigger className="w-full md:w-64">
+              <SelectTrigger aria-label="Filtrar usuarios por rol" className="w-full md:w-56">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -457,14 +469,13 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
             </Select>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
-            <div className="h-full overflow-auto">
-              <Table>
-                <TableHeader>
+          <div className="overflow-x-auto">
+              <Table className="min-w-[850px]">
+                <TableHeader className="bg-muted/20 text-xs">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
+                        <TableHead className="first:pl-6 last:pr-6" key={header.id}>
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -479,9 +490,9 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                 <TableBody>
                   {table.getRowModel().rows.length > 0 ? (
                     table.getPaginationRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
+                      <TableRow className="odd:bg-muted/5 hover:bg-primary/5" key={row.id}>
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
+                          <TableCell className="py-4 first:pl-6 last:pr-6" key={cell.id}>
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),
@@ -502,51 +513,67 @@ export function AdminUsersTable({ users }: { users: AuthUserWithAccounts[] }) {
                   )}
                 </TableBody>
               </Table>
-            </div>
           </div>
 
-          <div className="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-            <span>
-              {table.getFilteredRowModel().rows.length} usuarios encontrados
+          <div className="flex flex-col gap-3 border-t bg-muted/10 px-5 py-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between sm:px-6">
+            <span aria-live="polite">
+              {table.getFilteredRowModel().rows.length === 0
+                ? "No hay usuarios para mostrar"
+                : `Mostrando ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–${Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} de ${table.getFilteredRowModel().rows.length} usuarios`}
             </span>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Select
                 onValueChange={(value) => table.setPageSize(Number(value))}
                 value={`${table.getState().pagination.pageSize}`}
               >
-                <SelectTrigger className="w-full sm:w-36">
+                <SelectTrigger aria-label="Usuarios por página" className="w-full sm:w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     {[10, 20, 50].map((pageSize) => (
                       <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize} por pagina
+                        {pageSize} por página
                       </SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2">
+              <nav aria-label="Paginación de usuarios" className="flex flex-wrap items-center gap-1.5">
                 <Button
+                  aria-label="Página anterior"
                   disabled={!table.getCanPreviousPage()}
                   onClick={() => table.previousPage()}
+                  size="sm"
                   variant="outline"
                 >
-                  Anterior
+                  <ChevronLeftIcon data-icon="inline-start" /> Anterior
                 </Button>
-                <span className="min-w-24 text-center">
-                  Pagina {table.getState().pagination.pageIndex + 1} de{" "}
-                  {table.getPageCount() || 1}
-                </span>
+                {Array.from({ length: table.getPageCount() }, (_, index) => index)
+                  .filter((index) => Math.abs(index - table.getState().pagination.pageIndex) <= 2)
+                  .map((index) => (
+                    <Button
+                      aria-current={index === table.getState().pagination.pageIndex ? "page" : undefined}
+                      aria-label={`Página ${index + 1}`}
+                      className="min-w-9 tabular-nums"
+                      key={index}
+                      onClick={() => table.setPageIndex(index)}
+                      size="sm"
+                      variant={index === table.getState().pagination.pageIndex ? "default" : "outline"}
+                    >
+                      {index + 1}
+                    </Button>
+                  ))}
                 <Button
+                  aria-label="Página siguiente"
                   disabled={!table.getCanNextPage()}
                   onClick={() => table.nextPage()}
+                  size="sm"
                   variant="outline"
                 >
-                  Siguiente
+                  Siguiente <ChevronRightIcon data-icon="inline-end" />
                 </Button>
-              </div>
+              </nav>
             </div>
           </div>
         </CardContent>

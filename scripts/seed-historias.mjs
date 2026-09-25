@@ -8,6 +8,7 @@ const DEFAULT_COUNT = 1000;
 const DEFAULT_PATIENT_COUNT = 600;
 const DEFAULT_VIAJE_COUNT = 6;
 const DEFAULT_SEED = 20260515;
+const seedRunNow = Date.now();
 const PASSWORD_SEED_NOTICE =
   "Si faltan usuarios, corre primero: pnpm run seed:users";
 
@@ -606,10 +607,15 @@ function buildPaciente(index) {
   const secondLastName = faker.person.lastName();
   const birthDate = faker.date.birthdate({ max: 82, min: 18, mode: "age" });
   const numeroDocumento = String(5000000 + index).padStart(7, "0");
+  const createdAt = new Date(
+    Date.UTC(2025, index % 12, (index % 27) + 1, 12, 0, 0),
+  ).toISOString();
 
   return {
     _id: `paciente:seed:${index}`,
     type: "paciente",
+    createdAt,
+    updatedAt: createdAt,
     datosPersonales: {
       nombres: firstName,
       apellidoPaterno: lastName,
@@ -702,16 +708,17 @@ function buildChanges(before, after) {
 
 function seedTimestamp(viaje, index, offsetMinutes) {
   const start = new Date(`${viaje.fechaEntrada}T08:00:00.000-04:00`);
-  const end = new Date(`${viaje.fechaSalida}T17:30:00.000-04:00`);
+  const end = new Date(Math.min(new Date(`${viaje.fechaSalida}T17:30:00.000-04:00`).getTime(), seedRunNow));
+  if (start > end) {
+    throw new Error("No se pueden generar actividades clínicas para un viaje que todavía no comenzó.");
+  }
   const totalDays = Math.max(
     1,
     Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1,
   );
   const dayOffset = (Math.floor(index / 6) + index) % totalDays;
-  const base = new Date(start);
-
-  base.setDate(base.getDate() + dayOffset);
-  base.setHours(8 + (index % 8), 0, 0, 0);
+  // The start already represents 08:00 in Bolivia; avoid host-local setters.
+  const base = new Date(start.getTime() + dayOffset * 86_400_000 + (index % 8) * 3_600_000);
 
   const timestamp = new Date(base.getTime() + offsetMinutes * 60_000);
 
@@ -1417,10 +1424,13 @@ for (let index = 1; index <= count; index += 1) {
   const complementaryRequests = buildComplementaryRequests(
     complementaryIndexes.has(index),
   );
+  const historiaCreatedAt = seedTimestamp(viaje, index, 5);
   const historia = {
     _id: historiaId,
     type: "historia",
     created_by: anamnesisUser.id,
+    createdAt: historiaCreatedAt,
+    updatedAt: historiaCreatedAt,
     pacienteId: paciente._id,
     viajeId: viaje._id,
     examenesComplementariosSolicitados: complementaryRequests,

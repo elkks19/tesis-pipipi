@@ -7,6 +7,7 @@ import {
 } from "@/components/forms/laboratorios-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import type { Historia } from "@/lib/schema/historia";
 import type { Laboratorios } from "@/lib/schema/laboratorios";
 
@@ -79,6 +80,8 @@ export default async function LaboratoriosCreatePage({
           Registra resultados basales y estudios adicionales solicitados.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
 

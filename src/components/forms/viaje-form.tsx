@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   type FormEvent,
   type ReactNode,
@@ -11,6 +12,10 @@ import {
 } from "react";
 import { toast } from "sonner";
 import {
+  ArrowLeftIcon,
+  CalendarRangeIcon,
+  ClipboardListIcon,
+  MapPinIcon,
   PlusIcon,
   SaveIcon,
   Trash2Icon,
@@ -95,6 +100,7 @@ type ViajeFormAction = (
 
 type ViajeFormProps = {
   action?: ViajeFormAction;
+  backHref?: string;
   defaultValue?: ViajeFormValue;
   successRedirectHref?: string;
   submitLabel?: string;
@@ -258,14 +264,14 @@ function getConfirmationSections(
           label: "Establecimiento",
           value: textSummary(form.establecimiento.nombre),
         },
-        { label: "Direccion", value: textSummary(form.establecimiento.direccion) },
+        { label: "Dirección", value: textSummary(form.establecimiento.direccion) },
         { label: "Contacto", value: textSummary(form.establecimiento.contacto) },
       ],
     },
     {
       title: "Estaciones",
       items: form.estaciones.map((station, index) => ({
-        label: station.tipo || `Estacion ${index + 1}`,
+        label: station.tipo || `Estación ${index + 1}`,
         value: listSummary([
           `Docente: ${
             userById.get(station.docenteEncargado)?.name || "Sin asignar"
@@ -279,6 +285,7 @@ function getConfirmationSections(
 
 export function ViajeForm({
   action,
+  backHref,
   defaultValue,
   successRedirectHref,
   submitLabel = "Guardar viaje",
@@ -401,20 +408,22 @@ export function ViajeForm({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-5"
       noValidate
       onBlurCapture={onBlurCapture}
       onSubmit={handleSubmit}
       ref={formRef}
     >
       <FormSection
-        description="Datos generales del viaje y fechas de operacion."
+        description="Identifica el servicio y define el periodo de atención."
+        icon={<CalendarRangeIcon className="size-5" aria-hidden="true" />}
+        number="01"
         title="Datos del viaje"
       >
         <FieldGrid>
           <TextField
             error={visibleErrors.servicio}
-            label="Servicio"
+            label="Nombre del servicio"
             name="servicio"
             onChange={(value) =>
               setForm((current) => ({ ...current, servicio: value }))
@@ -444,10 +453,12 @@ export function ViajeForm({
       </FormSection>
 
       <FormSection
-        description="Municipio, centro o punto de atencion donde se trabajara."
+        description="Centro o punto de atención donde se realizará el viaje."
+        icon={<MapPinIcon className="size-5" aria-hidden="true" />}
+        number="02"
         title="Establecimiento"
       >
-        <FieldGrid>
+        <FieldGrid columns={3}>
           <TextField
             error={visibleErrors["establecimiento.nombre"]}
             label="Nombre"
@@ -466,7 +477,7 @@ export function ViajeForm({
           />
           <TextField
             error={visibleErrors["establecimiento.direccion"]}
-            label="Direccion"
+            label="Dirección"
             name="establecimiento.direccion"
             onChange={(value) =>
               setForm((current) => ({
@@ -507,10 +518,12 @@ export function ViajeForm({
             variant="outline"
           >
             <PlusIcon data-icon="inline-start" />
-            Nueva estacion
+            Nueva estación
           </Button>
         }
-        description="Cada pestana representa una estacion del flujo de atencion."
+        description="Configura cada estación y asigna al docente y sus estudiantes."
+        icon={<ClipboardListIcon className="size-5" aria-hidden="true" />}
+        number="03"
         title="Estaciones"
       >
         <Tabs value={activeStationId} onValueChange={setActiveStationId}>
@@ -542,36 +555,26 @@ export function ViajeForm({
             ))}
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            <TabsList className="w-max">
+          <div className="border-b pb-4">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
               {form.estaciones.map((station, index) => (
-                <TabsTrigger key={station.id} value={station.id}>
-                  {station.tipo || `Estacion ${index + 1}`}
+                <TabsTrigger className="h-auto max-w-full flex-none rounded-lg border-border! px-3 py-2 text-left whitespace-normal data-active:border-primary/40! data-active:bg-primary/10 data-active:text-primary" key={station.id} value={station.id}>
+                  {station.tipo || `Estación ${index + 1}`}
                 </TabsTrigger>
               ))}
             </TabsList>
-            <Button
-              disabled={allStationTypesSelected}
-              onClick={addStation}
-              size="icon-sm"
-              type="button"
-              variant="outline"
-            >
-              <PlusIcon />
-              <span className="sr-only">Agregar estacion</span>
-            </Button>
           </div>
 
           {form.estaciones.map((station, index) => (
             <TabsContent className="mt-4" key={station.id} value={station.id}>
-              <div className="flex flex-col gap-5 rounded-3xl border bg-muted/20 p-4">
+              <div className="flex flex-col gap-5 rounded-xl border bg-muted/10 p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
                     <h3 className="text-sm font-medium">
-                      Estacion {index + 1}
+                      {station.tipo || `Estación ${index + 1}`}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Define el tipo de estacion y asigna el equipo.
+                      Selecciona el tipo de atención y las personas responsables.
                     </p>
                   </div>
                   <Button
@@ -589,7 +592,7 @@ export function ViajeForm({
                 <FieldGrid>
                   <SelectField
                     error={visibleErrors[`estaciones.${index}.tipo`]}
-                    label="Tipo de estacion"
+                    label="Tipo de estación"
                     name={`estaciones.${index}.tipo`}
                     onChange={(value) => updateStation(index, { tipo: value })}
                     options={getAvailableStationTypes(form.estaciones, index)}
@@ -645,14 +648,19 @@ export function ViajeForm({
         </Tabs>
       </FormSection>
 
-      <footer className="sticky bottom-0 flex flex-col gap-3 rounded-3xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <footer className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {actionState.message ?? "Completa los campos para crear el viaje."}
         </p>
-        <Button disabled={isPending} type="submit">
-          <SaveIcon data-icon="inline-start" />
-          {isPending ? "Guardando..." : submitLabel}
-        </Button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          {backHref ? (
+            <Button asChild variant="outline"><Link href={backHref}><ArrowLeftIcon data-icon="inline-start" />Volver</Link></Button>
+          ) : null}
+          <Button disabled={isPending} type="submit">
+            <SaveIcon data-icon="inline-start" />
+            {isPending ? "Guardando..." : submitLabel}
+          </Button>
+        </div>
       </footer>
       {confirmationDialog}
     </form>
@@ -663,31 +671,37 @@ function FormSection({
   action,
   children,
   description,
+  icon,
+  number,
   title,
 }: {
   action?: ReactNode;
   children: ReactNode;
   description: string;
+  icon: ReactNode;
+  number: string;
   title: string;
 }) {
   return (
-    <section className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            {description}
-          </p>
+    <section className="overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div className="flex flex-col gap-4 border-b bg-muted/15 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary">{icon}</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Apartado {number}</p>
+            <h2 className="text-base font-semibold">{title}</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+          </div>
         </div>
         {action}
       </div>
-      {children}
+      <div className="p-4 sm:p-6">{children}</div>
     </section>
   );
 }
 
-function FieldGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>;
+function FieldGrid({ children, columns = 2 }: { children: ReactNode; columns?: 2 | 3 }) {
+  return <div className={`grid gap-4 md:grid-cols-2 ${columns === 3 ? "xl:grid-cols-3" : ""}`}>{children}</div>;
 }
 
 function UserComboboxField({

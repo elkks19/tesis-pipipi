@@ -5,15 +5,16 @@ import {
   EspirometriaForm,
   type EspirometriaFormValue,
 } from "@/components/forms/espirometria-form";
-import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import type { Espirometria } from "@/lib/schema/espirometria";
 import type { Historia } from "@/lib/schema/historia";
 
 import { saveEspirometria } from "./actions";
+import { EspirometriaHistorialButton } from "../espirometria-historial-button";
 
 export const metadata: Metadata = {
-  title: "Espirometria",
+  title: "Espirometría",
 };
 
 export const runtime = "nodejs";
@@ -90,15 +91,18 @@ export default async function EspirometriaCreatePage({
   const action = saveEspirometria.bind(null, decodedIdHistoria);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Espirometria</h1>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 rounded-xl border bg-background px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
+      <div className="flex flex-col gap-1 border-b pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · Espirometría</p>
+        <h1 className="font-heading text-2xl font-semibold">Espirometría</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Registra volumenes, flujos, calidad de maniobra y diagnostico.
+          Registra volúmenes, flujos, calidad de la maniobra y diagnóstico.
         </p>
       </div>
 
-      <HistoriaClinicalSummaryModal historia={historia} scope="complementarios" />
+      <PatientStationBanner pacienteId={historia.pacienteId} />
+
+      <EspirometriaHistorialButton hasClinicalDetail={Boolean(historia.espirometria)} historiaId={decodedIdHistoria} showPdf />
 
       <EspirometriaForm
         action={action}

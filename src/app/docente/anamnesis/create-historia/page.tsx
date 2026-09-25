@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PacienteListNavigation } from "@/components/pacientes/paciente-list-navigation";
 
 import { AnamnesisForm } from "@/components/forms/anamnesis-form";
 import { PacienteSearchInput } from "@/components/pacientes/paciente-search-input";
@@ -6,6 +7,7 @@ import { PacienteSearchResults } from "@/components/pacientes/paciente-search-re
 import { createAnamnesis } from "@/app/estudiante/anamnesis/create-historia/actions";
 import {
   getHistoriasByPacienteId,
+  getHistoriasByPacienteIds,
   getPacienteById,
   searchPacientes,
 } from "@/app/estudiante/anamnesis/create-historia/queries";
@@ -18,6 +20,7 @@ type CreateHistoriaPageProps = {
   searchParams: Promise<{
     pacienteId?: string | string[];
     q?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -32,13 +35,16 @@ export default async function DocenteCreateHistoriaPage({
   const query = getParam(params.q).trim();
   const pacienteId = getParam(params.pacienteId).trim();
   const [pacientes, selectedPaciente] = await Promise.all([
-    searchPacientes(query),
+    searchPacientes(query, Number(getParam(params.page))),
     getPacienteById(pacienteId),
   ]);
   const selectedPacienteHistorias = selectedPaciente
     ? await getHistoriasByPacienteId(selectedPaciente.id)
     : [];
-  const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes;
+  const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes.pacientes;
+  const historiasByPacienteId = selectedPaciente
+    ? { [selectedPaciente.id]: selectedPacienteHistorias }
+    : await getHistoriasByPacienteIds(visiblePacientes.map((paciente) => paciente.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,27 +54,40 @@ export default async function DocenteCreateHistoriaPage({
             Nueva historia
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Primero selecciona el paciente. La historia quedara vinculada a su
-            registro de identidad.
+            {selectedPaciente
+              ? "Completa la anamnesis paso a paso. Puedes volver a cualquier sección antes de guardar."
+              : "Selecciona un paciente para iniciar su historia clínica."}
           </p>
         </div>
 
-        <PacienteSearchInput initialValue={query} />
+        {!selectedPaciente ? <PacienteSearchInput initialValue={query} key={query} /> : null}
       </section>
 
+      <PacienteListNavigation
+        basePath="/docente/anamnesis"
+        query={query}
+        pagination={pacientes}
+        selected={Boolean(selectedPaciente)}
+      />
+
+      <section aria-label={selectedPaciente ? "Paciente seleccionado" : "Resultados de pacientes"} className={selectedPaciente ? "rounded-xl border bg-muted/20 p-3 sm:p-4" : undefined}>
+      {selectedPaciente ? <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Paciente seleccionado</p> : null}
       <PacienteSearchResults
+        hideCreateHistoriaAction={Boolean(selectedPaciente)}
         createHistoriaRoute="/docente/anamnesis/create-historia"
         editPacienteRoute="/docente/anamnesis/pacientes"
         newPacienteRoute="/docente/anamnesis/create-paciente"
         pacientes={visiblePacientes}
-        historiasByPacienteId={
-          selectedPaciente
-            ? { [selectedPaciente.id]: selectedPacienteHistorias }
-            : undefined
-        }
+        historiasByPacienteId={historiasByPacienteId}
         query={query}
         selectedPacienteId={selectedPaciente?.id}
+        page={pacientes.page}
       />
+      </section>
+
+      {!selectedPaciente && (pacientes.pacientes.length > 0 || pacientes.page > 1) ? (
+        <PacienteListNavigation basePath="/docente/anamnesis" query={query} pagination={pacientes} footer />
+      ) : null}
 
       {selectedPaciente ? (
         <section className="flex flex-col gap-4">

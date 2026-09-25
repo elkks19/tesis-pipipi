@@ -26,7 +26,9 @@ export async function listHistoriasForExamenFisicoGeneral({
 }): Promise<ExamenFisicoGeneralPageResult> {
   const page = await listStationHistories({
     cursor,
+    includeCompleted: true,
     mode: "estudiante",
+    newestFirst: true,
     query,
     stationKey: "examenFisicoGeneral",
   });
@@ -35,7 +37,7 @@ export async function listHistoriasForExamenFisicoGeneral({
     ...page,
     rows: page.rows.map((row) => ({
       ...row,
-      examenFisicoGeneralCompleto: false,
+      examenFisicoGeneralCompleto: row.stationCompleted,
     })),
   };
 }

@@ -1,5 +1,7 @@
 export type PacienteSearchResult = {
   id: string;
+  createdAt?: string;
+  updatedAt?: string;
   datosPersonales: {
     nombres: string;
     apellidoPaterno: string;

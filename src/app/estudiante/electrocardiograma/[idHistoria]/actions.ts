@@ -168,9 +168,8 @@ export async function saveElectrocardiograma(
       };
     }
 
-    const isRequested = Boolean(
-      historia.examenesComplementariosSolicitados?.electrocardiograma,
-    );
+    const isRequested =
+      historia.examenesComplementariosSolicitados?.electrocardiograma === true;
 
     if (!isRequested && !historia.electrocardiograma) {
       return {

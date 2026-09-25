@@ -179,19 +179,20 @@ export async function listViajes(
     selector.fechaEntrada = { $lte: filterEnd };
   }
 
-  const result = await findTesisDocs({
-    limit: 500,
-    selector,
-  });
-  const viajes: (Viaje & { docId: string })[] = result.docs.filter(isViaje).map((doc) => ({
+  const viajes: (Viaje & { docId: string })[] = [];
+  for (let skip = 0; ; skip += 500) {
+    const result = await findTesisDocs({ limit: 500, skip, selector });
+    viajes.push(...result.docs.filter(isViaje).map((doc) => ({
       ...doc,
       docId: doc._id ?? doc.id,
-    }));
+    })));
+    if (result.docs.length < 500) break;
+  }
 
   const filteredViajes = viajes
     .filter((viaje) => matchesLugar(viaje, filters.lugar))
     .filter((viaje) => matchesDateRange(viaje, filters))
-    .sort((a, b) => a.fechaEntrada.localeCompare(b.fechaEntrada));
+    .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada) || a.docId.localeCompare(b.docId));
 
   return hydrateViajesUsers(filteredViajes);
 }

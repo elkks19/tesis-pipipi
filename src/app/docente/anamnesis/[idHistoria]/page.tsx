@@ -8,6 +8,7 @@ import {
   type AnamnesisFormValue,
 } from "@/components/forms/anamnesis-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import type { Historia } from "@/lib/schema/historia";
@@ -178,6 +179,8 @@ export default async function DocenteEditarAnamnesisPage({
           Actualiza la anamnesis registrada para esta historia clinica.
         </p>
       </div>
+      <PatientStationBanner pacienteId={doc.pacienteId} />
+
       <HistoriaClinicalSummaryModal
         historia={doc}
         scope="diagnostico"

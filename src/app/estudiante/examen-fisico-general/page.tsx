@@ -7,20 +7,14 @@ import {
   ClipboardCheckIcon,
   ClipboardPenLineIcon,
   IdCardIcon,
+  SearchXIcon,
   UserRoundIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 
+import { ExamenGeneralQuickActions } from "./examen-general-quick-actions";
 import { HistoriasFilters } from "./historias-filters";
 import { listHistoriasForExamenFisicoGeneral } from "./queries";
 
@@ -64,6 +58,21 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("es-BO", {
     day: "2-digit",
     month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatHistoryDate(value?: string) {
+  if (!value) return "Fecha no registrada";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Fecha no registrada";
+
+  return new Intl.DateTimeFormat("es-BO", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    timeZone: "America/La_Paz",
     year: "numeric",
   }).format(date);
 }
@@ -129,121 +138,87 @@ export default async function ExamenFisicoGeneralPage({
   const nextCursors = cursor ? [...cursors, cursor] : cursors;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-2 border-b pb-6">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · 01</span>
         <h1 className="font-heading text-2xl font-semibold">
-          Examen fisico general
+          Examen físico general
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Selecciona una historia y registra sus signos vitales, presion
-          arterial y mediciones antropometricas.
+          Elige una historia para registrar signos vitales, presión arterial y
+          medidas antropométricas.
         </p>
       </div>
 
-      <div className="flex flex-col gap-5 rounded-3xl border bg-background p-4 shadow-sm sm:p-6">
+      <section className="flex flex-col gap-5 rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-base font-semibold">Seleccionar historia</h2>
+          <p className="text-sm text-muted-foreground">Busca por identidad y continúa con el examen correspondiente.</p>
+        </div>
         <HistoriasFilters query={query} />
 
-        <div className="overflow-hidden rounded-3xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Nacimiento</TableHead>
-                <TableHead>Lugar</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {historiasPage.rows.length > 0 ? (
-                historiasPage.rows.map((row) => {
-                  const datos = row.paciente.datosPersonales;
-
-                  return (
-                    <TableRow key={row.historiaId}>
-                      <TableCell className="font-medium">
-                        <div className="flex min-w-56 items-center gap-3">
-                          <div className="flex size-9 items-center justify-center rounded-full bg-muted">
-                            <UserRoundIcon />
-                          </div>
-                          <div className="flex min-w-0 flex-col">
-                            <span className="truncate">
-                              {getPacienteName(row.paciente)}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {row.paciente.genero}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <IdCardIcon />
-                          <span>
-                            {datos.documentoIdentidad}{" "}
-                            {datos.numeroDocumentoIdentidad}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDate(datos.fechaNacimiento)}</TableCell>
-                      <TableCell>
-                        <span className="block min-w-48 truncate">
-                          {getPlace(row.paciente) || "Sin lugar"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {row.examenFisicoGeneralCompleto ? (
-                            <>
-                              <ClipboardCheckIcon />
-                              <span>Registrado</span>
-                            </>
-                          ) : (
-                            <>
-                              <ClipboardPenLineIcon />
-                              <span>Pendiente</span>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button asChild size="sm" variant="outline">
-                            <Link
-                              href={`/estudiante/examen-fisico-general/${encodeURIComponent(
-                                row.historiaId,
-                              )}`}
-                            >
-                              <ClipboardPenLineIcon data-icon="inline-start" />
-                              {row.examenFisicoGeneralCompleto
-                                ? "Editar"
-                                : "Registrar"}
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    className="h-28 text-center text-muted-foreground"
-                    colSpan={6}
-                  >
-                    No hay historias que coincidan con la busqueda.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <div className="grid gap-3">
+          {historiasPage.rows.length > 0 ? historiasPage.rows.map((row) => {
+            const datos = row.paciente.datosPersonales;
+            return (
+              <article className="min-w-0 overflow-hidden rounded-xl border bg-background shadow-xs transition-colors hover:border-primary/30" key={row.historiaId}>
+                <div className="flex flex-col gap-4 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start gap-3">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+                      <UserRoundIcon className="size-5" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-sm font-semibold sm:text-base">{getPacienteName(row.paciente)}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{row.paciente.genero} · Historia del {formatHistoryDate(row.createdAt)}</p>
+                    </div>
+                    <span className={row.examenFisicoGeneralCompleto
+                      ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                      : "inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:text-amber-400"}>
+                      {row.examenFisicoGeneralCompleto ? <ClipboardCheckIcon className="size-3.5" /> : <ClipboardPenLineIcon className="size-3.5" />}
+                      {row.examenFisicoGeneralCompleto ? "Completado" : "Pendiente"}
+                    </span>
+                  </div>
+                  <dl className="grid gap-3 border-t pt-4 text-sm sm:grid-cols-3">
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Documento</dt>
+                      <dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><IdCardIcon className="size-4 shrink-0 text-muted-foreground" />{datos.documentoIdentidad} {datos.numeroDocumentoIdentidad}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Nacimiento</dt>
+                      <dd className="mt-1 font-medium">{formatDate(datos.fechaNacimiento)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Procedencia</dt>
+                      <dd className="mt-1 break-words font-medium">{getPlace(row.paciente) || "Sin lugar"}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="flex flex-col gap-3 border-t bg-muted/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <p className="text-xs text-muted-foreground">Historia clínica vinculada al paciente</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ExamenGeneralQuickActions hasClinicalDetail={row.hasClinicalDetail} historiaId={row.historiaId} />
+                    <Button asChild size="sm" variant={row.examenFisicoGeneralCompleto ? "outline" : "default"}>
+                      <Link href={"/estudiante/examen-fisico-general/" + encodeURIComponent(row.historiaId)}>
+                        <ClipboardPenLineIcon data-icon="inline-start" />
+                        {row.examenFisicoGeneralCompleto ? "Editar examen" : "Registrar examen"}
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            );
+          }) : (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-10 text-center text-muted-foreground">
+              <SearchXIcon className="size-7" />
+              <span className="font-medium text-foreground">No encontramos historias</span>
+              <span className="text-sm">Prueba con otro nombre o número de documento.</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Mostrando {historiasPage.rows.length} de hasta{" "}
-            {historiasPage.pageSize} historias por pagina.
+            {historiasPage.rows.length} {historiasPage.rows.length === 1 ? "historia visible" : "historias visibles"} · hasta {historiasPage.pageSize} por página
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -296,7 +271,7 @@ export default async function ExamenFisicoGeneralPage({
             </Button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -159,8 +159,11 @@ export async function createPaciente(
     };
   }
 
+  const createdAt = new Date().toISOString();
   const paciente: Paciente = {
     type: "paciente",
+    createdAt,
+    updatedAt: createdAt,
     ...parsed.data,
   };
 
@@ -259,14 +262,21 @@ export async function updatePaciente(
       };
     }
 
+    const updatedAt = new Date().toISOString();
+    const nextPaciente: Paciente = {
+      ...paciente,
+      createdAt: current.createdAt,
+      updatedAt,
+    };
+
     await db.put({
       _id: current._id,
       _rev: current._rev,
-      ...paciente,
+      ...nextPaciente,
     });
     await logPacienteActivity({
       actorId: userId,
-      after: paciente,
+      after: nextPaciente,
       before: current,
       pacienteId: current._id,
     }).catch(() => undefined);

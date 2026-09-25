@@ -41,24 +41,46 @@ async function getPreviousHistorias(
 
   await ensureTesisIndexes();
 
-  const result = await findTesisDocs({
-    limit: 25,
-    selector: {
-      pacienteId: historia.pacienteId,
-      type: "historia",
-    },
-    use_index: "idx_historias_paciente",
-  });
-
   const historias: HistoriaDocument[] = [];
+  const currentTime = historia.createdAt ? Date.parse(historia.createdAt) : Number.NaN;
+  let bookmark: string | undefined;
+  let scanned = 0;
 
-  for (const candidate of result.docs) {
-    if (isHistoriaDocument(candidate) && candidate._id !== historia._id) {
+  do {
+    const result = await findTesisDocs({
+      ...(bookmark ? { bookmark } : {}),
+      limit: 50,
+      selector: {
+        pacienteId: historia.pacienteId,
+        type: "historia",
+      },
+      use_index: "idx_historias_paciente",
+    });
+
+    for (const candidate of result.docs) {
+      if (!isHistoriaDocument(candidate) || candidate._id === historia._id) continue;
+      const candidateTime = candidate.createdAt ? Date.parse(candidate.createdAt) : Number.NaN;
+      if (Number.isFinite(currentTime) && Number.isFinite(candidateTime) && candidateTime > currentTime) continue;
       historias.push(candidate);
     }
-  }
 
-  return historias.slice(0, 12);
+    scanned += result.docs.length;
+    if (result.docs.length < 50 || !result.bookmark || result.bookmark === bookmark) break;
+    bookmark = result.bookmark;
+  } while (scanned < 1000);
+
+  return historias
+    .sort((left, right) => (Date.parse(right.createdAt ?? "") || 0) - (Date.parse(left.createdAt ?? "") || 0))
+    .slice(0, 12);
+}
+
+export async function getHistoriaClinicalSummaryData(historia: HistoriaDocument) {
+  const [paciente, previousHistorias] = await Promise.all([
+    getPacienteById(historia.pacienteId),
+    getPreviousHistorias(historia),
+  ]);
+
+  return { paciente: paciente ?? undefined, previousHistorias };
 }
 
 export async function HistoriaClinicalSummaryModal({
@@ -67,15 +89,12 @@ export async function HistoriaClinicalSummaryModal({
   triggerLabel,
 }: HistoriaClinicalSummaryModalProps) {
   const historiaDocument = historia as HistoriaDocument;
-  const [paciente, previousHistorias] = await Promise.all([
-    getPacienteById(historia.pacienteId),
-    getPreviousHistorias(historiaDocument),
-  ]);
+  const { paciente, previousHistorias } = await getHistoriaClinicalSummaryData(historiaDocument);
 
   return (
     <ClientHistoriaClinicalSummaryModal
       historia={historia}
-      paciente={paciente ?? undefined}
+      paciente={paciente}
       previousHistorias={previousHistorias}
       scope={scope}
       triggerLabel={triggerLabel}

@@ -233,6 +233,14 @@ export async function saveEcografia(
       };
     }
 
+    const isRequested = historia.examenesComplementariosSolicitados?.ecografia === true;
+    if (!isRequested && !historia.ecografia) {
+      return {
+        message: "Esta historia no tiene ecografía solicitada.",
+        ok: false,
+      };
+    }
+
     const ecografia = {
       ...(ecografiaData as Ecografia),
       imagen: ecografiaData.imagen ?? historia.ecografia?.imagen,

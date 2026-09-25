@@ -18,7 +18,7 @@ export default function EcografiaLayout({ children }: { children: ReactNode }) {
     <TooltipProvider>
       <SidebarProvider>
         <EcografiaSidebar />
-        <SidebarInset className="bg-muted/40">
+        <SidebarInset className="min-w-0 bg-muted/40">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
@@ -29,7 +29,7 @@ export default function EcografiaLayout({ children }: { children: ReactNode }) {
               </span>
             </div>
           </header>
-          <div className="m-2 mx-auto w-[calc(100%-1rem)] max-w-7xl rounded-3xl bg-background p-4 shadow-sm ring-1 ring-border/60 sm:m-4 sm:w-[calc(100%-2rem)] sm:p-6 lg:p-8">
+          <div className="mx-auto my-2 w-[calc(100%-1rem)] min-w-0 max-w-7xl rounded-3xl bg-background p-4 shadow-sm ring-1 ring-border/60 sm:my-4 sm:w-[calc(100%-2rem)] sm:p-6 lg:p-8">
             {children}
           </div>
         </SidebarInset>

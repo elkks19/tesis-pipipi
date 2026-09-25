@@ -1,14 +1,22 @@
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
-import { canAccessDocente, getSessionUserRole } from "@/lib/role-redirect";
-import { generateHistoriaCarboneReport } from "@/lib/reports/historia-carbone-report";
+import {
+  canAccessDocente,
+  canAccessEstudiante,
+  getSessionUserRole,
+} from "@/lib/role-redirect";
+import {
+  getHistoriaClinicalPdfFileName,
+  renderHistoriaClinicalPdf,
+} from "@/lib/reports/historia-clinica-pdf";
+import { getHistoriaClinicalPdfData } from "@/lib/reports/historia-clinica-pdf-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: {
     params: Promise<{
       idHistoria: string;
@@ -19,9 +27,13 @@ export async function GET(
     headers: await headers(),
   });
 
-  if (!session?.user || !canAccessDocente(getSessionUserRole(session.user))) {
+  const role = getSessionUserRole(session?.user);
+  const canGenerateReport =
+    canAccessDocente(role) || canAccessEstudiante(role);
+
+  if (!session?.user || !canGenerateReport) {
     return Response.json(
-      { message: "Solo docentes pueden generar reportes." },
+      { message: "No tienes permiso para generar este reporte." },
       { status: 403 },
     );
   }
@@ -30,28 +42,28 @@ export async function GET(
     const { idHistoria } = await context.params;
     const historiaId = decodeURIComponent(idHistoria);
 
-    console.info("[historia-report-route] generating report", {
+    const data = await getHistoriaClinicalPdfData({
+      generatedBy: session.user.name ?? session.user.email ?? session.user.id,
       historiaId,
-      userId: session.user.id,
     });
 
-    const report = await generateHistoriaCarboneReport({
-      historiaId,
-      storageMode: "latest",
-      solicitadoPor: session.user.name ?? session.user.email ?? session.user.id,
-    });
-
-    if (!report) {
+    if (!data) {
       return Response.json(
         { message: "Historia no encontrada." },
         { status: 404 },
       );
     }
 
-    return new Response(new Uint8Array(report.pdf), {
+    const disposition = new URL(request.url).searchParams.has("download")
+      ? "attachment"
+      : "inline";
+    const pdf = renderHistoriaClinicalPdf(data);
+    const fileName = getHistoriaClinicalPdfFileName(data);
+
+    return new Response(pdf, {
       headers: {
         "Cache-Control": "no-store, max-age=0",
-        "Content-Disposition": `inline; filename="${report.file.nombre}"`,
+        "Content-Disposition": `${disposition}; filename="${fileName}"`,
         "Content-Type": "application/pdf",
         Pragma: "no-cache",
       },

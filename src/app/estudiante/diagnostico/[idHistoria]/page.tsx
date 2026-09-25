@@ -7,6 +7,7 @@ import {
 } from "@/components/forms/diagnostico-form";
 import { HistoriaClinicalSummaryModal } from "@/components/historias/historia-clinical-summary-server";
 import { db } from "@/lib/db";
+import { PatientStationBanner } from "@/components/pacientes/patient-station-banner";
 import { getRecetaById, listViajeInventario } from "@/lib/farmacia";
 import type { Diagnostico } from "@/lib/schema/diagnostico";
 import type { Receta } from "@/lib/schema/farmacia";
@@ -15,7 +16,7 @@ import type { Historia } from "@/lib/schema/historia";
 import { saveDiagnostico } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Diagnostico",
+  title: "Diagnóstico",
 };
 
 export const runtime = "nodejs";
@@ -105,14 +106,16 @@ export default async function DiagnosticoCreatePage({
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">Diagnostico</h1>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 rounded-xl border bg-background px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
+      <div className="flex flex-col gap-1 border-b pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Estación clínica · Cierre de historia</p>
+        <h1 className="font-heading text-2xl font-semibold">Diagnóstico</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Codifica el diagnostico final con CIE-11 y registra el plan de
-          trabajo para cerrar la historia.
+          Codifica el diagnóstico final con CIE-11, define el plan y registra la receta.
         </p>
       </div>
+
+      <PatientStationBanner pacienteId={historia.pacienteId} />
 
       <HistoriaClinicalSummaryModal historia={historia} scope="diagnostico" />
 

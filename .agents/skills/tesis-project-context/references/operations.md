@@ -9,6 +9,7 @@
 - Python: usa `data-science/.venv/bin/python`; verifica la ruta del script en `package.json`.
 - FastAPI: `uvicorn --app-dir data-science app.main:app --reload --port 8000`.
 - Worker: `pnpm worker:reportes`.
+- Catálogo AGEMED: `pnpm worker:catalogo`; registra el programador diario y procesa la cola mientras permanezca activo.
 
 Los scripts multiplataforma usan `cross-env`. Revisa su ortografía: han existido variantes erróneas `croos-env`/`corss-env`.
 
@@ -18,6 +19,7 @@ Los scripts multiplataforma usan `cross-env`. Revisa su ortografía: han existid
 - Auth: `BETTER_AUTH_SQLITE_PATH`, URL/orígenes y credenciales Google.
 - Archivos: `FILE_STORAGE_ROOT` o credenciales S3 completas.
 - Reportes: `REDIS_URL`, Carbone y plantillas.
+- Farmacia: `AGEMED_CATALOG_URL` permite reemplazar la página oficial y `AGEMED_CATALOG_CRON` cambia el cron diario por defecto (`0 3 * * *`, zona `America/La_Paz`).
 - Next/investigación: `DATA_SCIENCE_API_URL`, `DATA_SCIENCE_INTERNAL_TOKEN`.
 - Python: `DS_INTERNAL_TOKEN`, proveedor/modelo, embedding, storage, límites y CORS.
 

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { RegisterFormSchema } from "@/lib/schema/authForms";
 
@@ -39,7 +40,7 @@ const clientState = { ok: false };
 export function RegisterForm({ callbackURL }: RegisterFormProps) {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } =
-    authClient.useSession();
+    useHydratedSession();
   const hasMounted = useSyncExternalStore(
     subscribeToHydration,
     () => true,

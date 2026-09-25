@@ -50,9 +50,34 @@ const indexes: IndexDefinition[] = [
     name: "idx_recetas_historia",
   },
   {
+    ddoc: "idx_recetas_viaje_created",
+    fields: ["type", "viajeId", "createdAt"],
+    name: "idx_recetas_viaje_created",
+  },
+  {
     ddoc: "idx_medicamento_catalogo_fuente",
     fields: ["type", "fuente"],
     name: "idx_medicamento_catalogo_fuente",
+  },
+  {
+    ddoc: "idx_inventario_movimiento_viaje",
+    fields: ["type", "viajeId", "createdAt"],
+    name: "idx_inventario_movimiento_viaje",
+  },
+  {
+    ddoc: "idx_inventario_movimiento_item",
+    fields: ["type", "inventarioItemId", "createdAt"],
+    name: "idx_inventario_movimiento_item",
+  },
+  {
+    ddoc: "idx_dispensacion_receta",
+    fields: ["type", "recetaId", "createdAt"],
+    name: "idx_dispensacion_receta",
+  },
+  {
+    ddoc: "idx_importacion_catalogo_created",
+    fields: ["type", "createdAt"],
+    name: "idx_importacion_catalogo_created",
   },
   {
     ddoc: "idx_actividades_station_actor",

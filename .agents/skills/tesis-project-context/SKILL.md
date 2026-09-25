@@ -25,6 +25,7 @@ Usa esta skill para reducir redescubrimiento y preservar decisiones del sistema.
 - No inventes sincronización portable, Vault S3 ni despliegues no demostrados en código. Los diagramas expresan también diseño propuesto.
 - Para Next.js 16, lee primero la guía pertinente en `node_modules/next/dist/docs/`, como exige `AGENTS.md`.
 - Conserva el diseño operativo y compacto basado en shadcn y componentes existentes.
+- No levantes el servidor de desarrollo: el usuario lo mantiene ejecutándose y valida la interfaz en su sesión.
 
 ## Puntos De Entrada
 
@@ -34,6 +35,7 @@ Usa esta skill para reducir redescubrimiento y preservar decisiones del sistema.
 - Autenticación: `src/lib/auth.ts`, `src/lib/auth-roles.ts`, `src/lib/role-redirect.ts`.
 - Investigación: `src/components/data-science/data-science-chat.tsx`, `src/app/api/data-science/[...path]/route.ts`, `data-science/app/`.
 - Reportes: `src/lib/reports/`, `src/lib/queues/reportes.ts`, `scripts/reporte-historia-worker.mjs`.
+- Farmacia: `src/lib/farmacia*.ts`, `src/lib/farmacia-access.ts`, `src/components/farmacia/` y rutas `src/app/{estudiante,docente}/farmacia/`.
 - Diagramas: `docs/diagramas/`.
 
 ## Verificación

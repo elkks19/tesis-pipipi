@@ -23,6 +23,9 @@ export type SimpleComboboxOption = {
 };
 
 export function SimpleCombobox({
+  id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
   emptyLabel = "Sin resultados",
   onValueChange,
   options,
@@ -30,6 +33,9 @@ export function SimpleCombobox({
   searchPlaceholder = "Buscar",
   value,
 }: {
+  id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
   emptyLabel?: string;
   onValueChange: (value: string) => void;
   options: SimpleComboboxOption[];
@@ -63,6 +69,10 @@ export function SimpleCombobox({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
+          type="button"
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           aria-expanded={open}
           className="h-9 justify-between bg-muted/20 px-3 text-left text-sm font-normal shadow-none hover:bg-muted/35"
           role="combobox"

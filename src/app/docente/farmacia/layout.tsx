@@ -21,26 +21,26 @@ export default async function DocenteFarmaciaLayout({
 }) {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "docente", userId });
-  const tripActive = trip?.active ?? false;
+  const accessPhase = trip?.accessPhase ?? "sin_acceso";
 
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <FarmaciaDocenteSidebar tripActive={tripActive} />
-        <SidebarInset className="bg-muted/40">
+        <FarmaciaDocenteSidebar accessPhase={accessPhase} />
+        <SidebarInset className="min-w-0 overflow-x-hidden bg-muted/40">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="truncate text-sm font-medium">Farmacia</span>
               <span className="truncate text-xs text-muted-foreground">
-                {tripActive
+                {accessPhase === "activo"
                   ? "Inventario, recetas y dispensacion del viaje"
                   : "Planeacion del inventario"}
               </span>
             </div>
           </header>
-          <div className="m-2 mx-auto w-[calc(100%-1rem)] max-w-7xl rounded-3xl bg-background p-4 shadow-sm ring-1 ring-border/60 sm:m-4 sm:w-[calc(100%-2rem)] sm:p-6 lg:p-8">
+          <div className="m-2 mx-auto min-w-0 w-[calc(100%-1rem)] max-w-7xl overflow-x-hidden rounded-3xl bg-background p-4 shadow-sm ring-1 ring-border/60 sm:m-4 sm:w-[calc(100%-2rem)] sm:p-6 lg:p-8">
             {children}
           </div>
         </SidebarInset>

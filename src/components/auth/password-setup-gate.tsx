@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { PasswordSetupFormSchema } from "@/lib/schema/authForms";
 
@@ -28,7 +29,7 @@ const clientState = { ok: false };
 
 export function PasswordSetupGate() {
   const { data: session, isPending: isSessionPending } =
-    authClient.useSession();
+    useHydratedSession();
   const [isCheckingAccounts, setIsCheckingAccounts] = useState(false);
   const [requiresPassword, setRequiresPassword] = useState(false);
   const [requiresGoogleLink, setRequiresGoogleLink] = useState(false);

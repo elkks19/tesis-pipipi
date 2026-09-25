@@ -135,6 +135,12 @@ export async function proxy(request: NextRequest) {
     const activeTrip = resolution.activeTrip;
 
     if (!activeTrip) {
+      if (resolution.redirectTo) {
+        return isInsideBasePath(pathname, resolution.redirectTo)
+          ? NextResponse.next()
+          : redirectTo(resolution.redirectTo, request);
+      }
+
       return pathname === "/estudiante"
         ? NextResponse.next()
         : redirectTo("/estudiante", request);
@@ -169,6 +175,12 @@ export async function proxy(request: NextRequest) {
     const activeTrip = resolution.activeTrip;
 
     if (!activeTrip) {
+      if (resolution.redirectTo) {
+        return isInsideBasePath(pathname, resolution.redirectTo)
+          ? NextResponse.next()
+          : redirectTo(resolution.redirectTo, request);
+      }
+
       return pathname === "/docente"
         ? NextResponse.next()
         : redirectTo("/docente", request);

@@ -32,6 +32,7 @@ export type InsumoEntrega = {
 };
 
 type InsumosEntregadosProps = {
+  canRegister?: boolean;
   entregas: InsumoEntrega[];
   insumos: ViajeInventarioItem[];
   registrarAction: (formData: FormData) => Promise<{ ok: boolean; message?: string }>;
@@ -46,6 +47,7 @@ function normalizeSearch(value: string) {
 }
 
 export function InsumosEntregados({
+  canRegister = true,
   entregas,
   insumos,
   registrarAction,
@@ -104,8 +106,7 @@ export function InsumosEntregados({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Registro rapido */}
-      <div className="rounded-xl border p-4">
+      {canRegister ? <div className="rounded-xl border p-4">
         <h3 className="mb-3 text-sm font-medium">Registrar entrega de insumo</h3>
 
         {!selectedInsumo ? (
@@ -215,7 +216,7 @@ export function InsumosEntregados({
             </div>
           </form>
         )}
-      </div>
+      </div> : null}
 
       {/* Historial de entregas */}
       {optimisticEntregas.length > 0 && (
@@ -252,6 +253,7 @@ export function InsumosEntregados({
                     {new Date(entrega.createdAt).toLocaleTimeString("es-BO", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "America/La_Paz",
                     })}
                   </TableCell>
                 </TableRow>

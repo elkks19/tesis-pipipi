@@ -116,6 +116,21 @@ function isFuture(viaje: ViajeDocument, today: string) {
   return viaje.fechaEntrada > today;
 }
 
+function isInFarmaciaPlanningWindow(
+  viaje: ViajeDocument,
+  estacionTipo: string | undefined,
+  today: string,
+) {
+  if (estacionTipo !== "Farmacia" || !isFuture(viaje, today)) {
+    return false;
+  }
+
+  const planningStart = new Date(`${viaje.fechaEntrada}T12:00:00-04:00`);
+  planningStart.setUTCDate(planningStart.getUTCDate() - 7);
+
+  return planningStart.toISOString().slice(0, 10) <= today;
+}
+
 function getStudentStation(viaje: ViajeDocument, userId: string) {
   return viaje.estaciones.find((estacion) =>
     estacion.estudiantesIds.includes(userId),
@@ -222,10 +237,18 @@ async function resolveTripRoute({
   const futureTrips = futureAssignments.map((item) =>
     toFutureTrip(item.viaje, item.estacion?.tipo),
   );
+  const farmaciaPlanningAssignment = futureAssignments.find((item) =>
+    isInFarmaciaPlanningWindow(item.viaje, item.estacion?.tipo, today),
+  );
 
   return {
     futureTrip: futureTrips[0],
     futureTrips,
+    redirectTo: farmaciaPlanningAssignment
+      ? mode === "docente"
+        ? "/docente/farmacia/planeacion"
+        : "/estudiante/farmacia/planeacion"
+      : undefined,
   };
 }
 

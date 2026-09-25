@@ -13,7 +13,7 @@ export default async function DocenteFarmaciaPlaneacionPage() {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "docente", userId });
 
-  if (trip?.active) {
+  if (trip && trip.accessPhase !== "planeacion") {
     redirect("/docente/farmacia/inventario");
   }
 

@@ -34,6 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 const navItems = [
@@ -65,7 +66,7 @@ export function EspirometriaSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending } = useHydratedSession();
   const userName = session?.user.name ?? "Usuario";
   const userEmail = session?.user.email ?? "Sin sesion activa";
   const userImage = session?.user.image ?? undefined;

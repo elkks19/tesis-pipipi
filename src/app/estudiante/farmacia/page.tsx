@@ -12,9 +12,5 @@ export default async function FarmaciaPage() {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "estudiante", userId });
 
-  if (trip?.active) {
-    redirect("/estudiante/farmacia/inventario");
-  }
-
-  redirect("/estudiante/farmacia/planeacion");
+  redirect(trip?.accessPhase === "planeacion" ? "/estudiante/farmacia/planeacion" : "/estudiante/farmacia/inventario");
 }

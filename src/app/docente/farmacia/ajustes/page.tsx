@@ -20,30 +20,32 @@ export default async function DocenteFarmaciaAjustesPage() {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "docente", userId });
 
-  if (!trip?.active) {
-    redirect("/docente/farmacia/planeacion");
+  if (!trip || !["activo", "conciliacion"].includes(trip.accessPhase)) {
+    redirect("/docente/farmacia");
   }
 
   const items = await listViajeInventario(trip.viajeId);
 
   const boundUpdateAction = updateInventarioItemAction.bind(
     null,
+    "docente",
     trip.viajeId,
   );
   const boundDeleteAction = deleteInventarioItemAction.bind(
     null,
+    "docente",
     trip.viajeId,
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl font-semibold">
           Ajustar inventario
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Modifica las cantidades disponibles, corrige datos o elimina items del
-          inventario del viaje.
+          Registra correcciones de existencia y cambios de condicion con una
+          justificacion auditable.
         </p>
       </div>
 

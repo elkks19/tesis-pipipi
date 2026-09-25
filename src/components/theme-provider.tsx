@@ -31,19 +31,19 @@ export function ThemeProvider({
   defaultTheme?: Theme;
 }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") {
-      return defaultTheme;
-    }
-
-    return readStoredTheme() ?? defaultTheme;
+    return defaultTheme;
   });
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    return resolveTheme(readStoredTheme() ?? defaultTheme);
+    return "light";
   });
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setThemeState(readStoredTheme() ?? defaultTheme);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [defaultTheme]);
 
   useIsomorphicLayoutEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");

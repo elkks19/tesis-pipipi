@@ -22,7 +22,7 @@ export default async function FarmaciaLayout({
 }) {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "estudiante", userId });
-  const tripActive = trip?.active ?? false;
+  const accessPhase = trip?.accessPhase ?? "sin_acceso";
 
   return (
     <TooltipProvider>

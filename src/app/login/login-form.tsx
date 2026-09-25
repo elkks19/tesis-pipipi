@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { LoginFormSchema } from "@/lib/schema/authForms";
 
@@ -34,7 +35,7 @@ function subscribeToHydration() {
 export function LoginForm() {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } =
-    authClient.useSession();
+    useHydratedSession();
   const hasMounted = useSyncExternalStore(
     subscribeToHydration,
     () => true,

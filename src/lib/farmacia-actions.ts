@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import {
-  canAccessFarmaciaTrip,
+  authorizeFarmaciaAction,
   createViajeInventarioItem,
+  type FarmaciaAccessMode,
 } from "@/lib/farmacia";
 import { CreateViajeInventarioItemSchema } from "@/lib/schema";
 
@@ -34,9 +35,12 @@ function getPayload(formData: FormData) {
   return {
     atcCode: optionalString(formData, "atcCode"),
     cantidadDisponible: getString(formData, "cantidadDisponible") || undefined,
+    cantidadMinima: getString(formData, "cantidadMinima") || "0",
     cantidadPlanificada: getString(formData, "cantidadPlanificada"),
+    catalogoId: optionalString(formData, "catalogoId"),
     categoria,
     concentracion: optionalString(formData, "concentracion"),
+    condicion: getString(formData, "condicion") || "disponible",
     fechaVencimiento: optionalString(formData, "fechaVencimiento"),
     formaFarmaceutica: optionalString(formData, "formaFarmaceutica"),
     fuente: fuente || undefined,
@@ -44,6 +48,7 @@ function getPayload(formData: FormData) {
     lote: optionalString(formData, "lote"),
     nombre: getString(formData, "nombre"),
     nombreComercial: optionalString(formData, "nombreComercial"),
+    manualMotivo: optionalString(formData, "manualMotivo"),
     observaciones: optionalString(formData, "observaciones"),
     principioActivo: optionalString(formData, "principioActivo"),
     registroSanitario: optionalString(formData, "registroSanitario"),
@@ -79,6 +84,7 @@ function getFieldErrors(error: unknown) {
 }
 
 export async function addViajeInventarioItem(
+  mode: FarmaciaAccessMode,
   viajeId: string,
   _previousState: AddInventarioItemActionState,
   formData: FormData,
@@ -94,7 +100,7 @@ export async function addViajeInventarioItem(
     };
   }
 
-  const canAccess = await canAccessFarmaciaTrip({ userId, viajeId });
+  const canAccess = await authorizeFarmaciaAction({ mode, permission: "plan", userId, viajeId });
 
   if (!canAccess) {
     return {

@@ -7,6 +7,9 @@ import PouchDBFind from "pouchdb-find";
 import type {
   Actividad,
   Historia,
+  ImportacionCatalogo,
+  InventarioMovimiento,
+  DispensacionReceta,
   InsumoEntrega,
   MedicamentoCatalogo,
   Paciente,
@@ -21,6 +24,9 @@ export type TesisDocument =
   | Actividad
   | Viaje
   | Historia
+  | ImportacionCatalogo
+  | InventarioMovimiento
+  | DispensacionReceta
   | InsumoEntrega
   | Paciente
   | Receta

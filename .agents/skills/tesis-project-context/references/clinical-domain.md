@@ -38,6 +38,15 @@ Anamnesis aplica reglas dependientes de edad, fechas y antecedentes; gineco-obst
 - El agente recibe filtros impuestos por backend y evita identificadores personales.
 - Archivos privados se sirven por URL firmada o Route Handler autorizado.
 
+## Farmacia
+
+- Estudiantes y docentes asignados pueden planificar el inventario desde siete días antes del viaje.
+- Durante esa ventana, `/estudiante` y `/docente` redirigen a la planeación de Farmacia aunque todavía no exista un `activeTrip`.
+- Durante el viaje, ambos roles consultan inventario y dispensan; los ajustes manuales de saldo o condición son exclusivos del docente encargado.
+- La conciliación dura hasta un día después de la salida y mantiene los ajustes solo para docente.
+- Las Server Actions validan la asignación exacta según `mode`; no basta con pertenecer a Farmacia bajo cualquier rol.
+- Inventario, movimientos y dispensaciones viven en CouchDB y conservan trazabilidad.
+
 ## Reportes
 
 - Historia: diagnóstico puede encolar `reporteHistoria`; worker + Carbone + Flydrive.

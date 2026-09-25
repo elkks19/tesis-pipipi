@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
-import { getFarmaciaPlanningTrip, listViajeInventario } from "@/lib/farmacia";
+import { getFarmaciaPlanningTrip, listMedicamentoCatalogo, listViajeInventario } from "@/lib/farmacia";
 import { addViajeInventarioItem } from "@/lib/farmacia-actions";
 
 type FarmaciaPlaneacionPageProps = {
@@ -55,26 +55,29 @@ export async function FarmaciaPlaneacionPage({
     );
   }
 
-  const items = await listViajeInventario(planningTrip.viajeId);
-  const action = addViajeInventarioItem.bind(null, planningTrip.viajeId);
+  const [items, catalogo] = await Promise.all([
+    listViajeInventario(planningTrip.viajeId),
+    listMedicamentoCatalogo(),
+  ]);
+  const action = addViajeInventarioItem.bind(null, mode, planningTrip.viajeId);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-3 rounded-2xl bg-muted/45 p-4 ring-1 ring-border/60 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="font-heading text-xl font-semibold">
-            Planeacion de inventario
+            Planeación de inventario
           </h1>
           <p className="text-sm text-muted-foreground">
-            Registra lo que se llevara al viaje.
+            Prepara los medicamentos, insumos y equipos para el viaje.
           </p>
         </div>
-        <div className="flex gap-2 text-sm">
-          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
+        <div className="flex min-w-0 flex-wrap gap-2 text-sm">
+          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
             <ClipboardListIcon className="size-4" />
             <span className="truncate">{planningTrip.establecimiento}</span>
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
+          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
             <CalendarDaysIcon className="size-4" />
             <span>
               {formatDate(planningTrip.fechaEntrada)} - {formatDate(planningTrip.fechaSalida)}
@@ -83,7 +86,7 @@ export async function FarmaciaPlaneacionPage({
         </div>
       </div>
 
-      <FarmaciaPlaneacionForm action={action} items={items} />
+      <FarmaciaPlaneacionForm action={action} catalogo={catalogo} items={items} />
     </div>
   );
 }

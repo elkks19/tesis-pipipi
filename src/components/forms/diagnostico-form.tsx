@@ -198,7 +198,7 @@ function inventarioItemToMedicationForm(
     catalogoId: item.catalogoId ?? "",
     concentracion: item.concentracion ?? "",
     formaFarmaceutica: item.formaFarmaceutica ?? "",
-    inventarioItemId: item.id,
+    inventarioItemId: "",
     nombre: item.nombre,
     principioActivo: item.principioActivo ?? "",
     unidad: item.unidad,
@@ -719,9 +719,16 @@ function InventarioDialog({
   onSelect: (item: ViajeInventarioItem) => void;
 }) {
   const [search, setSearch] = useState("");
-  const medicamentos = inventarioItems.filter(
-    (item) => item.categoria === "medicamento",
-  );
+  const today = new Date().toISOString().slice(0, 10);
+  const medicamentos = Array.from(inventarioItems.filter(
+    (item) => item.categoria === "medicamento" && (item.condicion ?? "disponible") === "disponible" && (!item.fechaVencimiento || item.fechaVencimiento >= today),
+  ).reduce((groups, item) => {
+    const groupKey = item.catalogoId ?? `${normalizeSearch(item.principioActivo ?? item.nombre)}|${normalizeSearch(item.concentracion ?? "")}|${normalizeSearch(item.formaFarmaceutica ?? "")}`;
+    const available = item.cantidadDisponible ?? item.cantidadPlanificada;
+    const current = groups.get(groupKey);
+    groups.set(groupKey, current ? { ...current, cantidadDisponible: (current.cantidadDisponible ?? 0) + available } : { ...item, cantidadDisponible: available });
+    return groups;
+  }, new Map<string, ViajeInventarioItem>()).values());
 
   const normalizedSearch = normalizeSearch(search);
   const filtered = normalizedSearch

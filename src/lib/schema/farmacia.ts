@@ -8,6 +8,20 @@ export const inventarioCategorias = [
 ] as const;
 
 export const inventarioFuentes = ["agemed", "manual"] as const;
+export const inventarioCondiciones = [
+  "disponible",
+  "cuarentena",
+  "danado",
+  "vencido",
+] as const;
+export const inventarioMovimientoTipos = [
+  "entrada",
+  "dispensacion",
+  "entrega_insumo",
+  "ajuste",
+  "devolucion",
+  "merma",
+] as const;
 
 export type Receta = {
   id: string;
@@ -26,6 +40,8 @@ export type Receta = {
   updatedBy?: string;
   viajeId?: string;
 };
+
+export type RecetaEstado = "pendiente" | "parcial" | "entregada";
 
 export type RecetaMedicamento = {
   cantidad?: number;
@@ -52,10 +68,14 @@ export type MedicamentoCatalogo = {
   createdBy?: string;
   formaFarmaceutica?: string;
   fuente: (typeof inventarioFuentes)[number];
+  fuenteActualizadaAt?: string;
+  importacionId?: string;
+  manualMotivo?: string;
   laboratorio?: string;
   nombreComercial?: string;
   principioActivo: string;
   registroSanitario?: string;
+  registroVigente?: boolean;
   titularRegistro?: string;
   updatedAt: string;
   updatedBy?: string;
@@ -67,10 +87,13 @@ export type ViajeInventarioItem = {
   type: "viajeInventarioItem";
   atcCode?: string;
   cantidadDisponible?: number;
+  cantidadInicial?: number;
+  cantidadMinima?: number;
   cantidadPlanificada: number;
   catalogoId?: string;
   categoria: (typeof inventarioCategorias)[number];
   concentracion?: string;
+  condicion?: (typeof inventarioCondiciones)[number];
   createdAt: string;
   createdBy?: string;
   fechaVencimiento?: string;
@@ -78,6 +101,7 @@ export type ViajeInventarioItem = {
   fuente?: (typeof inventarioFuentes)[number];
   laboratorio?: string;
   lote?: string;
+  manualMotivo?: string;
   nombre: string;
   nombreComercial?: string;
   observaciones?: string;
@@ -89,6 +113,48 @@ export type ViajeInventarioItem = {
   updatedBy?: string;
   viaAdministracion?: string;
   viajeId: string;
+};
+
+export type InventarioMovimiento = {
+  id: string;
+  type: "inventarioMovimiento";
+  cantidad: number;
+  createdAt: string;
+  createdBy: string;
+  inventarioItemId: string;
+  motivo: string;
+  recetaId?: string;
+  recetaMedicamentoIndex?: number;
+  tipo: (typeof inventarioMovimientoTipos)[number];
+  viajeId: string;
+};
+
+export type DispensacionRecetaLinea = {
+  cantidad: number;
+  inventarioItemId: string;
+  recetaMedicamentoIndex: number;
+};
+
+export type DispensacionReceta = {
+  id: string;
+  type: "dispensacionReceta";
+  createdAt: string;
+  createdBy: string;
+  lineas: DispensacionRecetaLinea[];
+  recetaId: string;
+  viajeId: string;
+};
+
+export type ImportacionCatalogo = {
+  id: string;
+  type: "importacionCatalogo";
+  createdAt: string;
+  errores: string[];
+  estado: "completada" | "fallida";
+  fuenteUrl: string;
+  importados: number;
+  omitidos: number;
+  updatedAt: string;
 };
 
 export type InsumoEntrega = {
@@ -107,20 +173,24 @@ export type InsumoEntrega = {
 export const CreateViajeInventarioItemSchema = z
   .object({
     atcCode: z.string().trim().optional(),
-    cantidadDisponible: z.coerce.number().min(0).optional(),
+    cantidadDisponible: z.coerce.number().int("La existencia debe ser entera").nonnegative().optional(),
+    cantidadMinima: z.coerce.number().int().nonnegative().default(0),
     cantidadPlanificada: z.preprocess(
       (value) => value === "" ? Number.NaN : value,
       z.coerce.number().int("La cantidad debe ser entera").nonnegative("La cantidad no puede ser negativa"),
     ),
+    catalogoId: z.string().trim().optional(),
     categoria: z.enum(inventarioCategorias),
     concentracion: z.string().trim().optional(),
-    fechaVencimiento: z.string().trim().optional(),
+    condicion: z.enum(inventarioCondiciones).default("disponible"),
+    fechaVencimiento: z.string().trim().refine((value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Indica una fecha de vencimiento valida.").optional(),
     formaFarmaceutica: z.string().trim().optional(),
     fuente: z.enum(inventarioFuentes).optional(),
     laboratorio: z.string().trim().optional(),
     lote: z.string().trim().optional(),
     nombre: z.string().trim().min(1, "Indica el nombre del item."),
     nombreComercial: z.string().trim().optional(),
+    manualMotivo: z.string().trim().max(500).optional(),
     observaciones: z.string().trim().optional(),
     principioActivo: z.string().trim().optional(),
     registroSanitario: z.string().trim().optional(),
@@ -156,10 +226,21 @@ export const CreateViajeInventarioItemSchema = z
         path: ["formaFarmaceutica"],
       });
     }
+
+    if (item.fuente === "manual" && !item.manualMotivo) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Explica por que el medicamento no esta en el catalogo AGEMED.",
+        path: ["manualMotivo"],
+      });
+    }
+    if (item.fuente === "agemed" && !item.catalogoId) {
+      ctx.addIssue({ code: "custom", message: "Selecciona un medicamento del catalogo AGEMED.", path: ["catalogoId"] });
+    }
   });
 
 export const CreateRecetaMedicamentoSchema = z.object({
-  cantidad: z.coerce.number().min(0).optional(),
+  cantidad: z.coerce.number().int().positive().optional(),
   catalogoId: z.string().trim().optional(),
   concentracion: z.string().trim().optional(),
   dosis: z.string().trim().min(1, "Indica la dosis."),
@@ -172,6 +253,21 @@ export const CreateRecetaMedicamentoSchema = z.object({
   principioActivo: z.string().trim().optional(),
   unidad: z.string().trim().optional(),
   viaAdministracion: z.string().trim().optional(),
+});
+
+export const DispensarRecetaSchema = z.object({
+  lineas: z.array(z.object({
+    cantidad: z.coerce.number().int().positive("La cantidad debe ser mayor que cero."),
+    inventarioItemId: z.string().trim().min(1),
+    recetaMedicamentoIndex: z.coerce.number().int().nonnegative(),
+  })).min(1, "Selecciona al menos un medicamento para entregar."),
+});
+
+export const AjustarInventarioSchema = z.object({
+  cantidadObjetivo: z.coerce.number().int().nonnegative(),
+  condicion: z.enum(inventarioCondiciones),
+  motivo: z.string().trim().min(3, "Indica el motivo del ajuste."),
+  tipo: z.enum(["entrada", "ajuste", "devolucion", "merma"]),
 });
 
 export const CreateRecetaSchema = z.object({

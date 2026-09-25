@@ -35,6 +35,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 type NavItem = {
@@ -69,19 +70,20 @@ function isNavItemActive(pathname: string, href: string) {
 }
 
 type FarmaciaSidebarProps = {
-  tripActive: boolean;
+  accessPhase: "sin_acceso" | "planeacion" | "activo" | "conciliacion" | "cerrado";
 };
 
-export function FarmaciaSidebar({ tripActive }: FarmaciaSidebarProps) {
+export function FarmaciaSidebar({ accessPhase }: FarmaciaSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending } = useHydratedSession();
   const userName = session?.user.name ?? "Usuario";
   const userEmail = session?.user.email ?? "Sin sesion activa";
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
-  const navItems = tripActive ? activeNavItems : planningNavItems;
+  const tripActive = accessPhase === "activo";
+  const navItems = accessPhase === "planeacion" ? planningNavItems : activeNavItems;
 
   function closeMobileSidebar() {
     if (isMobile) {
@@ -99,7 +101,7 @@ export function FarmaciaSidebar({ tripActive }: FarmaciaSidebarProps) {
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-semibold">Farmacia</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {tripActive ? "Viaje activo" : "Planeacion"}
+                  {tripActive ? "Viaje activo" : accessPhase === "planeacion" ? "Planeacion" : "Consulta"}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -109,7 +111,7 @@ export function FarmaciaSidebar({ tripActive }: FarmaciaSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            {tripActive ? "Viaje" : "Preparacion"}
+            {tripActive ? "Viaje" : accessPhase === "planeacion" ? "Preparacion" : "Historial"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

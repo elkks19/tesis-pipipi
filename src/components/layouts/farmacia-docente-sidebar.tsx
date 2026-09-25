@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ActivityIcon,
-  ClipboardListIcon,
   LogOutIcon,
   PackagePlusIcon,
   PillIcon,
@@ -37,6 +36,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 const navItems = [
@@ -75,14 +75,14 @@ function isNavItemActive(pathname: string, href: string, exact?: boolean) {
 }
 
 export function FarmaciaDocenteSidebar({
-  tripActive,
+  accessPhase,
 }: {
-  tripActive: boolean;
+  accessPhase: "sin_acceso" | "planeacion" | "activo" | "conciliacion" | "cerrado";
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending } = useHydratedSession();
   const userName = session?.user.name ?? "Usuario";
   const userEmail = session?.user.email ?? "Sin sesion activa";
   const userImage = session?.user.image ?? undefined;
@@ -90,8 +90,8 @@ export function FarmaciaDocenteSidebar({
 
   const visibleNavItems = navItems.filter(
     (item) =>
-      (item.when === "active" && tripActive) ||
-      (item.when === "planning" && !tripActive),
+      (item.when === "planning" && accessPhase === "planeacion") ||
+      (item.when === "active" && accessPhase !== "planeacion" && (item.label !== "Ajustes" || accessPhase === "activo" || accessPhase === "conciliacion")),
   );
 
   function closeMobileSidebar() {

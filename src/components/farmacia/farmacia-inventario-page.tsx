@@ -1,6 +1,7 @@
-import { PackageIcon, PillIcon, SyringeIcon } from "lucide-react";
+import { HistoryIcon, PackageIcon, PillIcon, SyringeIcon } from "lucide-react";
 
 import { InsumosEntregados } from "@/components/farmacia/insumos-entregados";
+import { InventarioMovimientosTable } from "@/components/farmacia/inventario-movimientos-table";
 import { RecetasPendientesList } from "@/components/farmacia/recetas-pendientes-list";
 import { ViajeInventarioTable } from "@/components/farmacia/viaje-inventario-table";
 import {
@@ -15,11 +16,13 @@ import {
   canAccessFarmaciaTrip,
   getFarmaciaPlanningTrip,
   listInsumoEntregas,
+  listInventarioMovimientos,
   listViajeInventario,
-  listViajeRecetas,
+  listViajeRecetasPage,
 } from "@/lib/farmacia";
 import {
-  markRecetaEntregadaAction,
+  dispensarRecetaAction,
+  loadRecetasPageAction,
   registrarInsumoEntregaAction,
 } from "@/lib/farmacia-inventario-actions";
 
@@ -46,18 +49,20 @@ export async function FarmaciaInventarioPage({
     );
   }
 
-  const [items, recetas, entregas] = await Promise.all([
+  const [items, recetasPage, entregas, movimientos] = await Promise.all([
     listViajeInventario(planningTrip.viajeId),
-    listViajeRecetas(planningTrip.viajeId),
+    listViajeRecetasPage({ viajeId: planningTrip.viajeId }),
     listInsumoEntregas(planningTrip.viajeId),
+    listInventarioMovimientos(planningTrip.viajeId),
   ]);
 
   const canAccess = userId
     ? await canAccessFarmaciaTrip({ userId, viajeId: planningTrip.viajeId })
     : false;
 
-  const boundMarkAction = markRecetaEntregadaAction.bind(
+  const boundDispenseAction = dispensarRecetaAction.bind(
     null,
+    mode,
     planningTrip.viajeId,
   );
 
@@ -65,18 +70,23 @@ export async function FarmaciaInventarioPage({
     null,
     planningTrip.viajeId,
   );
+  const boundLoadRecetasAction = loadRecetasPageAction.bind(
+    null,
+    mode,
+    planningTrip.viajeId,
+  );
 
-  const pendingCount = recetas.filter((r) => !r.entregada).length;
   const insumos = items.filter((i) => i.categoria !== "medicamento");
+  const canOperate = canAccess && planningTrip.accessPhase === "activo";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 max-w-full flex-col gap-4 overflow-x-hidden">
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl font-semibold">
           Inventario del viaje
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Recetas, insumos entregados y stock disponible.
+          {planningTrip.accessPhase === "cerrado" ? "Viaje cerrado: consulta de recetas, movimientos y existencias finales." : planningTrip.accessPhase === "conciliacion" ? "Conciliacion posterior al viaje y revision de existencias." : "Recetas, insumos entregados y stock disponible."}
         </p>
       </div>
 
@@ -84,7 +94,7 @@ export async function FarmaciaInventarioPage({
         <TabsList>
           <TabsTrigger value="recetas">
             <PillIcon className="size-3.5" />
-            Recetas{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            Recetas
           </TabsTrigger>
           <TabsTrigger value="insumos">
             <SyringeIcon className="size-3.5" />
@@ -94,19 +104,27 @@ export async function FarmaciaInventarioPage({
             <PackageIcon className="size-3.5" />
             Stock ({items.length})
           </TabsTrigger>
+          <TabsTrigger value="movimientos">
+            <HistoryIcon className="size-3.5" />
+            Movimientos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="recetas" className="mt-4">
           <RecetasPendientesList
-            canDeliver={canAccess}
+            canDeliver={canOperate}
             canEdit={mode === "docente"}
-            markAction={boundMarkAction}
-            recetas={recetas}
+            dispenseAction={boundDispenseAction}
+            inventory={items.filter((item) => item.categoria === "medicamento")}
+            initialPage={recetasPage}
+            key={recetasPage.rows.map((receta) => `${receta.id}:${receta.estado}:${receta.cantidadesEntregadas.join("-")}`).join("|")}
+            loadPageAction={boundLoadRecetasAction}
           />
         </TabsContent>
 
         <TabsContent value="insumos" className="mt-4">
           <InsumosEntregados
+            canRegister={canOperate}
             entregas={entregas}
             insumos={insumos}
             registrarAction={boundInsumoAction}
@@ -118,6 +136,10 @@ export async function FarmaciaInventarioPage({
             emptyMessage="No hay items en el inventario del viaje."
             items={items}
           />
+        </TabsContent>
+
+        <TabsContent value="movimientos" className="mt-4">
+          <InventarioMovimientosTable items={items} movements={movimientos} />
         </TabsContent>
       </Tabs>
     </div>

@@ -873,6 +873,10 @@ async function renderHistoriaReport({ historia, paciente, requestedBy }) {
   return result.content;
 }
 
+// Comparte proceso y Redis con reportes, manteniendo las colas independientes.
+const { startCatalogWorker } = await import("./catalogo-agemed-worker.mjs");
+const catalogWorker = await startCatalogWorker();
+
 const worker = new Worker(
   queueName,
   async (job) => {
@@ -1012,17 +1016,16 @@ worker.on("error", (error) => {
   logError("worker error", error);
 });
 
-process.on("SIGINT", async () => {
-  log("SIGINT received, closing worker");
-  await worker.close();
+let closing = false;
+async function shutdown(signal) {
+  if (closing) return;
+  closing = true;
+  log(`${signal} received, closing workers`);
+  await Promise.all([worker.close(), catalogWorker.close()]);
   process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-  log("SIGTERM received, closing worker");
-  await worker.close();
-  process.exit(0);
-});
+}
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 log("worker boot", {
   carboneUrl: getCarboneUrl() ?? "default",

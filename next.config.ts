@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Evita reutilizar resultados obsoletos de PostCSS entre sesiones de desarrollo.
+    turbopackFileSystemCacheForDev: false,
+  },
   /* config options here */
   // output: "standalone",
   allowedDevOrigins: [

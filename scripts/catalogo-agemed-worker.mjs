@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 import { Queue, Worker } from "bullmq";
 import ExcelJS from "exceljs";
@@ -14,7 +15,6 @@ const queueName = "catalogo-medicamentos";
 const jobName = "actualizarCatalogoAgemed";
 const sourcePage = process.env.AGEMED_CATALOG_URL ?? "https://apiwww.agemed.gob.bo/api/listautcom";
 const connection = { url: process.env.REDIS_URL ?? "redis://localhost:6379" };
-const database = new PouchDB(process.env.COUCHDB_URL ?? "http://admin:password@localhost:5984/tesis");
 
 function text(value) {
   const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
@@ -70,7 +70,7 @@ function parseCsv(content) {
   return rows;
 }
 
-async function parseWorkbook(buffer) {
+export async function parseWorkbook(buffer) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
   const sheet = workbook.worksheets[0];
@@ -96,11 +96,11 @@ async function downloadSource() {
   return { buffer: Buffer.from(await fileResponse.arrayBuffer()), contentType: fileResponse.headers.get("content-type") ?? "", url: links[0] };
 }
 
-async function importCatalog() {
+export async function importCatalog(database, loadSource = downloadSource) {
   const startedAt = new Date().toISOString();
   const importId = `importacionCatalogo:${startedAt}:${randomUUID()}`;
   try {
-    const source = await downloadSource();
+    const source = await loadSource();
     const isXlsx = source.url.toLowerCase().includes(".xlsx") || source.contentType.includes("spreadsheetml");
     const isCsv = source.url.toLowerCase().includes(".csv") || source.contentType.includes("csv");
     if (!isXlsx && !isCsv) throw new Error(`Formato no soportado: ${source.contentType || source.url}`);
@@ -137,39 +137,81 @@ async function importCatalog() {
       const existing = existingById.get(id);
       return { ...item, _id: id, ...(existing?._rev ? { _rev: existing._rev } : {}), createdAt: existing?.createdAt ?? startedAt, createdBy: existing?.createdBy, fuente: "agemed", fuenteActualizadaAt: startedAt, id, importacionId: importId, registroVigente: true, type: "medicamentoCatalogo", updatedAt: startedAt, updatedBy: "system:agemed" };
     });
-    const previous = await database.allDocs({ include_docs: true, startkey: "medicamentoCatalogo:agemed:", endkey: "medicamentoCatalogo:agemed:\ufff0" });
-    for (const row of previous.rows) {
-      if (row.doc && !importedIds.has(row.id) && row.doc.registroVigente !== false) {
-        docs.push({ ...row.doc, fuenteActualizadaAt: startedAt, importacionId: importId, registroVigente: false, updatedAt: startedAt, updatedBy: "system:agemed" });
-      }
-    }
+    // No retirar registros anteriores si la carga nueva tuvo errores.
     const results = [];
     for (const batch of chunks(docs)) results.push(...await database.bulkDocs(batch));
-    const errors = results.filter((result) => "error" in result).map((result) => `${result.id}: ${result.message ?? result.error}`);
-    await database.put({ _id: importId, createdAt: startedAt, errores: errors.slice(0, 100), estado: errors.length === docs.length ? "fallida" : "completada", fuenteUrl: source.url, id: importId, importados: docs.length - errors.length, omitidos: rows.length - headerIndex - 1 - parsed.length, type: "importacionCatalogo", updatedAt: new Date().toISOString() });
-    if (errors.length === docs.length) throw new Error("Ningun medicamento pudo importarse.");
-    return { errors: errors.length, imported: docs.length - errors.length };
+    const errors = results.filter((result) => "error" in result);
+    if (errors.length) throw new Error(`Fallaron ${errors.length} medicamentos; se reintentara la importacion.`);
+    const omitted = rows.length - headerIndex - 1 - parsed.length;
+    const retired = [];
+    const previous = await database.allDocs({ include_docs: true, startkey: "medicamentoCatalogo:agemed:", endkey: "medicamentoCatalogo:agemed:\ufff0" });
+    for (const row of previous.rows) {
+      if (omitted === 0 && row.doc && !importedIds.has(row.id) && row.doc.registroVigente !== false) {
+        retired.push({ ...row.doc, fuenteActualizadaAt: startedAt, importacionId: importId, registroVigente: false, updatedAt: startedAt, updatedBy: "system:agemed" });
+      }
+    }
+    for (const batch of chunks(retired)) {
+      const results = await database.bulkDocs(batch);
+      if (results.some((result) => "error" in result)) throw new Error("No se pudo actualizar la vigencia del catalogo completo.");
+    }
+    await database.put({ _id: importId, createdAt: startedAt, errores: [], estado: "completada", fuenteUrl: source.url, id: importId, importados: candidates.length, omitidos: omitted, type: "importacionCatalogo", updatedAt: new Date().toISOString() });
+    return { imported: candidates.length, omitted, retired: retired.length };
   } catch (error) {
     await database.put({ _id: importId, createdAt: startedAt, errores: [error instanceof Error ? error.message : String(error)], estado: "fallida", fuenteUrl: sourcePage, id: importId, importados: 0, omitidos: 0, type: "importacionCatalogo", updatedAt: new Date().toISOString() });
     throw error;
   }
 }
 
-const queue = new Queue(queueName, { connection });
-await queue.upsertJobScheduler("agemed-diario", { pattern: process.env.AGEMED_CATALOG_CRON ?? "0 3 * * *", tz: "America/La_Paz" }, { name: jobName, data: {} });
+export async function startCatalogWorker() {
+  if (!process.env.COUCHDB_URL) throw new Error("COUCHDB_URL debe estar configurado.");
+  const database = new PouchDB(process.env.COUCHDB_URL);
+  const queue = new Queue(queueName, { connection });
+  const options = {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 60_000 },
+    removeOnComplete: { count: 30 },
+    removeOnFail: { count: 100 },
+  };
+  const pattern = process.env.AGEMED_CATALOG_CRON ?? "0 3 * * *";
+  await queue.setGlobalConcurrency(1);
+  await queue.upsertJobScheduler("agemed-diario", { pattern, tz: "America/La_Paz" }, { name: jobName, data: {}, opts: options });
+  // ID fijo evita encolar varias cargas iniciales si arrancan varias instancias.
+  await queue.add(jobName, {}, { ...options, jobId: "agemed-inicial", removeOnComplete: true, removeOnFail: true });
 
-const worker = new Worker(queueName, async (job) => {
-  if (job.name !== jobName) throw new Error(`Job no soportado: ${job.name}`);
-  return importCatalog();
-}, { connection, concurrency: 1 });
+  const worker = new Worker(queueName, async (job) => {
+    if (job.name !== jobName) throw new Error(`Job no soportado: ${job.name}`);
+    return importCatalog(database);
+  }, { connection, concurrency: 1 });
 
-worker.on("completed", (job, result) => console.log(`[catalogo-agemed] ${job.id} completado`, result));
-worker.on("failed", (job, error) => console.error(`[catalogo-agemed] ${job?.id ?? "desconocido"} fallo`, error));
+  console.log(`[catalogo-agemed] Carga inicial encolada; cron ${pattern} (America/La_Paz).`);
+  worker.on("completed", (job, result) => console.log(`[catalogo-agemed] ${job.id} completado`, result));
+  worker.on("failed", (job, error) => console.error(`[catalogo-agemed] ${job?.id ?? "desconocido"} fallo`, error.message));
+  worker.on("error", (error) => console.error("[catalogo-agemed] Worker", error.message));
+  queue.on("error", (error) => console.error("[catalogo-agemed] Cola", error.message));
 
-async function shutdown() {
-  await worker.close();
-  await queue.close();
-  await database.close();
+  let closing = false;
+  async function shutdown() {
+    if (closing) return;
+    closing = true;
+    await worker.close();
+    await queue.close();
+    await database.close();
+  }
+  return { worker, close: shutdown };
 }
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (process.argv.includes("--once")) {
+    if (!process.env.COUCHDB_URL) throw new Error("COUCHDB_URL debe estar configurado.");
+    const database = new PouchDB(process.env.COUCHDB_URL);
+    try {
+      console.log("[catalogo-agemed] Importacion completada", await importCatalog(database));
+    } finally {
+      await database.close();
+    }
+  } else {
+    const catalog = await startCatalogWorker();
+    process.on("SIGINT", catalog.close);
+    process.on("SIGTERM", catalog.close);
+  }
+}

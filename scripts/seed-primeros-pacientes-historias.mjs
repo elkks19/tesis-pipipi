@@ -226,6 +226,7 @@ function patientName(patient) {
 }
 
 loadEnvFile(path.join(process.cwd(), ".env"));
+if (process.env.SYNC_ENABLED === "true") throw new Error("No se permiten semillas con sincronización activa.");
 
 if (!process.env.COUCHDB_URL) {
   throw new Error("COUCHDB_URL debe estar configurado.");

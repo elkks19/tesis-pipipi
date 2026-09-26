@@ -719,11 +719,20 @@ export async function updateRecetaMedicamentos({
 
 export async function updateViajeInventarioItem({
   itemId,
+  viajeId,
+  expectedUpdatedAt,
   updates,
   userId,
 }: {
   itemId: string;
+  viajeId: string;
+  expectedUpdatedAt?: string;
   updates: {
+    cantidadPlanificada?: number;
+    cantidadMinima?: number;
+    unidad?: string;
+    lote?: string;
+    fechaVencimiento?: string;
     cantidadDisponible?: number;
     condicion?: ViajeInventarioItem["condicion"];
     motivo?: string;
@@ -735,13 +744,16 @@ export async function updateViajeInventarioItem({
 }) {
   const doc = await db.get(itemId).catch(() => null);
 
-  if (!isInventarioItem(doc)) {
+  if (!isInventarioItem(doc) || doc.viajeId !== viajeId) {
     throw new Error("Item de inventario no encontrado.");
   }
 
+  if (expectedUpdatedAt && expectedUpdatedAt !== doc.updatedAt) throw new Error("El producto cambió. Recarga antes de editar.");
   const now = new Date().toISOString();
   const previousQuantity = doc.cantidadDisponible ?? doc.cantidadInicial ?? doc.cantidadPlanificada;
   const nextQuantity = updates.cantidadDisponible ?? previousQuantity;
+  if ((updates.tipo === "entrada" || updates.tipo === "devolucion") && nextQuantity < previousQuantity) throw new Error("Una entrada no puede reducir la existencia.");
+  if (updates.tipo === "merma" && nextQuantity > previousQuantity) throw new Error("Una merma no puede aumentar la existencia.");
   const quantityDelta = nextQuantity - previousQuantity;
   const updatedDocument = {
     ...doc,
@@ -754,6 +766,11 @@ export async function updateViajeInventarioItem({
     ...(updates.observaciones !== undefined && {
       observaciones: updates.observaciones || undefined,
     }),
+    ...(updates.cantidadPlanificada !== undefined && { cantidadPlanificada: updates.cantidadPlanificada }),
+    ...(updates.cantidadMinima !== undefined && { cantidadMinima: updates.cantidadMinima }),
+    ...(updates.unidad !== undefined && { unidad: updates.unidad }),
+    ...(updates.lote !== undefined && { lote: updates.lote }),
+    ...(updates.fechaVencimiento !== undefined && { fechaVencimiento: updates.fechaVencimiento }),
     updatedAt: now,
     updatedBy: userId,
   };
@@ -762,7 +779,7 @@ export async function updateViajeInventarioItem({
     const baselineId = `inventarioMovimiento:${doc.viajeId}:${randomUUID()}`;
     documents.push({ _id: baselineId, cantidad: previousQuantity, createdAt: now, createdBy: userId, id: baselineId, inventarioItemId: doc._id, motivo: "Saldo inicial migrado", tipo: "entrada", type: "inventarioMovimiento", viajeId: doc.viajeId });
   }
-  if (quantityDelta !== 0 || (updates.condicion && updates.condicion !== doc.condicion)) {
+  if (updates.cantidadPlanificada !== undefined || quantityDelta !== 0 || (updates.condicion && updates.condicion !== doc.condicion)) {
     const movementId = `inventarioMovimiento:${doc.viajeId}:${randomUUID()}`;
     documents.push({ _id: movementId, cantidad: quantityDelta, createdAt: now, createdBy: userId, id: movementId, inventarioItemId: doc._id, motivo: updates.motivo?.trim() || "Ajuste de inventario", tipo: updates.tipo ?? "ajuste", type: "inventarioMovimiento", viajeId: doc.viajeId });
   }

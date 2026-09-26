@@ -100,11 +100,11 @@ export async function addViajeInventarioItem(
     };
   }
 
-  const canAccess = await authorizeFarmaciaAction({ mode, permission: "plan", userId, viajeId });
+  const canAccess = await authorizeFarmaciaAction({ mode, permission: "receive", userId, viajeId });
 
   if (!canAccess) {
     return {
-      message: "No puedes modificar inventario de un viaje fuera de Farmacia.",
+      message: "Solo puedes registrar entradas antes del viaje; durante el viaje corresponde al docente.",
       ok: false,
     };
   }
@@ -127,8 +127,8 @@ export async function addViajeInventarioItem(
     viajeId,
   });
 
-  revalidatePath("/estudiante/farmacia/planeacion");
-  revalidatePath("/docente/farmacia/planeacion");
+  revalidatePath("/estudiante/farmacia", "layout");
+  revalidatePath("/docente/farmacia", "layout");
 
   return {
     message: "Item agregado al inventario del viaje.",

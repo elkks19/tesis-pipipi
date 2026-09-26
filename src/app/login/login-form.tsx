@@ -20,6 +20,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useRaspberryEnvironment } from "@/components/auth/environment-context";
 import { authClient } from "@/lib/auth-client";
 import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
@@ -41,6 +42,7 @@ export function LoginForm() {
     () => true,
     () => false,
   );
+  const raspberry = useRaspberryEnvironment();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -193,6 +195,7 @@ export function LoginForm() {
             </Button>
           </form>
 
+          {raspberry ? <p className="mt-4 text-sm text-muted-foreground">Usa tu contraseña sincronizada. Las cuentas y contraseñas se administran en la nube.</p> : <>
           <FieldSeparator className="my-6">O</FieldSeparator>
 
           <Button
@@ -215,6 +218,7 @@ export function LoginForm() {
               Crea una
             </Link>
           </p>
+          </>}
         </CardContent>
       </Card>
     </main>

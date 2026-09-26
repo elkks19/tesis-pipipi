@@ -17,6 +17,7 @@ function isAuthRole(value: string): value is AuthRole {
 }
 
 export async function updateUserRole(userId: string, role: AuthRole) {
+  if (process.env.APP_ENVIRONMENT === "raspberry") throw new Error("Administra las cuentas desde la nube.");
   const requestHeaders = await headers();
   const canSetRole = await hasAuthPermission({
     headers: requestHeaders,
@@ -68,6 +69,7 @@ export async function updateUserRole(userId: string, role: AuthRole) {
 }
 
 export async function inviteUser(formData: FormData) {
+  if (process.env.APP_ENVIRONMENT === "raspberry") throw new Error("Administra las cuentas desde la nube.");
   const requestHeaders = await headers();
   const canCreateUser = await hasAuthPermission({
     headers: requestHeaders,

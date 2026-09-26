@@ -1,5 +1,6 @@
 "use server";
 
+import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 import { getAuthenticatedUserId } from "@/lib/auth-session";
@@ -11,7 +12,7 @@ import {
 import { AjustarInventarioSchema } from "@/lib/schema/farmacia";
 
 export async function updateInventarioItemAction(
-  mode: "docente",
+  mode: "docente" | "estudiante",
   viajeId: string,
   itemId: string,
   formData: FormData,
@@ -22,7 +23,8 @@ export async function updateInventarioItemAction(
     return { ok: false, message: "Debes iniciar sesion." };
   }
 
-  const canAccess = await authorizeFarmaciaAction({ mode, permission: "adjust", userId, viajeId });
+  const movementType = formData.get("tipo");
+  const canAccess = await authorizeFarmaciaAction({ mode, permission: movementType === "entrada" ? "receive" : "adjust", userId, viajeId });
 
   if (!canAccess) {
     return { ok: false, message: "No tienes acceso a este viaje." };
@@ -44,17 +46,17 @@ export async function updateInventarioItemAction(
 
   const parsed = AjustarInventarioSchema.safeParse({ cantidadObjetivo: cantidadRaw, condicion, motivo, tipo });
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Revisa el ajuste." };
-  const currentQuantity = Number(formData.get("cantidadActual"));
-  if (["entrada", "devolucion"].includes(parsed.data.tipo) && parsed.data.cantidadObjetivo < currentQuantity) return { ok: false, message: "Una entrada o devolucion no puede reducir la existencia." };
-  if (parsed.data.tipo === "merma" && parsed.data.cantidadObjetivo > currentQuantity) return { ok: false, message: "Una merma no puede aumentar la existencia." };
+  const expectedUpdatedAt = formData.get("updatedAt");
+  if (typeof expectedUpdatedAt !== "string" || !expectedUpdatedAt) return { ok: false, message: "Recarga el inventario antes de guardar." };
   updates.cantidadDisponible = parsed.data.cantidadObjetivo;
   updates.condicion = parsed.data.condicion;
   updates.motivo = parsed.data.motivo;
   updates.tipo = parsed.data.tipo;
 
   try {
-    await updateViajeInventarioItem({ itemId, updates, userId });
-    revalidatePath("/docente/farmacia/ajustes");
+    await updateViajeInventarioItem({ itemId, viajeId, expectedUpdatedAt, updates, userId });
+    revalidatePath("/docente/farmacia", "layout");
+    revalidatePath("/estudiante/farmacia", "layout");
     revalidatePath("/docente/farmacia/inventario");
     revalidatePath("/estudiante/farmacia/inventario");
     return { ok: true, message: "Item actualizado." };
@@ -84,8 +86,11 @@ export async function deleteInventarioItemAction(
   }
 
   try {
+    const item = await db.get(itemId);
+    if (item.type !== "viajeInventarioItem" || item.viajeId !== viajeId) return { ok: false, message: "El producto no pertenece a este viaje." };
     await deleteViajeInventarioItem({ itemId, userId });
-    revalidatePath("/docente/farmacia/ajustes");
+    revalidatePath("/docente/farmacia", "layout");
+    revalidatePath("/estudiante/farmacia", "layout");
     revalidatePath("/docente/farmacia/inventario");
     revalidatePath("/estudiante/farmacia/inventario");
     return { ok: true, message: "Item eliminado." };

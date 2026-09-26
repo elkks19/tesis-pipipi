@@ -188,6 +188,7 @@ function loadEnvFile(filePath) {
 }
 
 loadEnvFile(path.join(process.cwd(), ".env"));
+if (process.env.SYNC_ENABLED === "true") throw new Error("No se permiten semillas con sincronización activa.");
 
 const databasePath = process.env.BETTER_AUTH_SQLITE_PATH ?? "auth.sqlite";
 const database = new Database(databasePath);

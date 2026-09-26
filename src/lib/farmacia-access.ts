@@ -2,7 +2,7 @@ import type { Viaje } from "@/lib/schema";
 
 export type FarmaciaAccessMode = "docente" | "estudiante";
 export type FarmaciaAccessPhase = "sin_acceso" | "planeacion" | "activo" | "conciliacion" | "cerrado";
-export type FarmaciaPermission = "read" | "plan" | "operate" | "adjust";
+export type FarmaciaPermission = "read" | "plan" | "operate" | "adjust" | "receive";
 
 function laPazDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", { day: "2-digit", month: "2-digit", timeZone: "America/La_Paz", year: "numeric" }).formatToParts(date);
@@ -28,7 +28,8 @@ export function getFarmaciaAccessPhase(viaje: Pick<Viaje, "fechaEntrada" | "fech
 export function canPerformFarmaciaAction({ mode, permission, phase }: { mode: FarmaciaAccessMode; permission: FarmaciaPermission; phase: FarmaciaAccessPhase }) {
   if (phase === "sin_acceso") return false;
   if (permission === "read") return true;
-  if (permission === "plan") return phase === "planeacion" || phase === "activo";
+  if (permission === "plan") return phase === "planeacion";
+  if (permission === "receive") return phase === "planeacion" || (mode === "docente" && phase === "activo");
   if (permission === "operate") return phase === "activo";
   return mode === "docente" && (phase === "activo" || phase === "conciliacion");
 }

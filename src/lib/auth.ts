@@ -1,3 +1,4 @@
+import { createAuthMiddleware, APIError } from "better-auth/api";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
@@ -21,13 +22,20 @@ const trustedOrigins = [
 	.map((origin) => origin?.trim())
 	.filter((origin): origin is string => Boolean(origin));
 
+const raspberry = process.env.APP_ENVIRONMENT === "raspberry";
 export const auth = betterAuth({
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      const allowed = ["/sign-in/email", "/sign-out", "/get-session", "/list-sessions", "/revoke-session", "/revoke-sessions", "/revoke-other-sessions", "/list-accounts", "/account-info", "/ok", "/error"];
+      if (raspberry && !allowed.includes(ctx.path)) throw new APIError("FORBIDDEN", { message: "Las cuentas se administran en la nube. En la Raspberry usa tu contraseña sincronizada." });
+    }),
+  },
 	trustedOrigins,
 	database: new Database(databasePath),
 	emailAndPassword: {
 		enabled: true,
 	},
-	socialProviders: {
+	socialProviders: raspberry ? {} : {
 		google: {
 			clientId: process.env.GOOGLE_CLIENT_ID as string,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,

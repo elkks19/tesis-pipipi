@@ -12,5 +12,5 @@ export default async function DocenteFarmaciaPage() {
   const userId = await getAuthenticatedUserId();
   const trip = await getFarmaciaPlanningTrip({ mode: "docente", userId });
 
-  redirect(trip?.accessPhase === "planeacion" ? "/docente/farmacia/planeacion" : "/docente/farmacia/inventario");
+  redirect(trip?.accessPhase === "planeacion" ? "/docente/farmacia/planeacion" : "/docente/farmacia/recetas");
 }

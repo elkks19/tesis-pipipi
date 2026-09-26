@@ -7,6 +7,7 @@ import {
   BriefcaseMedicalIcon,
   LogOutIcon,
   ShieldIcon,
+  RefreshCwIcon,
   UsersRoundIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
 const navItems = [
+  { href: "/admin/sincronizacion", icon: RefreshCwIcon, label: "Sincronización" },
   {
     href: "/admin",
     icon: ShieldIcon,

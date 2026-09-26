@@ -4,7 +4,6 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2Icon, PackagePlusIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { ViajeInventarioTable } from "@/components/farmacia/viaje-inventario-table";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +24,8 @@ import {
 } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { SimpleCombobox } from "@/components/ui/simple-combobox";
+import { CatalogoCombobox } from "@/components/farmacia/catalogo-combobox";
+import type { CatalogoOption } from "@/lib/farmacia-catalogo-search";
 import {
   Select,
   SelectContent,
@@ -35,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AddInventarioItemActionState } from "@/lib/farmacia-actions";
-import type { MedicamentoCatalogo, ViajeInventarioItem } from "@/lib/schema";
 import { CreateViajeInventarioItemSchema } from "@/lib/schema/farmacia";
 
 type FarmaciaPlaneacionFormProps = {
@@ -43,8 +42,7 @@ type FarmaciaPlaneacionFormProps = {
     state: AddInventarioItemActionState,
     formData: FormData,
   ) => Promise<AddInventarioItemActionState>;
-  catalogo: MedicamentoCatalogo[];
-  items: ViajeInventarioItem[];
+  mode: "docente" | "estudiante";
 };
 
 const initialState: AddInventarioItemActionState = {
@@ -71,12 +69,12 @@ function getError(
 
 export function FarmaciaPlaneacionForm({
   action,
-  catalogo,
-  items,
+  mode,
 }: FarmaciaPlaneacionFormProps) {
   const [categoria, setCategoria] = useState("medicamento");
   const [fuente, setFuente] = useState<"agemed" | "manual">("agemed");
-  const [catalogoId, setCatalogoId] = useState("");
+  const [selectedCatalog, setSelectedCatalog] = useState<CatalogoOption | null>(null);
+  const catalogoId = selectedCatalog?.id ?? "";
   const [fields, setFields] = useState(emptyFields);
   const formRef = useRef<HTMLFormElement>(null);
   const resetErrorsRef = useRef<() => void>(() => {});
@@ -86,22 +84,23 @@ export function FarmaciaPlaneacionForm({
       formRef.current?.reset();
       setCategoria("medicamento");
       setFuente("agemed");
-      setCatalogoId("");
+      setSelectedCatalog(null);
       setFields(emptyFields);
       resetErrorsRef.current();
     }
     return result;
   }, initialState);
   const isMedication = categoria === "medicamento";
-  const selectedCatalog = catalogo.find((item) => item.id === catalogoId);
 
-  function selectCatalog(value: string) {
-    setCatalogoId(value);
-    const selected = catalogo.find((item) => item.id === value);
-    if (!selected) return;
+  function selectCatalog(selected: CatalogoOption | null) {
+    setSelectedCatalog(selected);
+    if (!selected) {
+      setFields((current) => ({ ...current, catalogoId: "" }));
+      return;
+    }
     setFields((current) => ({
       ...current,
-      catalogoId: value,
+      catalogoId: selected.id,
       concentracion: selected.concentracion ?? "",
       formaFarmaceutica: selected.formaFarmaceutica ?? "",
       nombre: selected.nombreComercial ?? selected.principioActivo,
@@ -141,7 +140,7 @@ export function FarmaciaPlaneacionForm({
   function changeProduct(nextCategory: string, nextSource: "agemed" | "manual") {
     setCategoria(nextCategory);
     setFuente(nextSource);
-    setCatalogoId("");
+    setSelectedCatalog(null);
     setFields((current) => ({
       ...current,
       categoria: nextCategory,
@@ -237,16 +236,12 @@ export function FarmaciaPlaneacionForm({
                   <FieldGroup className="gap-4">
                     <Field data-invalid={Boolean(catalogError)}>
                       <FieldLabel htmlFor="catalogoId">Buscar medicamento</FieldLabel>
-                      <SimpleCombobox
-                        id="catalogoId"
+                      <CatalogoCombobox
+                        mode={mode}
                         aria-invalid={Boolean(catalogError)}
                         aria-describedby={catalogError ? "catalogoId-error" : "catalogoId-hint"}
-                        emptyLabel="Sin resultados. Puedes usar el registro manual."
                         onValueChange={selectCatalog}
-                        options={catalogo.filter((item) => item.fuente === "agemed").map((item) => ({ description: [item.nombreComercial, item.concentracion, item.formaFarmaceutica, item.registroSanitario].filter(Boolean).join(" · "), label: item.principioActivo, value: item.id }))}
-                        placeholder="Selecciona un medicamento del catálogo"
-                        searchPlaceholder="Buscar principio activo, marca o concentración"
-                        value={catalogoId}
+                        value={selectedCatalog}
                       />
                       <FieldDescription id="catalogoId-hint">Busca por principio activo, marca o concentración.</FieldDescription>
                       <FieldError id="catalogoId-error">{catalogError}</FieldError>
@@ -328,13 +323,7 @@ export function FarmaciaPlaneacionForm({
           </form>
         </CardContent>
       </Card>
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle>Inventario planificado</CardTitle>
-          <CardDescription>{items.length} {items.length === 1 ? "producto registrado" : "productos registrados"} para el viaje.</CardDescription>
-        </CardHeader>
-        <CardContent><ViajeInventarioTable items={items} /></CardContent>
-      </Card>
+
     </div>
   );
 }

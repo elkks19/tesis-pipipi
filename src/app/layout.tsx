@@ -1,3 +1,4 @@
+import { EnvironmentProvider } from "@/components/auth/environment-context";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import Script from "next/script";
@@ -54,7 +55,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider defaultTheme="system">
-          {children}
+          <EnvironmentProvider raspberry={process.env.APP_ENVIRONMENT === "raspberry"}>{children}</EnvironmentProvider>
           <Toaster richColors />
         </ThemeProvider>
         <Script id="theme-init" strategy="beforeInteractive">

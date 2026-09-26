@@ -80,6 +80,7 @@ function getRedisConnection() {
 }
 
 function hasS3Credentials() {
+  if (process.env.APP_ENVIRONMENT === "raspberry") return false;
   return Boolean(
     process.env.S3_BUCKET &&
       process.env.S3_REGION &&
@@ -358,6 +359,8 @@ async function putHistoriaReportFile({ content, historia, paciente }) {
 }
 
 async function putCouchDocument(doc) {
+  const { assertDocumentWrite } = await import("../src/lib/sync/ownership.mjs");
+  await assertDocumentWrite(doc);
   const { headers, url } = getCouchUrl(encodeURIComponent(doc._id));
   headers.set("Content-Type", "application/json");
 
@@ -875,7 +878,9 @@ async function renderHistoriaReport({ historia, paciente, requestedBy }) {
 
 // Comparte proceso y Redis con reportes, manteniendo las colas independientes.
 const { startCatalogWorker } = await import("./catalogo-agemed-worker.mjs");
-const catalogWorker = await startCatalogWorker();
+const catalogWorker = process.env.APP_ENVIRONMENT === "raspberry" ? { close: async () => {} } : await startCatalogWorker();
+const { startSyncSupervisor } = await import("../src/lib/sync/engine.mjs");
+const syncSupervisor = await startSyncSupervisor();
 
 const worker = new Worker(
   queueName,
@@ -917,6 +922,8 @@ const worker = new Worker(
       throw error;
     }
 
+    const { assertDocumentWrite } = await import("../src/lib/sync/ownership.mjs");
+    await assertDocumentWrite(historia);
     const diagnosticoFingerprint = getDiagnosticoFingerprint(historia.diagnostico);
 
     if (
@@ -1021,7 +1028,7 @@ async function shutdown(signal) {
   if (closing) return;
   closing = true;
   log(`${signal} received, closing workers`);
-  await Promise.all([worker.close(), catalogWorker.close()]);
+  await Promise.all([worker.close(), catalogWorker.close(), syncSupervisor.close()]);
   process.exit(0);
 }
 process.on("SIGINT", () => shutdown("SIGINT"));

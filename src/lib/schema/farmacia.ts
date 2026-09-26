@@ -276,3 +276,14 @@ export const CreateRecetaSchema = z.object({
     .array(CreateRecetaMedicamentoSchema)
     .max(20, "La receta no puede tener mas de 20 medicamentos."),
 });
+
+const planningQuantity = z.preprocess((value) => value === "" ? Number.NaN : value, z.coerce.number().int("Usa una cantidad entera.").nonnegative("No puede ser negativa."));
+export const EditarPlaneacionSchema = z.object({
+  cantidadPlanificada: planningQuantity,
+  cantidadDisponible: planningQuantity,
+  cantidadMinima: planningQuantity,
+  unidad: z.string().trim().min(1, "Indica la unidad.").max(80),
+  lote: z.string().trim().max(120),
+  fechaVencimiento: z.string().refine((value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T12:00:00Z`)) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value, "Indica una fecha válida."),
+  observaciones: z.string().trim().max(1000),
+});

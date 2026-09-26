@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { RegisterForm } from "./register-form";
@@ -25,6 +26,7 @@ function getSafeNextPath(next: string) {
 }
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  if (process.env.APP_ENVIRONMENT === "raspberry") redirect("/login");
   const params = await searchParams;
   const callbackURL = getSafeNextPath(getParam(params.next));
 

@@ -22,10 +22,11 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install node modules
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy application code
@@ -35,7 +36,10 @@ COPY . .
 RUN npx next build --experimental-build-mode compile
 
 # Remove development dependencies
-RUN pnpm prune --prod
+RUN pnpm prune --prod && rm -rf .next/cache
+
+# Fail the build immediately if native SQLite bindings were not installed.
+RUN node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close()"
 
 
 # Final stage for app image
@@ -45,11 +49,13 @@ FROM base
 COPY --from=build /app /app
 
 # Setup sqlite3 on a separate volume
-RUN mkdir -p /data
+ENV BETTER_AUTH_SQLITE_PATH="/data/auth.sqlite" \
+    FILE_STORAGE_ROOT="/data/uploads"
+RUN mkdir -p /data/uploads
 VOLUME /data
 
 # Entrypoint sets up the container.
-ENTRYPOINT [ "/app/docker-entrypoint.js" ]
+ENTRYPOINT [ "node", "/app/docker-entrypoint.js" ]
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000

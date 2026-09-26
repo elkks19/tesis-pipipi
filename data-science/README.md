@@ -134,3 +134,51 @@ O entrando a la carpeta del servicio:
 cd data-science
 uvicorn app.main:app --reload --port 8000
 ```
+
+## Docker (CPU)
+
+Desde la raíz del repositorio, usar **`data-science` como contexto**, no `.`:
+
+```sh
+docker build -t tesis-data-science:local data-science
+```
+
+La imagen incluye Python 3.12, FastAPI y [PyTorch CPU](https://docs.pytorch.org/get-started/locally/), sin bibliotecas CUDA ni el entorno virtual de desarrollo. La instalación restringe las dependencias al build CPU elegido. Solo se copian `app/` y la declaración de dependencias; se excluyen secretos, bases locales y cachés. Las dependencias conservan los rangos de `requirements.txt`: guardar la imagen publicada por etiqueta inmutable/digest para repetir un despliegue exactamente.
+
+Configurar un archivo privado `data-science/.env` con las variables anteriores. Para Docker, usar `DS_STORAGE_DIR=/data/storage` y URL de CouchDB/proveedor accesibles desde el contenedor. `localhost` no apunta al host ni a otro contenedor. Definir un `DS_INTERNAL_TOKEN` aleatorio y el mismo valor como `DATA_SCIENCE_INTERNAL_TOKEN` en Next.
+
+Ejemplo de ejecución en una red compartida con Next (crear la red solo si aún no existe):
+
+```sh
+docker network create tesis
+docker volume create tesis-ds-data
+docker run -d --name tesis-data-science --restart unless-stopped \
+  --network tesis --env-file data-science/.env \
+  -e DS_STORAGE_DIR=/data/storage \
+  -v tesis-ds-data:/data tesis-data-science:local
+```
+
+Conectar también Next a la red `tesis` y configurar `DATA_SCIENCE_API_URL=http://tesis-data-science:8000`. No hace falta publicar el puerto al host para esa comunicación. Para acceso local de diagnóstico, añadir `-p 127.0.0.1:8000:8000`. `/health` comprueba servicios externos y puede crear índices CouchDB; no se usa automáticamente como comprobación de vida del contenedor.
+
+El proceso corre como UID/GID 10001 y utiliza un worker para no duplicar el modelo en memoria. Los volúmenes nombrados nuevos reciben los permisos de la imagen; un bind mount o volumen existente debe permitir escritura a ese usuario. `/data/storage` conserva RAG y `/data/huggingface` la caché de modelos; no compartir este volumen con el volumen SQLite de Next.
+
+El build no descarga el modelo ni contacta CouchDB/Groq. Antes de salir sin internet, descargar el modelo en el mismo volumen con conectividad:
+
+```sh
+docker run --rm --env-file data-science/.env \
+  -e DS_STORAGE_DIR=/data/storage -v tesis-ds-data:/data \
+  tesis-data-science:local python -c \
+  'from app.core.config import get_settings; from app.rag.embeddings import load_embedding_model; load_embedding_model(get_settings().embedding_model)'
+```
+
+Después puede configurarse `HF_HUB_OFFLINE=1` para utilizar solo la caché. Esto no vuelve offline a Groq: para chat sin conexión se necesita Ollama accesible y su modelo descargado por separado. Las operaciones estadísticas no necesitan un LLM.
+
+Para publicar para Raspberry con sistema ARM64, se necesita Buildx con builder ARM64 o emulación:
+
+```sh
+docker login ghcr.io
+docker buildx build --platform linux/arm64 \
+  -t ghcr.io/TU_USUARIO/tesis-data-science:v1 --push data-science
+```
+
+Para soportar ambas arquitecturas, usar `--platform linux/amd64,linux/arm64`. La instalación falla explícitamente si no hay wheels compatibles, sin compilar PyTorch ni descargar CUDA como alternativa. Validar la imagen ARM64 en la Raspberry antes de usarla en campo.

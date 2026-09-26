@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const pageLabels: Record<string, string> = {
+  "/admin/sincronizacion": "Sincronización",
   "/admin": "Dashboard",
   "/admin/ciencia-datos": "Investigacion",
   "/admin/investigacion": "Investigacion",

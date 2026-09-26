@@ -1287,6 +1287,7 @@ async function createPouchDb() {
 }
 
 loadEnvFile(path.join(process.cwd(), ".env"));
+if (process.env.SYNC_ENABLED === "true") throw new Error("No se permiten semillas con sincronización activa.");
 
 const count = Number.parseInt(getArg("count", String(DEFAULT_COUNT)), 10);
 const patientCount = Number.parseInt(

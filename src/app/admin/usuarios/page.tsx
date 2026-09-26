@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default function AdminUsersPage() {
+  if (process.env.APP_ENVIRONMENT === "raspberry") return <div className="flex flex-col gap-2"><h1 className="text-xl font-semibold">Cuentas sincronizadas</h1><p>Administra los usuarios, roles y contraseñas en la nube. Los cambios se reciben al recuperar la conexión.</p></div>;
   const users = listAuthUsersWithAccounts();
 
   return (

@@ -1,92 +1,23 @@
 import Link from "next/link";
-import { CalendarDaysIcon, ClipboardListIcon } from "lucide-react";
-
-import { FarmaciaPlaneacionForm } from "@/components/farmacia/farmacia-planeacion-form";
+import { redirect } from "next/navigation";
+import { PackagePlusIcon } from "lucide-react";
+import { InventarioPlaneacionList } from "@/components/farmacia/inventario-planeacion-list";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
-import { getFarmaciaPlanningTrip, listMedicamentoCatalogo, listViajeInventario } from "@/lib/farmacia";
-import { addViajeInventarioItem } from "@/lib/farmacia-actions";
+import { getFarmaciaPlanningTrip, listViajeInventario } from "@/lib/farmacia";
+import { editarPlaneacionAction } from "@/lib/farmacia-planeacion-actions";
 
-type FarmaciaPlaneacionPageProps = {
-  mode: "docente" | "estudiante";
-};
-
-function formatDate(value: string) {
-  const [year, month, day] = value.split("-");
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}/${month}/${year}`;
-}
-
-export async function FarmaciaPlaneacionPage({
-  mode,
-}: FarmaciaPlaneacionPageProps) {
+export async function FarmaciaPlaneacionPage({ mode }: { mode: "docente" | "estudiante" }) {
   const userId = await getAuthenticatedUserId();
-  const planningTrip = await getFarmaciaPlanningTrip({ mode, userId });
-
-  if (!planningTrip) {
-    return (
-      <Card className="min-h-[calc(100vh-9rem)] justify-center" size="sm">
-        <CardHeader>
-          <CardTitle>No hay viaje de Farmacia activo</CardTitle>
-          <CardDescription>
-            La planeacion aparece cuando estas asignado a Farmacia en un viaje
-            activo o proximo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild variant="outline">
-            <Link href={mode === "docente" ? "/docente" : "/estudiante"}>
-              Volver al inicio
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const [items, catalogo] = await Promise.all([
-    listViajeInventario(planningTrip.viajeId),
-    listMedicamentoCatalogo(),
-  ]);
-  const action = addViajeInventarioItem.bind(null, mode, planningTrip.viajeId);
-
-  return (
-    <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
-      <div className="flex flex-col gap-3 rounded-2xl bg-muted/45 p-4 ring-1 ring-border/60 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="font-heading text-xl font-semibold">
-            Planeación de inventario
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Prepara los medicamentos, insumos y equipos para el viaje.
-          </p>
-        </div>
-        <div className="flex min-w-0 flex-wrap gap-2 text-sm">
-          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
-            <ClipboardListIcon className="size-4" />
-            <span className="truncate">{planningTrip.establecimiento}</span>
-          </div>
-          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-background px-3 py-1.5 ring-1 ring-border/60">
-            <CalendarDaysIcon className="size-4" />
-            <span>
-              {formatDate(planningTrip.fechaEntrada)} - {formatDate(planningTrip.fechaSalida)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <FarmaciaPlaneacionForm action={action} catalogo={catalogo} items={items} />
+  const trip = await getFarmaciaPlanningTrip({ mode, userId });
+  if (!trip || trip.accessPhase !== "planeacion") redirect(`/${mode}/farmacia/inventario`);
+  const items = await listViajeInventario(trip.viajeId);
+  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-2"><Badge variant="secondary">Preparación del viaje</Badge><h1 className="font-heading text-2xl font-semibold">Inventario del viaje</h1><p className="text-sm text-muted-foreground">{trip.establecimiento} · Inicio: {trip.fechaEntrada}</p><p className="max-w-xl text-sm text-muted-foreground">Revisa los productos registrados y edita su preparación. La edición se cierra al comenzar el viaje.</p></div>
+      <Button asChild><Link href={`/${mode}/farmacia/entradas`}><PackagePlusIcon data-icon="inline-start" />Registrar entrada</Link></Button>
     </div>
-  );
+    <InventarioPlaneacionList items={items} editAction={editarPlaneacionAction.bind(null, mode, trip.viajeId)} />
+  </div>;
 }

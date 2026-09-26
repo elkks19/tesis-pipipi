@@ -5,7 +5,6 @@ import { InventarioAjustesTable } from "@/components/farmacia/inventario-ajustes
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import { getFarmaciaPlanningTrip, listViajeInventario } from "@/lib/farmacia";
 import {
-  deleteInventarioItemAction,
   updateInventarioItemAction,
 } from "@/lib/farmacia-ajuste-actions";
 
@@ -31,11 +30,6 @@ export default async function DocenteFarmaciaAjustesPage() {
     "docente",
     trip.viajeId,
   );
-  const boundDeleteAction = deleteInventarioItemAction.bind(
-    null,
-    "docente",
-    trip.viajeId,
-  );
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
@@ -50,7 +44,6 @@ export default async function DocenteFarmaciaAjustesPage() {
       </div>
 
       <InventarioAjustesTable
-        deleteAction={boundDeleteAction}
         items={items}
         updateAction={boundUpdateAction}
       />

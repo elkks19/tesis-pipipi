@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync:bootstrap": "node --use-system-ca scripts/sync-bootstrap.mjs",
+    "test:sync:integration": "node --test tests/integration/sync-couch.test.mjs",
     "dev": "cross-env NODE_OPTIONS=--use-system-ca node --use-system-ca node_modules/next/dist/bin/next dev -p 5173",
     "build": "next build",
-    "start": "croos-env NODE_OPTIONS=--use-system-ca node --use-system-ca node_modules/next/dist/bin/next start",
+    "start": "cross-env NODE_OPTIONS=--use-system-ca node --use-system-ca node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "tunnel": "ngrok http 5173 --url integral-lemming-lately.ngrok-free.app",
     "worker:reportes": "cross-env NODE_OPTIONS=--use-system-ca node --use-system-ca scripts/reporte-historia-worker.mjs",

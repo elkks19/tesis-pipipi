@@ -136,7 +136,9 @@ export async function proxy(request: NextRequest) {
 
     if (!activeTrip) {
       if (resolution.redirectTo) {
-        return isInsideBasePath(pathname, resolution.redirectTo)
+        return (isInsideBasePath(pathname, resolution.redirectTo) ||
+          (resolution.redirectTo.endsWith("/farmacia/planeacion") &&
+            [resolution.redirectTo.replace("/planeacion", "/entradas"), resolution.redirectTo.replace("/planeacion", "/inventario")].includes(pathname)))
           ? NextResponse.next()
           : redirectTo(resolution.redirectTo, request);
       }
@@ -176,7 +178,9 @@ export async function proxy(request: NextRequest) {
 
     if (!activeTrip) {
       if (resolution.redirectTo) {
-        return isInsideBasePath(pathname, resolution.redirectTo)
+        return (isInsideBasePath(pathname, resolution.redirectTo) ||
+          (resolution.redirectTo.endsWith("/farmacia/planeacion") &&
+            [resolution.redirectTo.replace("/planeacion", "/entradas"), resolution.redirectTo.replace("/planeacion", "/inventario")].includes(pathname)))
           ? NextResponse.next()
           : redirectTo(resolution.redirectTo, request);
       }

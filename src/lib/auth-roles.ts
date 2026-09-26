@@ -68,4 +68,4 @@ export const authRoles = {
   "docente-investigador": docenteInvestigador,
   "docente-organizador": docenteOrganizador,
   estudiante,
-} satisfies Record<AuthRole, typeof estudiante>;
+} satisfies Record<AuthRole, ReturnType<typeof authAccessControl.newRole>>;

@@ -7,6 +7,7 @@ import type { DriverContract } from "flydrive/types";
 let disk: Disk | null = null;
 
 function hasS3Credentials() {
+  if (process.env.APP_ENVIRONMENT === "raspberry") return false;
   return Boolean(
     process.env.S3_BUCKET &&
       process.env.S3_REGION &&
@@ -102,6 +103,7 @@ export async function putFile({
 }
 
 export async function getFileUrl(key: string) {
+  if (process.env.APP_ENVIRONMENT === "raspberry") return `/archivos/${key.split("/").map(encodeURIComponent).join("/")}`;
   const storage = await getStorageDisk();
 
   try {

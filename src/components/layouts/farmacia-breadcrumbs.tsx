@@ -13,7 +13,13 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const pageLabels: Record<string, string> = {
-  "/estudiante/farmacia/planeacion": "Planeacion",
+  "/estudiante/farmacia/planeacion": "Inventario del viaje",
+  "/estudiante/farmacia/inventario": "Inventario del viaje",
+  "/estudiante/farmacia/entradas": "Entradas",
+  "/estudiante/farmacia/recetas": "Entrega de recetas",
+  "/estudiante/farmacia/insumos": "Entrega de insumos",
+  "/estudiante/farmacia/movimientos": "Movimientos",
+  "/estudiante/farmacia/actividad": "Actividad",
 };
 
 function getCurrentLabel(pathname: string) {

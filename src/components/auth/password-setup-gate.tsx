@@ -20,6 +20,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useRaspberryEnvironment } from "@/components/auth/environment-context";
 import { authClient } from "@/lib/auth-client";
 import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { useInteractiveErrors } from "@/components/forms/use-interactive-errors";
@@ -28,6 +29,7 @@ import { PasswordSetupFormSchema } from "@/lib/schema/authForms";
 const clientState = { ok: false };
 
 export function PasswordSetupGate() {
+  const raspberry = useRaspberryEnvironment();
   const { data: session, isPending: isSessionPending } =
     useHydratedSession();
   const [isCheckingAccounts, setIsCheckingAccounts] = useState(false);
@@ -162,12 +164,12 @@ export function PasswordSetupGate() {
     }
   }
 
-  const shouldOpenPassword =
+  const shouldOpenPassword = !raspberry &&
     Boolean(session) &&
     !isSessionPending &&
     !isCheckingAccounts &&
     requiresPassword;
-  const shouldOpenGoogle =
+  const shouldOpenGoogle = !raspberry &&
     Boolean(session) &&
     !isSessionPending &&
     !isCheckingAccounts &&

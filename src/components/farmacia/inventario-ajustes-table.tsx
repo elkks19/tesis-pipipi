@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDownIcon, PackageIcon, PillIcon, SaveIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, PackageIcon, PillIcon, SaveIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,12 @@ import type { ViajeInventarioItem } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  deleteAction: (itemId: string) => Promise<{ ok: boolean; message?: string }>;
+  intent?: "entrada" | "ajuste";
   items: ViajeInventarioItem[];
   updateAction: (itemId: string, formData: FormData) => Promise<{ ok: boolean; message?: string }>;
 };
 
-export function InventarioAjustesTable({ deleteAction, items, updateAction }: Props) {
+export function InventarioAjustesTable({ intent = "ajuste", items, updateAction }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const filteredItems = useMemo(() => {
@@ -54,7 +54,7 @@ export function InventarioAjustesTable({ deleteAction, items, updateAction }: Pr
               <ConditionLabel condition={item.condicion ?? "disponible"} />
               <ChevronDownIcon className={cn("size-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
             </button>
-            {expanded && <AdjustmentForm deleteAction={deleteAction} item={item} updateAction={updateAction} />}
+            {expanded && <AdjustmentForm key={`${item.id}:${item.updatedAt}`} intent={intent} item={item} updateAction={updateAction} />}
           </article>
         );
       })}
@@ -62,19 +62,19 @@ export function InventarioAjustesTable({ deleteAction, items, updateAction }: Pr
   );
 }
 
-function AdjustmentForm({ deleteAction, item, updateAction }: { deleteAction: Props["deleteAction"]; item: ViajeInventarioItem; updateAction: Props["updateAction"] }) {
+function AdjustmentForm({ intent, item, updateAction }: { intent: "entrada" | "ajuste"; item: ViajeInventarioItem; updateAction: Props["updateAction"] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
   const reasonRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
-  const [cantidad, setCantidad] = useState(String(item.cantidadDisponible ?? item.cantidadPlanificada));
+  const [cantidad, setCantidad] = useState(intent === "entrada" ? "" : String(item.cantidadDisponible ?? item.cantidadPlanificada));
   const [condicion, setCondicion] = useState(item.condicion ?? "disponible");
   const [motivo, setMotivo] = useState("");
-  const [tipo, setTipo] = useState("ajuste");
+  const [tipo, setTipo] = useState<string>(intent);
   const [touched, setTouched] = useState({ cantidad: false, motivo: false });
   const [submitted, setSubmitted] = useState(false);
   const parsedCantidad = Number(cantidad);
-  const cantidadError = !cantidad.trim() || !Number.isInteger(parsedCantidad) || parsedCantidad < 0 ? "Ingresa una cantidad entera no negativa." : "";
+  const cantidadError = !cantidad.trim() || !Number.isInteger(parsedCantidad) || parsedCantidad < (intent === "entrada" ? 1 : 0) ? intent === "entrada" ? "Ingresa las unidades recibidas, mayor que cero." : "Ingresa una cantidad entera no negativa." : "";
   const motivoError = motivo.trim().length < 3 ? "Describe el motivo con al menos 3 caracteres." : "";
   const showCantidadError = Boolean(cantidadError && (touched.cantidad || submitted));
   const showMotivoError = Boolean(motivoError && (touched.motivo || submitted));
@@ -85,8 +85,11 @@ function AdjustmentForm({ deleteAction, item, updateAction }: { deleteAction: Pr
     if (cantidadError) { quantityRef.current?.focus(); return; }
     if (motivoError) { reasonRef.current?.focus(); return; }
 
+    if (!window.confirm(intent === "entrada" ? "¿Registrar esta entrada de unidades?" : "¿Guardar este ajuste de inventario?")) return;
     startTransition(async () => {
-      const result = await updateAction(item.id, new FormData(formRef.current!));
+      const data = new FormData(formRef.current!);
+      data.set("cantidadDisponible", String(intent === "entrada" ? (item.cantidadDisponible ?? item.cantidadPlanificada) + Number(cantidad) : Number(cantidad)));
+      const result = await updateAction(item.id, data);
       if (result.ok) {
         toast.success(result.message);
         setMotivo("");
@@ -96,39 +99,31 @@ function AdjustmentForm({ deleteAction, item, updateAction }: { deleteAction: Pr
     });
   }
 
-  function handleDelete() {
-    if (!window.confirm(`¿Eliminar ${item.nombre} del inventario?`)) return;
-    startTransition(async () => {
-      const result = await deleteAction(item.id);
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message ?? "No se pudo eliminar el item.");
-    });
-  }
 
   return (
-    <form className="min-w-0 border-t bg-muted/20 px-4 py-4" noValidate ref={formRef}>
+    <form className="min-w-0 border-t bg-muted/20 px-4 py-4" noValidate ref={formRef} onSubmit={(event) => { event.preventDefault(); handleSave(); }}>
+      <input name="updatedAt" type="hidden" value={item.updatedAt} />
       <input name="cantidadActual" type="hidden" value={item.cantidadDisponible ?? item.cantidadPlanificada} />
       <input name="condicion" type="hidden" value={condicion} />
       <input name="tipo" type="hidden" value={tipo} />
 
       <div className="grid min-w-0 gap-4 md:grid-cols-2">
-        <Field controlId={`tipo-${item.id}`} label="Tipo de movimiento">
+        {intent === "ajuste" && <Field controlId={`tipo-${item.id}`} label="Tipo de movimiento">
           <Select onValueChange={setTipo} value={tipo}>
             <SelectTrigger className="w-full" id={`tipo-${item.id}`}><SelectValue /></SelectTrigger>
             <SelectContent><SelectGroup>
               <SelectItem value="ajuste">Correccion de saldo</SelectItem>
-              <SelectItem value="entrada">Entrada</SelectItem>
               <SelectItem value="devolucion">Devolucion</SelectItem>
               <SelectItem value="merma">Merma</SelectItem>
             </SelectGroup></SelectContent>
           </Select>
-        </Field>
+        </Field>}
 
-        <Field controlId={`cantidad-${item.id}`} error={showCantidadError ? cantidadError : undefined} errorId={`cantidad-${item.id}-error`} label={`Nueva existencia (${item.unidad})`}>
+        <Field controlId={`cantidad-${item.id}`} error={showCantidadError ? cantidadError : undefined} errorId={`cantidad-${item.id}-error`} label={`${intent === "entrada" ? "Unidades recibidas" : "Nueva existencia"} (${item.unidad})`}>
           <Input aria-describedby={showCantidadError ? `cantidad-${item.id}-error` : undefined} aria-invalid={showCantidadError} id={`cantidad-${item.id}`} min={0} name="cantidadDisponible" onBlur={() => setTouched((current) => ({ ...current, cantidad: true }))} onChange={(event) => setCantidad(event.target.value)} ref={quantityRef} step={1} type="number" value={cantidad} />
         </Field>
 
-        <Field controlId={`condicion-${item.id}`} label="Condicion del lote">
+        {intent === "ajuste" && <Field controlId={`condicion-${item.id}`} label="Condicion del lote">
           <Select onValueChange={(value) => setCondicion(value as typeof condicion)} value={condicion}>
             <SelectTrigger className="w-full" id={`condicion-${item.id}`}><SelectValue /></SelectTrigger>
             <SelectContent><SelectGroup>
@@ -138,7 +133,7 @@ function AdjustmentForm({ deleteAction, item, updateAction }: { deleteAction: Pr
               <SelectItem value="vencido">Vencido</SelectItem>
             </SelectGroup></SelectContent>
           </Select>
-        </Field>
+        </Field>}
 
         <Field controlId={`motivo-${item.id}`} error={showMotivoError ? motivoError : undefined} errorId={`motivo-${item.id}-error`} label="Motivo">
           <Input aria-describedby={showMotivoError ? `motivo-${item.id}-error` : undefined} aria-invalid={showMotivoError} id={`motivo-${item.id}`} name="motivo" onBlur={() => setTouched((current) => ({ ...current, motivo: true }))} onChange={(event) => setMotivo(event.target.value)} placeholder="Ej. conteo fisico de cierre" ref={reasonRef} value={motivo} />
@@ -146,8 +141,7 @@ function AdjustmentForm({ deleteAction, item, updateAction }: { deleteAction: Pr
       </div>
 
       <div className="mt-4 flex flex-col-reverse gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button disabled={isPending} onClick={handleDelete} size="sm" type="button" variant="ghost"><Trash2Icon className="size-4 text-destructive" /><span className="text-destructive">Eliminar item</span></Button>
-        <Button disabled={isPending} onClick={handleSave} size="sm" type="button"><SaveIcon className="size-4" />{isPending ? "Guardando..." : "Guardar ajuste"}</Button>
+        <Button disabled={isPending} size="sm" type="submit"><SaveIcon className="size-4" />{isPending ? "Guardando..." : intent === "entrada" ? "Registrar entrada" : "Guardar ajuste"}</Button>
       </div>
     </form>
   );

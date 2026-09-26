@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { farmaciaNavigation } from "@/lib/farmacia-navigation";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ActivityIcon,
   LogOutIcon,
-  PackagePlusIcon,
   PillIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -38,33 +37,6 @@ import { authClient } from "@/lib/auth-client";
 import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
-type NavItem = {
-  href: string;
-  icon: typeof PillIcon;
-  label: string;
-};
-
-const activeNavItems: NavItem[] = [
-  {
-    href: "/estudiante/farmacia/inventario",
-    icon: PillIcon,
-    label: "Inventario",
-  },
-  {
-    href: "/estudiante/farmacia/actividad",
-    icon: ActivityIcon,
-    label: "Actividad",
-  },
-];
-
-const planningNavItems: NavItem[] = [
-  {
-    href: "/estudiante/farmacia/planeacion",
-    icon: PackagePlusIcon,
-    label: "Planeacion",
-  },
-];
-
 function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -83,7 +55,7 @@ export function FarmaciaSidebar({ accessPhase }: FarmaciaSidebarProps) {
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
   const tripActive = accessPhase === "activo";
-  const navItems = accessPhase === "planeacion" ? planningNavItems : activeNavItems;
+  const navItems = farmaciaNavigation("estudiante", accessPhase);
 
   function closeMobileSidebar() {
     if (isMobile) {

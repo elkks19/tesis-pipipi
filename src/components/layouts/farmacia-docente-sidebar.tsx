@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { farmaciaNavigation } from "@/lib/farmacia-navigation";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ActivityIcon,
   LogOutIcon,
-  PackagePlusIcon,
-  PillIcon,
-  SlidersHorizontalIcon,
   UserRoundIcon,
 } from "lucide-react";
 
@@ -39,34 +36,6 @@ import { authClient } from "@/lib/auth-client";
 import { useHydratedSession } from "@/lib/use-hydrated-session";
 import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
 
-const navItems = [
-  {
-    href: "/docente/farmacia/inventario",
-    icon: PillIcon,
-    label: "Inventario",
-    when: "active" as const,
-  },
-  {
-    href: "/docente/farmacia/planeacion",
-    icon: PackagePlusIcon,
-    label: "Planeacion",
-    when: "planning" as const,
-  },
-  {
-    href: "/docente/farmacia/ajustes",
-    icon: SlidersHorizontalIcon,
-    label: "Ajustes",
-    when: "active" as const,
-  },
-  {
-    exact: true,
-    href: "/docente/farmacia/actividad",
-    icon: ActivityIcon,
-    label: "Actividad",
-    when: "active" as const,
-  },
-];
-
 function isNavItemActive(pathname: string, href: string, exact?: boolean) {
   if (exact) {
     return pathname === href;
@@ -88,11 +57,7 @@ export function FarmaciaDocenteSidebar({
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
 
-  const visibleNavItems = navItems.filter(
-    (item) =>
-      (item.when === "planning" && accessPhase === "planeacion") ||
-      (item.when === "active" && accessPhase !== "planeacion" && (item.label !== "Ajustes" || accessPhase === "activo" || accessPhase === "conciliacion")),
-  );
+  const visibleNavItems = farmaciaNavigation("docente", accessPhase);
 
   function closeMobileSidebar() {
     if (isMobile) {
@@ -126,7 +91,7 @@ export function FarmaciaDocenteSidebar({
                 const isActive = isNavItemActive(
                   pathname,
                   item.href,
-                  "exact" in item ? item.exact : false,
+                  false,
                 );
 
                 return (

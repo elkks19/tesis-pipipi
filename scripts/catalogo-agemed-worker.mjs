@@ -97,6 +97,7 @@ async function downloadSource() {
 }
 
 export async function importCatalog(database, loadSource = downloadSource) {
+  if (process.env.APP_ENVIRONMENT === "raspberry") throw new Error("El catálogo se actualiza únicamente en la nube.");
   const startedAt = new Date().toISOString();
   const importId = `importacionCatalogo:${startedAt}:${randomUUID()}`;
   try {
@@ -163,6 +164,7 @@ export async function importCatalog(database, loadSource = downloadSource) {
 }
 
 export async function startCatalogWorker() {
+  if (process.env.APP_ENVIRONMENT === "raspberry") return { close: async () => {} };
   if (!process.env.COUCHDB_URL) throw new Error("COUCHDB_URL debe estar configurado.");
   const database = new PouchDB(process.env.COUCHDB_URL);
   const queue = new Queue(queueName, { connection });

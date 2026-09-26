@@ -1,0 +1,15 @@
+# Only application sources and dependency declarations enter this build.
+**
+!Dockerfile
+!.dockerignore
+!requirements.txt
+!app/
+!app/**
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.env*
+**/*.sqlite*
+**/*.db
+**/*.pem
+**/*.key

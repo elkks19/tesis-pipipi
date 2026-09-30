@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   find: vi.fn(),
   get: vi.fn(),
+  users: vi.fn(() => new Map()),
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("../../src/lib/auth-users", () => ({ getAuthUsersByIds: mocks.users }));
 vi.mock("../../src/lib/db", () => ({ db: { get: mocks.get } }));
 vi.mock("../../src/lib/db-find", () => ({ findTesisDocs: mocks.find }));
 vi.mock("../../src/lib/db-indexes", () => ({ ensureTesisIndexes: async () => undefined }));
@@ -16,6 +18,7 @@ describe("paginación de historias de estación", () => {
   beforeEach(() => {
     mocks.find.mockReset();
     mocks.get.mockReset();
+    mocks.users.mockReset().mockReturnValue(new Map());
 
     const histories = Array.from({ length: 30 }, (_, index) => ({
       _id: `historia-${index}`,
@@ -39,6 +42,39 @@ describe("paginación de historias de estación", () => {
       nacionalidad: "Boliviana",
       type: "paciente",
     }));
+  });
+
+  test("distingue al creador del paciente, de la historia y de la estación sin atribuir ediciones", async () => {
+    const viaje = {
+      _id: "viaje-activo", type: "viaje", fechaEntrada: "2020-01-01", fechaSalida: "2030-12-31",
+      estaciones: [{ tipo: "Examen Físico General", docenteEncargadoId: "docente-1", estudiantesIds: ["estudiante-1"] }],
+    };
+    mocks.users.mockReturnValue(new Map([
+      ["paciente-autor", { name: "Ana", email: "ana@example.test", role: "estudiante" }],
+      ["historia-autor", { name: "Luis", role: "estudiante" }],
+      ["estacion-autor", { name: "María", role: "estudiante" }],
+    ]));
+    mocks.find.mockImplementation(async ({ selector }: { selector: { type: string } }) => ({
+      docs: selector.type === "viaje" ? [viaje] : selector.type === "actividad" ? [{
+        type: "actividad", action: "created", subject: "paciente", pacienteId: "p-1",
+        actorId: "paciente-autor", createdAt: "2025-01-01", viajeId: "viaje-anterior",
+      }] : [{
+        _id: "h-1", type: "historia", viajeId: "viaje-activo", pacienteId: "p-1",
+        created_by: "historia-autor", examenFisicoGeneral: { created_by: "estacion-autor", updated_by: "docente-1" },
+      }, { _id: "h-antigua", type: "historia", viajeId: "viaje-activo", pacienteId: "p-2" }],
+    }));
+    const getPaciente = mocks.get.getMockImplementation();
+    mocks.get.mockImplementation(async (id: string) => id === "viaje-activo" ? viaje : getPaciente?.(id));
+    const page = await listStationHistories({ mode: "docente", query: "", stationKey: "examenFisicoGeneral", userId: "docente-1" });
+    expect(page.rows[0]).toMatchObject({
+      patientAuthor: { name: "Ana" }, historyAuthor: { name: "Luis" }, stationAuthor: { name: "María" },
+    });
+    expect(page.rows[1].patientAuthor).toBeUndefined();
+    expect(page.rows[1].stationAuthor).toBeUndefined();
+    expect(mocks.users).not.toHaveBeenCalledWith(expect.arrayContaining(["docente-1"]));
+    expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({ selector: expect.objectContaining({
+      type: "actividad", action: "created", subject: "paciente", pacienteId: { $in: ["p-1", "p-2"] },
+    }) }));
   });
 
   test("detiene la lectura al completar la página y conserva Siguiente", async () => {

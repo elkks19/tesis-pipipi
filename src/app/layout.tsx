@@ -53,6 +53,10 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
       suppressHydrationWarning
     >
+      <head>
+        {/* The app owns its theme; prevent Dark Reader from mutating SVGs before hydration. */}
+        <meta name="darkreader-lock" />
+      </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider defaultTheme="system">
           <EnvironmentProvider raspberry={process.env.APP_ENVIRONMENT === "raspberry"}>{children}</EnvironmentProvider>

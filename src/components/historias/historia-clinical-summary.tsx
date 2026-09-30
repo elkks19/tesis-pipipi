@@ -23,6 +23,8 @@ import {
 import type { ComponentType, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { RegistrationAttribution } from "@/components/activity/registration-attribution";
+import type { RegistrationAuthor } from "@/lib/registration-author";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,7 @@ type SummaryScope =
 
 type HistoriaWithId = Historia & {
   _id?: string;
+  registeredBy?: RegistrationAuthor;
 };
 
 type HistoriaClinicalSummaryModalProps = {
@@ -162,10 +165,12 @@ export function PacienteClinicalSummaryModal({
   paciente,
   previousHistorias = [],
   triggerLabel = "Ver resumen clinico",
+  showPdfDownload = true,
 }: {
   paciente: PacienteSearchResult;
   previousHistorias?: HistoriaWithId[];
   triggerLabel?: string;
+  showPdfDownload?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -187,14 +192,14 @@ export function PacienteClinicalSummaryModal({
           <EyeIcon className="size-4" />
           {triggerLabel}
         </Button>
-        <HistoriaPdfDownloadButton historiaId={latestHistoria?._id} />
+        {showPdfDownload ? <HistoriaPdfDownloadButton historiaId={latestHistoria?._id} /> : null}
       </div>
 
       {isMobile ? (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" className="max-h-[94svh] overflow-y-auto p-0">
             <SheetHeader className="border-b px-4 py-4 text-left">
-              <SheetTitle>Resumen clinico del paciente</SheetTitle>
+                <SheetTitle>Historial clínico del paciente</SheetTitle>
               <SheetDescription>
                 Datos del paciente e historias anteriores disponibles.
               </SheetDescription>
@@ -211,7 +216,7 @@ export function PacienteClinicalSummaryModal({
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:max-w-4xl">
             <DialogHeader className="border-b px-6 py-5 text-left">
-              <DialogTitle>Resumen clinico del paciente</DialogTitle>
+                <DialogTitle>Historial clínico del paciente</DialogTitle>
               <DialogDescription>
                 Datos del paciente e historias anteriores disponibles.
               </DialogDescription>
@@ -481,9 +486,9 @@ function PreviousHistoriesPanel({
         <div className="flex items-center gap-2">
           <HistoryIcon className="size-4 text-muted-foreground" />
           <div>
-            <p className="text-sm font-medium">Historias anteriores del paciente</p>
+            <p className="text-sm font-medium">Historial de atenciones</p>
             <p className="text-xs text-muted-foreground">
-              Revisalas sin salir del formulario actual.
+              Consulta cada historia clínica y sus detalles sin salir de esta pantalla.
             </p>
           </div>
         </div>
@@ -531,12 +536,17 @@ function PreviousHistoryRow({
   const diagnosis = getPrimaryDiagnosis(historia);
 
   const summary = (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-xl border bg-muted/20 p-4">
+        <RegistrationAttribution author={historia.registeredBy} label="Esta atención fue registrada por" />
+      </div>
     <HistoriaSummaryBody
       historia={historia}
       paciente={paciente}
       scope={scope}
       showPrevious={false}
     />
+    </div>
   );
 
   return (
@@ -564,6 +574,10 @@ function PreviousHistoryRow({
           Ver
           <ChevronRightIcon className="size-4" />
         </Button>
+      </div>
+
+      <div className="w-full border-t pt-3">
+        <RegistrationAttribution author={historia.registeredBy} label="Esta atención fue registrada por" />
       </div>
 
       {isMobile ? (

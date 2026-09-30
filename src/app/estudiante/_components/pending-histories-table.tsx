@@ -8,6 +8,9 @@ import {
 import { Button } from "@/components/ui/button";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { StationKey } from "@/lib/station-histories";
+import { registrationAuthorLabel } from "@/lib/registration-author";
+import { PacienteClinicalSummaryModal } from "@/components/historias/historia-clinical-summary";
+import type { Historia } from "@/lib/schema/historia";
 import { StationHistoriasFilters } from "./station-historias-filters";
 import type { StationHistoryPageResult } from "../_lib/station-history-queries";
 import { LaboratoriosHistorialButton } from "../laboratorios/laboratorios-historial-button";
@@ -28,6 +31,7 @@ type PendingHistoriesTableProps = {
   stationKey: StationKey;
   statusIcon: ReactNode;
   statusLabel?: string;
+  historiasByPacienteId?: Record<string, (Historia & { _id?: string })[]>;
 };
 
 function getPacienteName(paciente: PacienteSearchResult) {
@@ -75,6 +79,7 @@ function getStationReportHref(historiaId: string) {
 export function PendingHistoriesTable({
   basePath, cursor, cursors, emptyMessage, filterId, mode = "estudiante",
   page, query, stationKey, statusIcon, statusLabel,
+  historiasByPacienteId,
 }: PendingHistoriesTableProps) {
   const previousCursor = cursors.at(-1);
   const previousCursors = cursors.slice(0, -1);
@@ -116,10 +121,30 @@ export function PendingHistoriesTable({
                   <div className="min-w-0"><dt className="text-xs text-muted-foreground">Nacimiento</dt><dd className="mt-1 font-medium">{formatDate(datos.fechaNacimiento)}</dd></div>
                   <div className="min-w-0"><dt className="text-xs text-muted-foreground">Procedencia</dt><dd className="mt-1 break-words font-medium">{getPlace(row.paciente) || "Sin lugar"}</dd></div>
                 </dl>
+                {mode === "docente" ? (
+                  <dl className="grid gap-3 border-t pt-4 text-sm sm:grid-cols-3">
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Paciente registrado por</dt>
+                      <dd className="mt-1 break-words font-medium">{row.patientAuthor ? registrationAuthorLabel(row.patientAuthor) : "Responsable no registrado"}</dd>
+                      {row.patientAuthor?.email ? <dd className="break-words text-xs text-muted-foreground">{row.patientAuthor.email}</dd> : null}
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Historia registrada por</dt>
+                      <dd className="mt-1 break-words font-medium">{row.historyAuthor ? registrationAuthorLabel(row.historyAuthor) : "Responsable no registrado"}</dd>
+                      {row.historyAuthor?.email ? <dd className="break-words text-xs text-muted-foreground">{row.historyAuthor.email}</dd> : null}
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">Estación registrada por</dt>
+                      <dd className="mt-1 break-words font-medium">{completed ? row.stationAuthor ? registrationAuthorLabel(row.stationAuthor) : "Responsable no registrado" : "Pendiente de registro"}</dd>
+                      {completed && row.stationAuthor?.email ? <dd className="break-words text-xs text-muted-foreground">{row.stationAuthor.email}</dd> : null}
+                    </div>
+                  </dl>
+                ) : null}
               </div>
               <div className="flex flex-col gap-3 border-t bg-muted/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <p className="text-xs text-muted-foreground">Historia clínica vinculada al paciente</p>
                 <div className="flex flex-wrap items-center gap-2">
+                  {mode === "docente" ? <PacienteClinicalSummaryModal paciente={row.paciente} previousHistorias={historiasByPacienteId?.[row.paciente.id] ?? []} triggerLabel="Historial clínico" showPdfDownload={false} /> : null}
                   {mode === "estudiante" && stationKey === "laboratorios" ? (
                     <LaboratoriosHistorialButton historiaId={row.historiaId} />
                   ) : null}

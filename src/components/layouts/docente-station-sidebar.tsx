@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ActivityIcon,
   ClipboardListIcon,
+  FileTextIcon,
   LogOutIcon,
   TrendingUpIcon,
   UserRoundIcon,
@@ -83,6 +84,7 @@ export function DocenteStationSidebar({
   const navItems = [
     {
       href: resolvedPrimaryHref,
+      exact: resolvedPrimaryHref === basePath,
       icon: ClipboardListIcon,
       label: primaryLabel,
     },
@@ -106,6 +108,7 @@ export function DocenteStationSidebar({
           },
         ]
       : []),
+    { href: `${basePath}/reportes`, icon: FileTextIcon, label: "Reportes", exact: true },
   ];
 
   function closeMobileSidebar() {

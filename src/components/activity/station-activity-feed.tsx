@@ -1,10 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, SearchIcon, Clock3Icon } from "lucide-react";
 import { StationActivityList } from "@/components/activity/station-activity-list";
 import { type ActivityListRow, type ActivityMode, withActivityLinks } from "@/components/activity/station-activity-links";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { ActivityPageResult } from "@/lib/activity-queries";
 import type { StationKey } from "@/lib/station-histories";
@@ -46,11 +47,21 @@ export function StationActivityFeed({ basePath, initialRows, initialPage, total,
   }, [loadPage]);
   return (
     <div className="flex flex-col gap-4" aria-busy={isLoading}>
-      <div className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:p-5">
+      <div className="flex flex-col gap-5 rounded-2xl border p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="font-heading text-3xl font-semibold tabular-nums">{view.total}</span>
+            <div><h2 className="text-sm font-medium">{view.query ? "Movimientos encontrados" : "Movimientos del viaje"}</h2><p className="text-xs text-muted-foreground">Registro de pacientes y atención por estación</p></div>
+          </div>
+          <Badge variant="outline"><Clock3Icon data-icon="inline-start" />Más recientes primero</Badge>
+        </div>
         <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void loadPage(1, draft.trim()); }}>
           <div className="flex min-w-0 flex-1 basis-64 flex-col gap-2">
-            <Label htmlFor="activity-search">Buscar actividad</Label>
-            <Input id="activity-search" maxLength={200} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Nombre, documento, responsable o tipo de movimiento" />
+            <Label htmlFor="activity-search">Buscar paciente o responsable</Label>
+            <InputGroup>
+              <InputGroupAddon><SearchIcon aria-hidden="true" /></InputGroupAddon>
+              <InputGroupInput id="activity-search" maxLength={200} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Nombre, CI, estudiante o correo…" />
+            </InputGroup>
           </div>
           <Button type="submit" disabled={isLoading}><SearchIcon data-icon="inline-start" />Buscar</Button>
           <Button type="button" variant="outline" disabled={isLoading} onClick={() => { void loadPage(1, view.query); }}><RefreshCwIcon data-icon="inline-start" />Actualizar</Button>
@@ -58,7 +69,7 @@ export function StationActivityFeed({ basePath, initialRows, initialPage, total,
         </form>
         <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground" role="status">
           <span>{isLoading ? "Cargando actividad…" : `${view.total} movimientos${view.query ? ` para “${view.query}”` : " en el viaje activo"}`}</span>
-          <span>Más recientes primero · Hora de Bolivia</span>
+          <span>Fechas y horas de Bolivia</span>
         </div>
       </div>
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}

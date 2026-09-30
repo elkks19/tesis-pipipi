@@ -39,7 +39,7 @@ export function getActivityTitle({
     return `Lo que registraste en ${label}`;
   }
 
-  return `Movimiento del viaje en ${label}`;
+  return `Actividad de ${label}`;
 }
 
 export function getActivityDescription(mode: ActivityMode) {
@@ -47,7 +47,7 @@ export function getActivityDescription(mode: ActivityMode) {
     return "Aqui veras los cambios que guardaste durante el viaje activo.";
   }
 
-  return "Aqui veras los cambios que se guardaron durante el viaje activo.";
+  return "Consulta qué estudiante registró a cada paciente y quién creó o modificó cada registro durante el viaje activo.";
 }
 
 export function getActivityEmptyCopy(mode: ActivityMode) {

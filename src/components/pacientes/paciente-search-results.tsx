@@ -17,6 +17,9 @@ import {
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { RegistrationAttribution } from "@/components/activity/registration-attribution";
 import {
   PacienteClinicalSummaryModal,
   PacienteClinicalSummaryPreview,
@@ -45,6 +48,7 @@ import {
 } from "@/components/ui/sheet";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia } from "@/lib/schema/historia";
+import { cn } from "@/lib/utils";
 
 type HistoriaWithId = Historia & {
   _id?: string;
@@ -60,6 +64,7 @@ type PacienteSearchResultsProps = {
   newPacienteRoute: string;
   selectedPacienteId?: string;
   page?: number;
+  showRegistrationAuthor?: boolean;
 };
 
 function getPacienteName(paciente: PacienteSearchResult) {
@@ -141,10 +146,12 @@ function PacienteDetailContent({
   historias = [],
   paciente,
   editPacienteRoute,
+  showRegistrationAuthor,
 }: {
   historias?: HistoriaWithId[];
   paciente: PacienteSearchResult;
   editPacienteRoute: string;
+  showRegistrationAuthor?: boolean;
 }) {
   const datos = paciente.datosPersonales;
   const name = getPacienteName(paciente);
@@ -165,7 +172,7 @@ function PacienteDetailContent({
               {getInitials(paciente)}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold">{name}</p>
+              <p className="break-words text-base font-semibold">{name}</p>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <IdCardIcon className="size-3.5" />
@@ -206,6 +213,13 @@ function PacienteDetailContent({
           </div>
         </div>
       </section>
+
+      {showRegistrationAuthor ? (
+        <section aria-label="Autor del registro del paciente" className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <RegistrationAttribution author={paciente.registeredBy} label="Paciente registrado por" />
+          <p className="max-w-60 text-xs leading-relaxed text-muted-foreground">Responsable del registro inicial del paciente.</p>
+        </section>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_0.85fr]">
         <section className="rounded-2xl border p-4">
@@ -310,10 +324,12 @@ function PacienteDetailDialog({
   historias = [],
   paciente,
   editPacienteRoute,
+  showRegistrationAuthor,
 }: {
   historias?: HistoriaWithId[];
   paciente: PacienteSearchResult;
   editPacienteRoute: string;
+  showRegistrationAuthor?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -335,7 +351,7 @@ function PacienteDetailDialog({
               </SheetDescription>
             </SheetHeader>
             <div className="px-4 py-4 sm:px-6">
-              <PacienteDetailContent historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} />
+              <PacienteDetailContent historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} showRegistrationAuthor={showRegistrationAuthor} />
             </div>
           </SheetContent>
         </Sheet>
@@ -357,7 +373,7 @@ function PacienteDetailDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="px-6 py-5">
-          <PacienteDetailContent historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} />
+          <PacienteDetailContent historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} showRegistrationAuthor={showRegistrationAuthor} />
         </div>
       </DialogContent>
     </Dialog>
@@ -374,6 +390,7 @@ export function PacienteSearchResults({
   selectedPacienteId,
   newPacienteRoute,
   page = 1,
+  showRegistrationAuthor = false,
 }: PacienteSearchResultsProps) {
   if (!query && pacientes.length === 0) {
     return (
@@ -418,11 +435,14 @@ export function PacienteSearchResults({
 
         return (
           <Item
-            className="grid min-w-0 grid-cols-1 items-center gap-x-5 gap-y-3 bg-background @min-[560px]:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] @min-[1100px]:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_auto]"
+            className="grid min-w-0 grid-cols-1 gap-0 overflow-hidden p-0"
             role="listitem"
             key={paciente.id}
             variant={isSelected ? "muted" : "outline"}
           >
+            <div className={cn("grid min-w-0 items-center gap-5 p-4 @min-[760px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] sm:p-5", showRegistrationAuthor && "@min-[1100px]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)_minmax(0,1fr)]")}>
+            <div className="flex min-w-0 items-start gap-3">
+            <Avatar size="lg" aria-hidden="true"><AvatarFallback>{getInitials(paciente)}</AvatarFallback></Avatar>
             <ItemContent className="min-w-0 gap-1.5">
               <ItemTitle className="line-clamp-none w-auto break-words">
                 {getPacienteName(paciente)}
@@ -430,11 +450,13 @@ export function PacienteSearchResults({
               <ItemDescription className="line-clamp-none break-words">
                 {datos.documentoIdentidad} {datos.numeroDocumentoIdentidad}
               </ItemDescription>
-              <p className="break-words text-xs text-muted-foreground">
-                {paciente.genero}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{paciente.genero}</Badge>
+                <span className="text-xs text-muted-foreground">{historias.length} {historias.length === 1 ? "historia clínica" : "historias clínicas"}</span>
+              </div>
             </ItemContent>
-            <dl className="grid min-w-0 grid-cols-2 gap-3 @min-[560px]:grid-cols-1 @min-[560px]:gap-2">
+            </div>
+            <dl className="grid min-w-0 grid-cols-2 gap-4">
               <div className="min-w-0">
                 <dt className="text-xs text-muted-foreground">Nacimiento</dt>
                 <dd className="mt-0.5 text-sm">
@@ -448,9 +470,14 @@ export function PacienteSearchResults({
                 </dd>
               </div>
             </dl>
-            <ItemActions className="flex-wrap justify-start gap-2 @min-[560px]:col-span-2 @min-[1100px]:col-span-1 @min-[1100px]:justify-end">
-              <PacienteClinicalSummaryModal paciente={paciente} previousHistorias={historias} triggerLabel="Resumen clínico" />
-              <PacienteDetailDialog historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} />
+            {showRegistrationAuthor ? <div className="min-w-0 @min-[760px]:col-span-2 @min-[1100px]:col-span-1"><RegistrationAttribution author={paciente.registeredBy} label="Paciente registrado por" /></div> : null}
+            </div>
+            <ItemActions className="flex-wrap justify-between gap-3 border-t px-4 py-3 sm:px-5">
+              <div className="flex flex-wrap items-center gap-2">
+              <PacienteClinicalSummaryModal paciente={paciente} previousHistorias={historias} triggerLabel={showRegistrationAuthor ? "Historial clínico" : "Resumen clínico"} />
+              <PacienteDetailDialog historias={historias} paciente={paciente} editPacienteRoute={editPacienteRoute} showRegistrationAuthor={showRegistrationAuthor} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
               <Button asChild size="sm" variant="outline">
                 <Link href={`${editPacienteRoute}/${encodeURIComponent(paciente.id)}/edit`}>
                   <PencilIcon data-icon="inline-start" />
@@ -472,6 +499,7 @@ export function PacienteSearchResults({
                   </Link>
                 </Button>
               ) : null}
+              </div>
             </ItemActions>
           </Item>
         );

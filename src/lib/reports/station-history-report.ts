@@ -593,17 +593,23 @@ export function renderStationHistoryReportHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Reporte ${escapeHtml(data.selectedStation.label)}</title>
   <style>
-    body { color: #111; font-family: Arial, sans-serif; margin: 24px; }
+    @page { size: A4; margin: 18mm; }
+    body { color: #111; font-family: "Times New Roman", serif; margin: 32px auto; max-width: 760px; padding: 0 24px; }
     h1, h2, h3, p { margin: 0; }
-    h1 { font-size: 24px; }
-    h2 { border-bottom: 2px solid #111; font-size: 16px; margin-top: 24px; padding-bottom: 6px; }
+    h1 { font-size: 18px; text-align: center; text-transform: uppercase; }
+    h2 { border: 1px solid #777; background: #d4d4d4; font-size: 14px; margin-top: 24px; padding: 5px; text-align: center; text-transform: uppercase; }
+    .institution { position: relative; text-align: center; padding: 28px 64px 24px; }
+    .institution p { font-size: 12px; margin-bottom: 8px; }
+    .institution img { position: absolute; width: 54px; height: 54px; object-fit: contain; top: 0; right: 0; }
     h3 { font-size: 15px; margin-top: 16px; }
     .actions { margin-bottom: 16px; }
     .actions button { background: white; border: 1px solid #111; cursor: pointer; padding: 8px 12px; }
-    .header { border: 2px solid #111; display: grid; gap: 16px; grid-template-columns: 1.3fr 1fr; padding: 16px; }
+    .header { border: 1px solid #777; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; padding: 12px; font-size: 12px; line-height: 1.6; }
     .muted { color: #555; }
     .section { border: 1px solid #999; margin-top: 12px; padding: 12px; }
-    .section-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 10px; }
+    .section-grid { table-layout: fixed; margin-top: 10px; }
+    .section-grid th { width: 30%; background: #f4f4f4; }
+    .section-grid td { white-space: pre-wrap; overflow-wrap: anywhere; }
     .item { border: 1px solid #ccc; padding: 8px; }
     .item span, .file span { color: #555; display: block; font-size: 11px; margin-bottom: 4px; }
     .item strong { font-size: 12px; white-space: pre-wrap; }
@@ -618,9 +624,11 @@ export function renderStationHistoryReportHtml(
     th { background: #eee; }
     tr.selected td { background: #f4f4f4; font-weight: 700; }
     @media print {
-      body { margin: 12mm; }
+      body { margin: 0; padding: 0; max-width: none; }
       .actions { display: none; }
-      tr { break-inside: avoid; }
+      tr, .item, .file { break-inside: avoid; }
+      h2, h3 { break-after: avoid; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -629,9 +637,14 @@ export function renderStationHistoryReportHtml(
     <button onclick="window.print()">Imprimir / guardar PDF</button>
   </div>
 
+  <header class="institution">
+    <img src="/logo.png" alt="Escudo de UNIFRANZ" />
+    <p>UNIVERSIDAD PRIVADA FRANZ TAMAYO</p>
+    <p>CARRERA DE MEDICINA</p>
+    <h1>Reporte de avance por estación</h1>
+  </header>
   <section class="header">
     <div>
-      <h1>Reporte de avance por estacion</h1>
       <p class="muted">Historia: ${escapeHtml(data.historiaId)}</p>
       <p><strong>Estacion:</strong> ${escapeHtml(data.selectedStation.label)}</p>
       <p><strong>Estado:</strong> ${escapeHtml(data.selectedStation.status)}</p>
@@ -679,18 +692,18 @@ export function renderStationHistoryReportHtml(
             (section) => `
     <section class="section">
       <h3>${escapeHtml(section.title)}</h3>
-      <div class="section-grid">
+      <table class="section-grid"><tbody>
         ${section.items
           .filter((item) => item.value !== "Sin registro")
           .map(
             (item) => `
-          <div class="item">
-            <span>${escapeHtml(item.label)}</span>
-            <strong>${escapeHtml(item.value)}</strong>
-          </div>`,
+          <tr>
+            <th scope="row">${escapeHtml(item.label)}</th>
+            <td>${escapeHtml(item.value)}</td>
+          </tr>`,
           )
           .join("")}
-      </div>
+      </tbody></table>
       ${
         section.files?.length
           ? `<div class="files">

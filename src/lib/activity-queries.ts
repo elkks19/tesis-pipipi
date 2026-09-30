@@ -1,4 +1,5 @@
 import "server-only";
+import { getHistoriasByPacienteIds } from "@/app/estudiante/anamnesis/create-historia/queries";
 import { paginateActivity } from "@/lib/activity-pagination";
 
 import { getAuthUsersByIds } from "@/lib/auth-users";
@@ -31,11 +32,13 @@ export type ActivityListItem = {
   actorEmail?: string;
   actorId: string;
   actorName: string;
+  actorRole?: import("@/lib/auth-role-values").AuthRole | null;
   changes: ActividadChange[];
   changedFields: string[];
   createdAt: string;
   historiaId?: string;
   historia?: Historia;
+  previousHistorias?: (Historia & { _id?: string })[];
   id: string;
   paciente?: PacienteSearchResult;
   pacienteDocument: string;
@@ -326,9 +329,12 @@ export async function listActivity({
   const selected = paginateActivity(rows.map((row) => ({
     ...row,
     id: row._id,
-    searchText: [getPacienteName(pacientes.get(row.pacienteId) ?? null), getPacienteDocument(pacientes.get(row.pacienteId) ?? null), usersById.get(row.actorId)?.name, row.subject === "paciente" ? "Paciente" : "Registro", row.action === "created" ? "creado" : "actualizado editado", row.createdAt].join(" "),
+    searchText: [getPacienteName(pacientes.get(row.pacienteId) ?? null), getPacienteDocument(pacientes.get(row.pacienteId) ?? null), usersById.get(row.actorId)?.name, usersById.get(row.actorId)?.email, row.subject === "paciente" ? "Paciente" : "Registro", row.action === "created" ? "creado" : "actualizado editado", row.createdAt].join(" "),
   })), cursor ? Number(cursor) : page, query, PAGE_SIZE);
   const visibleRows = selected.rows;
+  const previousHistorias = mode === "docente"
+    ? await getHistoriasByPacienteIds(visibleRows.map((row) => row.pacienteId))
+    : {};
   const hydratedRows = await Promise.all(
     visibleRows.map(async (row) => {
       const [paciente, historia] = await Promise.all([
@@ -342,10 +348,12 @@ export async function listActivity({
         actorEmail: actor?.email,
         actorId: row.actorId,
         actorName: actor?.name ?? "Usuario no encontrado",
+        actorRole: actor?.role,
         changes: row.changes ?? [],
         changedFields: row.changedFields,
         createdAt: row.createdAt,
         historia: historia ?? undefined,
+        ...(mode === "docente" ? { previousHistorias: previousHistorias[row.pacienteId] ?? [] } : {}),
         historiaId: row.historiaId,
         id: row._id ?? "",
         paciente: serializePaciente(paciente),

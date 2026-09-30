@@ -1,202 +1,79 @@
-"use client";
-
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+﻿import { ClipboardListIcon, PencilLineIcon, UserPlusIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { registrationRoleLabel } from "@/lib/registration-author";
+import type { AuthRole } from "@/lib/auth-role-values";
 
 type PerformanceChartRow = {
+  id: string;
   dataUpdatedActivities?: number;
   historyCreatedActivities?: number;
-  isAssignedStudent?: boolean;
   name: string;
   patientCreatedActivities?: number;
-  registered: number;
-  role?: string | null;
-  totalActivities: number;
+  role?: AuthRole | null;
 };
+type CategoryKey = "historyCreatedActivities" | "patientCreatedActivities" | "dataUpdatedActivities";
 
-type StationPerformanceChartProps = {
+function ActorMetricChart({ rows, metricKey, title, total, icon: Icon }: {
   rows: PerformanceChartRow[];
-};
-
-type CategoryKey =
-  | "historyCreatedActivities"
-  | "patientCreatedActivities"
-  | "dataUpdatedActivities";
-
-const actorChartConfig = {
-  value: {
-    color: "var(--primary)",
-    label: "Total",
-  },
-} satisfies ChartConfig;
-
-function shortName(value: string) {
-  const [first = "", second = ""] = value.split(" ");
-
-  return `${first} ${second}`.trim() || value;
-}
-
-function actorLabel(row: PerformanceChartRow) {
-  if (row.role === "docente") {
-    return `${shortName(row.name)} (doc.)`;
-  }
-
-  if (row.isAssignedStudent === false) {
-    return `${shortName(row.name)} (extra)`;
-  }
-
-  return shortName(row.name);
-}
-
-function chartRows(rows: PerformanceChartRow[], key: CategoryKey) {
-  return rows
-    .map((row) => ({
-      actor: actorLabel(row),
-      fullName: row.name,
-      value: row[key] ?? 0,
-    }))
-    .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
-}
-
-function ActorMetricChart({
-  description,
-  metricKey,
-  rows,
-  title,
-  total,
-}: StationPerformanceChartProps & {
-  description: string;
   metricKey: CategoryKey;
   title: string;
   total: number;
+  icon: typeof ClipboardListIcon;
 }) {
-  const data = chartRows(rows, metricKey);
-  const chartHeight = Math.max(150, data.length * 34);
-
+  const contributors = rows.filter((row) => (row[metricKey] ?? 0) > 0)
+    .sort((a, b) => (b[metricKey] ?? 0) - (a[metricKey] ?? 0));
   return (
-    <Card className="gap-0 overflow-hidden rounded-xl border bg-card shadow-sm">
-      <CardHeader className="gap-3 border-b bg-muted/15 px-5 py-4">
-        <CardDescription className="text-xs font-medium uppercase tracking-wide">{description}</CardDescription>
-        <CardTitle className="flex items-baseline justify-between gap-3 text-base">
-          <span>{title}</span>
-          <span className="text-2xl font-semibold tabular-nums text-primary">{total}</span>
-        </CardTitle>
+    <Card className="gap-4 rounded-2xl border shadow-none" size="sm">
+      <CardHeader>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-4" aria-hidden="true" /></span>
+          <span className="text-3xl font-semibold tabular-nums tracking-tight">{total}</span>
+        </div>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>Distribución por responsable</CardDescription>
       </CardHeader>
-      <CardContent className="p-5">
-        {data.length > 0 ? (
-          <ChartContainer
-            className="w-full"
-            config={actorChartConfig}
-            initialDimension={{ height: chartHeight, width: 480 }}
-            style={{ height: chartHeight }}
-          >
-            <BarChart
-              accessibilityLayer
-              data={data}
-              layout="vertical"
-              margin={{ bottom: 4, left: 6, right: 34, top: 4 }}
-            >
-              <CartesianGrid horizontal={false} />
-              <YAxis
-                axisLine={false}
-                dataKey="actor"
-                tickLine={false}
-                tickMargin={8}
-                type="category"
-                width={128}
-              />
-              <XAxis dataKey="value" hide type="number" />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value, _name, item) => {
-                      const payload = item.payload as {
-                        fullName: string;
-                      };
-
-                      return (
-                        <div className="flex min-w-36 flex-col gap-1">
-                          <span className="font-medium">{payload.fullName}</span>
-                          <span className="text-muted-foreground">
-                            Total: {value}
-                          </span>
-                        </div>
-                      );
-                    }}
-                    hideLabel
-                  />
-                }
-                cursor={false}
-              />
-              <Bar dataKey="value" fill="var(--color-value)" radius={6}>
-                <LabelList
-                  className="fill-foreground"
-                  dataKey="value"
-                  fontSize={12}
-                  position="right"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        ) : (
-          <div className="flex h-36 flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-muted/15 text-center">
-            <span className="text-sm font-medium text-foreground">Sin actividad registrada</span>
-            <span className="text-xs text-muted-foreground">Aún no hay aportes para mostrar en esta categoría.</span>
-          </div>
-        )}
+      <CardContent className="flex flex-col gap-5">
+        {contributors.length ? (
+          <ol className="flex flex-col gap-4">
+            {contributors.slice(0, 10).map((row) => {
+              const value = row[metricKey] ?? 0;
+              const share = total > 0 ? Math.min(100, value / total * 100) : 0;
+              return (
+                <li className="flex flex-col gap-2" key={row.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="break-words text-sm font-medium">{row.name}</span>
+                      <Badge variant="outline">{registrationRoleLabel(row.role)}</Badge>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums">{value}</p>
+                      <p className="text-xs tabular-nums text-muted-foreground">{Math.round(share)}%</p>
+                    </div>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-primary/10" aria-hidden="true">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        ) : <p className="py-5 text-sm text-muted-foreground">Aún no hay actividad en esta categoría.</p>}
+        {contributors.length > 0 ? <p className="text-xs text-muted-foreground">{contributors.length > 10 ? "Se muestran los 10 mayores aportes. " : ""}Porcentaje del total de {title.toLowerCase()}.</p> : null}
       </CardContent>
     </Card>
   );
 }
 
-export function StationCategoryBars({
-  rows,
-  totals,
-}: StationPerformanceChartProps & {
-  totals: {
-    dataUpdates: number;
-    historiesCreated: number;
-    patientsCreated: number;
-  };
+export function StationCategoryBars({ rows, totals }: {
+  rows: PerformanceChartRow[];
+  totals: { dataUpdates: number; historiesCreated: number; patientsCreated: number };
 }) {
   return (
-    <div className="grid gap-3 xl:grid-cols-3">
-      <ActorMetricChart
-        description="Aportes por actor"
-        metricKey="historyCreatedActivities"
-        rows={rows}
-        title="Historias creadas"
-        total={totals.historiesCreated}
-      />
-      <ActorMetricChart
-        description="Registros iniciales por actor"
-        metricKey="patientCreatedActivities"
-        rows={rows}
-        title="Pacientes creados"
-        total={totals.patientsCreated}
-      />
-      <ActorMetricChart
-        description="Actualizaciones por actor"
-        metricKey="dataUpdatedActivities"
-        rows={rows}
-        title="Datos editados"
-        total={totals.dataUpdates}
-      />
+    <div className="grid gap-4 lg:grid-cols-3">
+      <ActorMetricChart icon={ClipboardListIcon} metricKey="historyCreatedActivities" rows={rows} title="Historias creadas" total={totals.historiesCreated} />
+      <ActorMetricChart icon={UserPlusIcon} metricKey="patientCreatedActivities" rows={rows} title="Pacientes registrados" total={totals.patientsCreated} />
+      <ActorMetricChart icon={PencilLineIcon} metricKey="dataUpdatedActivities" rows={rows} title="Datos editados" total={totals.dataUpdates} />
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import "server-only";
+import { getAuthUsersByIds } from "@/lib/auth-users";
+import type { RegistrationAuthor } from "@/lib/registration-author";
 
 import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
@@ -6,6 +8,7 @@ import { ensureTesisIndexes } from "@/lib/db-indexes";
 import type { PacienteSearchResult } from "@/lib/pacientes/search-types";
 import type { Historia, Paciente } from "@/lib/schema";
 import type { Viaje } from "@/lib/schema/viajes";
+import { getPatientRegistrationAuthors } from "@/lib/pacientes/registration-queries";
 
 const PAGE_SIZE = 10;
 const HISTORY_FIND_BATCH_SIZE = 50;
@@ -70,6 +73,9 @@ export type StationHistoryRow = {
   historiaId: string;
   paciente: PacienteSearchResult;
   stationCompleted: boolean;
+  historyAuthor?: RegistrationAuthor;
+  patientAuthor?: RegistrationAuthor;
+  stationAuthor?: RegistrationAuthor;
 };
 
 export type StationHistoryPageResult = {
@@ -339,6 +345,10 @@ async function serializeHistoria({
     historiaId: doc._id,
     paciente,
     stationCompleted: hasValue,
+    historyAuthorId: mode === "docente" ? doc.created_by : undefined,
+    stationAuthorId: mode === "docente" && stationKey !== "farmacia"
+      ? (doc[config.field] as { created_by?: string } | undefined)?.created_by
+      : undefined,
   };
 }
 
@@ -360,7 +370,7 @@ export async function listStationHistories({
   userId?: string;
 }): Promise<StationHistoryPageResult> {
   const normalizedQuery = normalize(query);
-  const rows: StationHistoryRow[] = [];
+  const rows: NonNullable<Awaited<ReturnType<typeof serializeHistoria>>>[] = [];
   const startIndex = Number.parseInt(cursor ?? "0", 10);
   const offset = Number.isFinite(startIndex) && startIndex > 0 ? startIndex : 0;
   const requiredRows = offset + PAGE_SIZE + 1;
@@ -444,13 +454,34 @@ export async function listStationHistories({
   }
 
   const visibleRows = rows.slice(offset, offset + PAGE_SIZE);
+  // Only resolve registration events for patients already authorized above.
+  // A returning patient may have been registered during an earlier trip.
+  const patientAuthors = mode === "docente"
+    ? await getPatientRegistrationAuthors(visibleRows.map((row) => row.paciente.id))
+    : new Map<string, RegistrationAuthor>();
+  const users = getAuthUsersByIds(visibleRows.flatMap((row) =>
+    [row.historyAuthorId, row.stationAuthorId].filter((id): id is string => Boolean(id)),
+  ));
+  function author(id?: string): RegistrationAuthor | undefined {
+    if (!id) return undefined;
+    const user = users.get(id);
+    return user ? { name: user.name, email: user.email, role: user.role }
+      : { name: "Usuario no encontrado" };
+  }
   const nextOffset = offset + PAGE_SIZE;
 
   return {
     hasNextPage: nextOffset < rows.length,
     nextCursor: nextOffset < rows.length ? String(nextOffset) : undefined,
     pageSize: PAGE_SIZE,
-    rows: visibleRows,
+    rows: visibleRows.map(({ historyAuthorId, stationAuthorId, ...row }) => ({
+      ...row,
+      ...(mode === "docente" ? {
+        historyAuthor: author(historyAuthorId),
+        patientAuthor: patientAuthors.get(row.paciente.id),
+        stationAuthor: author(stationAuthorId),
+      } : {}),
+    })),
   };
 }
 

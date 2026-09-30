@@ -14,7 +14,6 @@ import {
   MapPinIcon,
   ScanSearchIcon,
   ScrollTextIcon,
-  UserRoundCheckIcon,
   UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
@@ -39,6 +38,9 @@ import {
 } from "@/components/ui/item";
 import type { ActivityListRow } from "@/components/activity/station-activity-links";
 import { formatBoliviaActivityDate as formatDate } from "@/lib/bolivia-time";
+import { RegistrationAttribution } from "@/components/activity/registration-attribution";
+import { Badge } from "@/components/ui/badge";
+import { PacienteClinicalSummaryModal } from "@/components/historias/historia-clinical-summary";
 
 type StationActivityListProps = {
   mode: "docente" | "estudiante";
@@ -324,7 +326,9 @@ function AuditDetailDialog({ row }: { row: ActivityListRow }) {
           </div>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-primary/10 pt-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5"><CalendarClockIcon className="size-4" aria-hidden="true" /><time dateTime={row.createdAt}>{formatDate(row.createdAt)}</time> · Bolivia</span>
-            <span className="inline-flex items-center gap-1.5"><UserRoundCheckIcon className="size-4" aria-hidden="true" />{row.actorName}</span>
+          </div>
+          <div className="mt-4 rounded-xl border bg-muted/20 p-4">
+            <RegistrationAttribution author={{ name: row.actorName, email: row.actorEmail, role: row.actorRole }} label={isCreated ? "Registrado por" : "Modificado por"} />
           </div>
         </DialogHeader>
 
@@ -399,6 +403,7 @@ function AuditValue({ field, label, value }: { field: string; label: string; val
 }
 
 export function StationActivityList({
+  mode,
   rows,
 }: StationActivityListProps) {
   return (
@@ -408,28 +413,29 @@ export function StationActivityList({
           row.action === "created" ? ClipboardCheckIcon : FilePenLineIcon;
 
         return (
-          <Item className="rounded-xl bg-background p-4 transition-colors hover:bg-muted/20" key={row.id} variant="outline">
+          <Item className="grid gap-0 overflow-hidden p-0" key={row.id} variant="outline">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5 sm:px-5">
+              <Badge variant={row.action === "created" ? "secondary" : "outline"}><Icon data-icon="inline-start" />{getActionLabel(row.action, row.subject)}</Badge>
+              <time className="text-xs text-muted-foreground" dateTime={row.createdAt}>{formatDate(row.createdAt)}</time>
+            </div>
+            <div className="grid min-w-0 items-center gap-5 p-4 sm:p-5 lg:grid-cols-2">
+            <div className="flex min-w-0 items-center gap-3">
             <ItemMedia variant="icon">
               <Icon />
             </ItemMedia>
-            <ItemContent>
-              <ItemTitle>{row.pacienteName}</ItemTitle>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="line-clamp-none break-words">{row.pacienteName}</ItemTitle>
               <ItemDescription>
-                {row.pacienteDocument} · {getActionLabel(row.action, row.subject)}
+                {row.pacienteDocument}
               </ItemDescription>
             </ItemContent>
-            <ItemContent className="hidden flex-none md:flex">
-              <ItemTitle className="text-xs text-muted-foreground">
-                <UserRoundIcon />
-                {row.actorName}
-              </ItemTitle>
-              <ItemDescription><time dateTime={row.createdAt}>{formatDate(row.createdAt)}</time></ItemDescription>
-            </ItemContent>
-            <ItemActions className="basis-full flex-wrap justify-end sm:basis-auto">
-              <span className="text-xs text-muted-foreground md:hidden">
-                {formatDate(row.createdAt)}
-              </span>
+            </div>
+            <RegistrationAttribution author={{ name: row.actorName, email: mode === "docente" ? row.actorEmail : undefined, role: row.actorRole }} label={row.action === "created" ? "Registrado por" : "Modificado por"} />
+            </div>
+            <ItemActions className="flex-wrap justify-end border-t px-4 py-3 sm:px-5">
+              <span className="mr-auto text-xs text-muted-foreground">{row.subject === "paciente" ? "Datos del paciente" : "Registro de la estación"}</span>
               <AuditDetailDialog row={row} />
+              {mode === "docente" && row.paciente ? <PacienteClinicalSummaryModal paciente={row.paciente} previousHistorias={row.previousHistorias ?? []} triggerLabel="Historial clínico" showPdfDownload={false} /> : null}
               {row.reportHref ? (
                 <Button asChild size="sm" variant="outline">
                   <Link href={row.reportHref} target="_blank">

@@ -1,4 +1,6 @@
 import "server-only";
+import { getAuthUsersByIds } from "@/lib/auth-users";
+import type { RegistrationAuthor } from "@/lib/registration-author";
 
 import { db } from "@/lib/db";
 import { findTesisDocs } from "@/lib/db-find";
@@ -11,7 +13,9 @@ type PacienteDocument = Paciente & {
   _id?: string;
 };
 
-type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia>;
+type HistoriaDocument = PouchDB.Core.ExistingDocument<Historia> & {
+  registeredBy?: RegistrationAuthor;
+};
 
 function dateToInputValue(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
@@ -122,22 +126,7 @@ export async function getPacienteById(id: string) {
 }
 
 export async function getHistoriasByPacienteId(id: string) {
-  if (!id) {
-    return [];
-  }
-
-  await ensureTesisIndexes();
-
-  const result = await findTesisDocs({
-    limit: 25,
-    selector: {
-      pacienteId: id,
-      type: "historia",
-    },
-    use_index: "idx_historias_paciente",
-  });
-
-  return result.docs.filter(isHistoriaDocument).slice(0, 12);
+  return (await getHistoriasByPacienteIds([id]))[id] ?? [];
 }
 
 export async function getHistoriasByPacienteIds(ids: string[]) {
@@ -149,26 +138,36 @@ export async function getHistoriasByPacienteIds(ids: string[]) {
 
   await ensureTesisIndexes();
 
-  const result = await findTesisDocs({
-    limit: pacienteIds.length * 12,
-    selector: {
-      pacienteId: { $in: pacienteIds },
-      type: "historia",
-    },
-    use_index: "idx_historias_paciente",
-  });
   const historiasByPacienteId: Record<string, HistoriaDocument[]> =
     Object.fromEntries(pacienteIds.map((id) => [id, []]));
 
-  for (const doc of result.docs) {
-    if (!isHistoriaDocument(doc) || !historiasByPacienteId[doc.pacienteId]) {
-      continue;
-    }
-
-    if (historiasByPacienteId[doc.pacienteId].length < 12) {
+  for (let skip = 0; ; skip += 100) {
+    const result = await findTesisDocs({
+      limit: 100,
+      skip,
+      selector: { pacienteId: { $in: pacienteIds }, type: "historia" },
+      use_index: "idx_historias_paciente",
+    });
+    for (const doc of result.docs) {
+      if (!isHistoriaDocument(doc) || !historiasByPacienteId[doc.pacienteId]) {
+        continue;
+      }
       historiasByPacienteId[doc.pacienteId].push(doc);
     }
+    if (result.docs.length < 100) break;
   }
 
+  const histories = Object.values(historiasByPacienteId).flat();
+  const users = getAuthUsersByIds(histories.map((historia) =>
+    historia.created_by || historia.anamnesis?.created_by || "",
+  ));
+  for (const historia of histories) {
+    // Each visit owns its author; never use the patient creator or last editor.
+    const authorId = historia.created_by || historia.anamnesis?.created_by;
+    const author = authorId ? users.get(authorId) : undefined;
+    historia.registeredBy = author
+      ? { name: author.name, email: author.email, role: author.role }
+      : authorId ? { name: "Usuario no encontrado" } : undefined;
+  }
   return historiasByPacienteId;
 }

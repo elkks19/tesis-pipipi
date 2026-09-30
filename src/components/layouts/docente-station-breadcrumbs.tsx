@@ -31,6 +31,8 @@ function getCurrentLabel(
   primaryHref: string,
   primaryLabel: string,
 ) {
+  if (pathname === `${basePath}/reportes`) return "Reportes";
+
   if (pathname === primaryHref || pathname.startsWith(`${primaryHref}/`)) {
     return primaryLabel;
   }

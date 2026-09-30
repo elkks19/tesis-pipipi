@@ -1,4 +1,5 @@
 
+import { ActivityIcon } from "lucide-react";
 import { StationActivityFeed } from "@/components/activity/station-activity-feed";
 import {
   getActivityDescription,
@@ -39,13 +40,17 @@ export async function StationActivityPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="flex items-start gap-4">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary"><ActivityIcon className="size-5" aria-hidden="true" /></div>
+        <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{mode === "docente" ? "Seguimiento docente" : "Mi actividad"}</p>
         <h1 className="font-heading text-2xl font-semibold">
           {getActivityTitle({ mode, stationKey }) || title}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           {getActivityDescription(mode)}
         </p>
+        </div>
       </div>
 
         <StationActivityFeed

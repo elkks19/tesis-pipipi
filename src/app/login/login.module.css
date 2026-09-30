@@ -1,0 +1,56 @@
+.page {
+  display: grid;
+  min-height: 100svh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.formPanel { display: flex; flex-direction: column; padding: 40px clamp(28px, 4.5vw, 68px) 28px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brandName { font-size: 20px; font-weight: 800; letter-spacing: 0.08em; line-height: 1.2; }
+.brandCareer { margin-top: 5px; color: var(--muted-foreground); font-size: 12px; }
+.formContent { width: 100%; max-width: 372px; margin: auto; padding: 48px 0; }
+.eyebrow { color: var(--primary); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+.heading { margin-top: 14px; font-family: var(--font-geist-sans), sans-serif; font-size: clamp(34px, 3.5vw, 46px); font-weight: 600; letter-spacing: -0.05em; line-height: 1.1; }
+.intro { margin: 16px 0 32px; max-width: 290px; color: var(--muted-foreground); font-size: 14px; line-height: 1.7; }
+.register { margin-top: 24px; color: var(--muted-foreground); font-size: 13px; text-align: center; line-height: 1.8; }
+.footer { color: var(--muted-foreground); font-size: 11px; text-align: center; }
+
+.visualPanel { position: relative; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: var(--primary); color: #fff; }
+.medicalImage { object-fit: cover; object-position: 64% center; }
+.imageShade { position: absolute; inset: 0; background: linear-gradient(180deg, #0f172a60 0%, #0f172a20 28%, #0f172ab8 60%, #0f172afa 100%); }
+.visualTop { position: relative; display: flex; align-items: center; gap: 10px; padding: 32px; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; }
+.visualCopy { position: relative; margin-top: auto; padding: 120px 36px 40px; }
+.accentLine { display: block; width: 38px; height: 4px; margin-bottom: 22px; border-radius: 10px; background: var(--primary); }
+.visualEyebrow { max-width: 280px; margin-bottom: 16px; color: #d1e7eb; font-size: 10px; font-weight: 500; line-height: 1.8; letter-spacing: 0.13em; text-transform: uppercase; }
+.visualCopy h2 { font-family: var(--font-geist-sans), sans-serif; font-size: clamp(32px, 3.2vw, 44px); font-weight: 500; line-height: 1.17; letter-spacing: -0.045em; }
+.visualCopy h2 span { color: #bfdbfe; }
+.visualDescription { max-width: 335px; margin-top: 20px; color: #d1e3e9; font-size: 13px; line-height: 1.85; }
+.visualFooter { position: relative; display: flex; justify-content: space-between; gap: 12px; margin: 0 32px; padding: 20px 0; border-top: 1px solid #ffffff26; color: #cadde5; font-size: 10px; }
+.visualFooter span { text-transform: uppercase; letter-spacing: 0.12em; }
+
+@media (min-width: 768px) and (max-height: 800px) {
+  .formContent { padding-block: 32px; }
+}
+
+@media (max-width: 767px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .formPanel { padding: 28px 24px; }
+  .formContent { max-width: 420px; padding-block: 40px; }
+  .visualPanel { min-height: 370px; }
+  .visualTop { padding: 24px; }
+  .visualCopy { padding: 40px 24px 24px; }
+  .visualCopy h2 { font-size: 32px; }
+  .visualDescription { max-width: 100%; }
+  .visualFooter { margin-inline: 24px; }
+  .medicalImage { object-position: center 38%; }
+}

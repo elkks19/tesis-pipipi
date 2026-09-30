@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { connection } from "next/server";
 
 import { PendingHistoriesTable } from "@/app/estudiante/_components/pending-histories-table";
+import { getHistoriasByPacienteIds } from "@/app/estudiante/anamnesis/create-historia/queries";
 import { getAuthenticatedUserId } from "@/lib/auth-session";
 import {
   listStationHistories,
@@ -57,6 +58,7 @@ export async function DocentePendingStationPage({
     stationKey,
     userId: userId ?? undefined,
   });
+  const historiasByPacienteId = await getHistoriasByPacienteIds(page.rows.map((row) => row.paciente.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,6 +76,7 @@ export async function DocentePendingStationPage({
         emptyMessage={emptyMessage}
         filterId={filterId}
         mode="docente"
+        historiasByPacienteId={historiasByPacienteId}
         page={page}
         query={query}
         stationKey={stationKey}

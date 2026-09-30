@@ -1,4 +1,7 @@
+import type { RegistrationAuthor } from "@/lib/registration-author";
+
 export type PacienteSearchResult = {
+  registeredBy?: RegistrationAuthor;
   id: string;
   createdAt?: string;
   updatedAt?: string;

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { ClipboardListIcon } from "lucide-react";
+import { getPatientRegistrationAuthors } from "@/lib/pacientes/registration-queries";
 import { PacienteListNavigation } from "@/components/pacientes/paciente-list-navigation";
 
 import { AnamnesisForm } from "@/components/forms/anamnesis-form";
@@ -42,6 +44,10 @@ export default async function DocenteCreateHistoriaPage({
     ? await getHistoriasByPacienteId(selectedPaciente.id)
     : [];
   const visiblePacientes = selectedPaciente ? [selectedPaciente] : pacientes.pacientes;
+  const registrationAuthors = await getPatientRegistrationAuthors(visiblePacientes.map((paciente) => paciente.id));
+  const pacientesWithAuthors = visiblePacientes.map((paciente) => ({
+    ...paciente, registeredBy: registrationAuthors.get(paciente.id),
+  }));
   const historiasByPacienteId = selectedPaciente
     ? { [selectedPaciente.id]: selectedPacienteHistorias }
     : await getHistoriasByPacienteIds(visiblePacientes.map((paciente) => paciente.id));
@@ -49,7 +55,10 @@ export default async function DocenteCreateHistoriaPage({
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex items-start gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary"><ClipboardListIcon className="size-5" aria-hidden="true" /></div>
+          <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Anamnesis · Atención clínica</p>
           <h1 className="font-heading text-2xl font-semibold tracking-normal">
             Nueva historia
           </h1>
@@ -58,6 +67,7 @@ export default async function DocenteCreateHistoriaPage({
               ? "Completa la anamnesis paso a paso. Puedes volver a cualquier sección antes de guardar."
               : "Selecciona un paciente para iniciar su historia clínica."}
           </p>
+          </div>
         </div>
 
         {!selectedPaciente ? <PacienteSearchInput initialValue={query} key={query} /> : null}
@@ -77,7 +87,8 @@ export default async function DocenteCreateHistoriaPage({
         createHistoriaRoute="/docente/anamnesis/create-historia"
         editPacienteRoute="/docente/anamnesis/pacientes"
         newPacienteRoute="/docente/anamnesis/create-paciente"
-        pacientes={visiblePacientes}
+        pacientes={pacientesWithAuthors}
+        showRegistrationAuthor
         historiasByPacienteId={historiasByPacienteId}
         query={query}
         selectedPacienteId={selectedPaciente?.id}

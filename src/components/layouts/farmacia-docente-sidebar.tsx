@@ -5,6 +5,7 @@ import { farmaciaNavigation } from "@/lib/farmacia-navigation";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LogOutIcon,
+  FileTextIcon,
   UserRoundIcon,
 } from "lucide-react";
 
@@ -57,7 +58,10 @@ export function FarmaciaDocenteSidebar({
   const userImage = session?.user.image ?? undefined;
   const initials = getInitials(userName);
 
-  const visibleNavItems = farmaciaNavigation("docente", accessPhase);
+  const visibleNavItems = [
+    ...farmaciaNavigation("docente", accessPhase),
+    ...(accessPhase === "activo" ? [{ href: "/docente/farmacia/reportes", label: "Reportes", icon: FileTextIcon }] : []),
+  ];
 
   function closeMobileSidebar() {
     if (isMobile) {

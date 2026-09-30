@@ -46,3 +46,6 @@ CONTINUACION.md
 skills-lock.json
 .DS_Store
 **/*.log
+
+/raspberry-deploy
+/carbone

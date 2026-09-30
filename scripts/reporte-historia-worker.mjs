@@ -359,8 +359,6 @@ async function putHistoriaReportFile({ content, historia, paciente }) {
 }
 
 async function putCouchDocument(doc) {
-  const { assertDocumentWrite } = await import("../src/lib/sync/ownership.mjs");
-  await assertDocumentWrite(doc);
   const { headers, url } = getCouchUrl(encodeURIComponent(doc._id));
   headers.set("Content-Type", "application/json");
 
@@ -921,9 +919,6 @@ const worker = new Worker(
 
       throw error;
     }
-
-    const { assertDocumentWrite } = await import("../src/lib/sync/ownership.mjs");
-    await assertDocumentWrite(historia);
     const diagnosticoFingerprint = getDiagnosticoFingerprint(historia.diagnostico);
 
     if (

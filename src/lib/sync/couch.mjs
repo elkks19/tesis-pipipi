@@ -36,10 +36,11 @@ export async function controlList(prefix) {
   const result = await couch(`${db}/_all_docs?include_docs=true&startkey=${encodeURIComponent(JSON.stringify(prefix))}&endkey=${encodeURIComponent(JSON.stringify(prefix + '\ufff0'))}`, { server: true, missing: true });
   return result?.rows.map((row) => row.doc).filter(Boolean) ?? [];
 }
-export async function allDocuments() {
+export async function allDocuments(conflicts = false) {
   const docs = []; let start;
   for (;;) {
     const params = new URLSearchParams({ include_docs: 'true', limit: '500' });
+    if (conflicts) params.set('conflicts', 'true');
     if (start) { params.set('startkey', JSON.stringify(start)); params.set('skip', '1'); }
     const page = await couch(`_all_docs?${params}`);
     for (const row of page.rows) if (row.doc && !row.id.startsWith('_')) docs.push(row.doc);

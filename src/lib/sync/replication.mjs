@@ -30,8 +30,8 @@ export async function replicationStatus() {
   for (const definition of replicationDefinitions(syncConfig())) {
     const raw = await couch(`_scheduler/docs/_replicator/${encodeURIComponent(definition._id)}`, { server: true, missing: true });
     const jobs = raw?.id ? await couch(`_scheduler/jobs/${encodeURIComponent(raw.id)}`, { server: true, missing: true }) : null;
-    const info = raw?.info ?? jobs?.info ?? {};
-    result.push({ direction: definition._id.endsWith('push') ? 'push' : 'pull', state: raw?.state ?? 'not_started', pending: typeof info.changes_pending === 'number' ? info.changes_pending : null, written: typeof info.docs_written === 'number' ? info.docs_written : null, failures: info.doc_write_failures ?? 0, updatedAt: raw?.last_updated ?? null, error: ['failed', 'crashing', 'error'].includes(raw?.state) ? 'La replicación no pudo continuar. Revisa conexión y permisos de CouchDB.' : null, history: (jobs?.history ?? []).slice(0, 10).map((event) => ({ type: event.type, timestamp: event.timestamp })) });
+    const info = { ...(raw?.info ?? {}), ...(jobs?.info ?? {}) };
+    result.push({ direction: definition._id.endsWith('push') ? 'push' : 'pull', state: raw?.state ?? 'not_started', pending: typeof info.changes_pending === 'number' ? info.changes_pending : null, written: typeof info.docs_written === 'number' ? info.docs_written : null, failures: typeof info.doc_write_failures === 'number' ? info.doc_write_failures : null, updatedAt: raw?.last_updated ?? null, error: ['failed', 'crashing', 'error'].includes(raw?.state) ? 'La replicación no pudo continuar. Revisa conexión y permisos de CouchDB.' : null, history: (jobs?.history ?? []).slice(0, 10).map((event) => ({ type: event.type, timestamp: event.timestamp })) });
   }
   return result;
 }

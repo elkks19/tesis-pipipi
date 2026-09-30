@@ -1,0 +1,16 @@
+# Compatibility for images published before cross-env was removed from runtime commands.
+# On the Raspberry, copy as docker-compose.override.yml next to docker-compose.yml.
+services:
+  worker:
+    entrypoint: ["node", "--use-system-ca", "scripts/reporte-historia-worker.mjs"]
+    command: []
+    environment:
+      NODE_OPTIONS: --use-system-ca
+  web:
+    entrypoint:
+      - /bin/sh
+      - -c
+      - node --use-system-ca node_modules/next/dist/bin/next build --experimental-build-mode generate && exec node --use-system-ca node_modules/next/dist/bin/next start
+    command: []
+    environment:
+      NODE_OPTIONS: --use-system-ca

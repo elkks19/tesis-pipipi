@@ -1,29 +1,19 @@
+import { syncFailure } from './diagnostics.mjs';
 import { randomUUID } from 'node:crypto';
 import { syncConfig, validateSyncConfig } from './config.mjs';
-import { couch, controlGet, controlPut, controlList, ensureControl } from './couch.mjs';
+import { couch, controlGet, controlPut, controlList, ensureControl, allDocuments } from './couch.mjs';
 
-export async function queueCommand(action, actorId, tripId = undefined) {
+export async function queueCommand(action, actorId) {
   const config = syncConfig(); validateSyncConfig(config);
   if (!config.enabled) throw new Error('Activa SYNC_ENABLED después de configurar ambos entornos.');
-  if (!['sync', 'pause', 'resume', 'prepare', 'return'].includes(action)) throw new Error('Acción inválida.');
+  if (!['sync', 'pause', 'resume'].includes(action)) throw new Error('Acción inválida.');
   await ensureControl();
-  if (['prepare', 'return'].includes(action)) {
-    if (config.environment !== 'cloud') throw new Error('La asignación del viaje se administra desde la nube.');
-    if (typeof tripId !== 'string' || !tripId) throw new Error('Selecciona un viaje.');
-    const trip = await couch(encodeURIComponent(tripId), { missing: true });
-    if (trip?.type !== 'viaje') throw new Error('Viaje no encontrado.');
-    const state = await controlGet(`trip:${tripId}`);
-    if (action === 'prepare' && state && !['cloud', 'preparing'].includes(state.phase)) throw new Error('El viaje ya está asignado.');
-    if (action === 'return' && !['raspberry', 'returning'].includes(state?.phase)) throw new Error('El viaje no está operado por la Raspberry.');
-    await controlPut({ ...state, _id: `trip:${tripId}`, tripId, nodeId: config.nodeId, phase: action === 'prepare' ? 'preparing' : 'returning', updatedAt: new Date().toISOString(), actorId });
-  }
-  const command = { _id: `command:${randomUUID()}`, action, actorId, tripId: tripId ?? null, state: 'pending', createdAt: new Date().toISOString() };
+  const command = { _id: `command:${randomUUID()}`, action, actorId, state: 'pending', createdAt: new Date().toISOString() };
   await controlPut(command);
   return { id: command._id, state: command.state };
 }
 export async function conflictList() {
-  const result = await couch('_find', { method: 'POST', body: { selector: { _conflicts: { $exists: true } }, conflicts: true, limit: 100, fields: ['_id', '_rev', '_conflicts', 'type', 'updatedAt'] } });
-  return result.docs.map((doc) => ({ id: doc._id, type: doc.type ?? 'documento', revisions: [doc._rev, ...doc._conflicts] }));
+  return (await allDocuments(true)).filter((doc) => doc._conflicts?.length).map((doc) => ({ id: doc._id, type: doc.type ?? 'documento', revisions: [doc._rev, ...doc._conflicts] }));
 }
 export async function conflictVersions(id) {
   if (!id || id.startsWith('_')) throw new Error('Documento inválido.');
@@ -45,11 +35,52 @@ export async function resolveConflict(id, selected, expected, actorId) {
   if (failed) throw new Error('La resolución quedó parcial; vuelve a consultar el conflicto.');
   return { ok: true };
 }
+
 export async function syncStatus() {
   const config = syncConfig();
+  const diagnostics = [];
   let configured = true;
-  try { validateSyncConfig(config); } catch { configured = false; }
-  if (!config.enabled || !configured) return { environment: config.environment, enabled: config.enabled, configured, nodeId: config.nodeId, stale: true, snapshot: null, commands: [], trips: [], conflicts: [], fileConflicts: [] };
-  const [status, commands, trips, conflicts, fileConflicts, travel] = await Promise.all([controlGet(`status:${config.nodeId}`), controlList('command:'), controlList('trip:'), conflictList(), controlList('file-conflict:'), couch('_find', { method: 'POST', body: { selector: { type: 'viaje' }, limit: 10000, fields: ['_id', 'fechaEntrada', 'establecimiento', 'servicio'] } })]);
-  return { environment: config.environment, enabled: true, configured, nodeId: config.nodeId, stale: !status || Date.now() - Date.parse(status.receivedAt ?? status.updatedAt) > config.interval * 3000, snapshot: status?.snapshot ?? null, availableTrips: travel.docs.map((trip) => ({ id: trip._id, name: `${trip.establecimiento?.nombre ?? trip.servicio ?? "Viaje"} · ${trip.fechaEntrada ?? ""}` })), updatedAt: status?.receivedAt ?? status?.updatedAt ?? null, commands: commands.sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-30).map(({ _id, action, state, createdAt, completedAt, tripId }) => ({ id: _id, action, state, createdAt, completedAt, tripId })), trips: trips.map(({ tripId, phase }) => ({ tripId, phase })), conflicts, fileConflicts: fileConflicts.filter((item) => !item.resolved).map(({ _id, key, current, candidate }) => ({ id: _id, key, current: { sha256: current.sha256, size: current.size }, candidate: { sha256: candidate.sha256, size: candidate.size } })) };
+  try { validateSyncConfig(config); } catch { configured = false; diagnostics.push({ stage: 'configuration', message: 'Revisa las URL, las credenciales y el secreto de intercambio en las variables de entorno.' }); }
+  const base = { environment: config.environment, enabled: config.enabled, configured, nodeId: config.nodeId, interval: config.interval, stale: true, snapshot: null, commands: [], conflicts: [], fileConflicts: [], diagnostics, updatedAt: null, database: null, changes: [], audit: [] };
+  if (!config.enabled || !configured) return base;
+  async function read(stage, task, fallback) {
+    try { return await task(); } catch (error) { diagnostics.push(syncFailure(error, stage)); return fallback; }
+  }
+  const [status, commands, conflicts, fileConflicts, database, changeFeed, resolutions, fileResolutions] = await Promise.all([
+    read('control', () => controlGet(`status:${config.nodeId}`), null),
+    read('commands', () => controlList('command:'), []),
+    read('conflicts', conflictList, []),
+    read('files', () => controlList('file-conflict:'), []),
+    read('data', () => couch(''), null),
+    read('data', () => couch('_changes?descending=true&include_docs=true&style=all_docs&limit=80'), { results: [] }),
+    read('control', () => controlList('resolution:'), []),
+    read('control', () => controlList('file-resolution:'), []),
+  ]);
+  const updatedAt = status?.receivedAt ?? status?.updatedAt ?? null;
+  const timestamp = Date.parse(updatedAt);
+  return { ...base, stale: !Number.isFinite(timestamp) || Date.now() - timestamp > config.interval * 3000, snapshot: status?.snapshot ?? null, updatedAt,
+    commands: commands.filter((c) => ['sync', 'pause', 'resume'].includes(c.action)).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-50).map(({ _id, action, state, actorId, createdAt, completedAt }) => ({ id: _id, action, state, actorId, createdAt, completedAt })),
+    conflicts,
+    fileConflicts: fileConflicts.filter((item) => !item.resolved).map(({ _id, key, current, candidate }) => ({ id: _id, key, current: { sha256: current.sha256, size: current.size }, candidate: { sha256: candidate.sha256, size: candidate.size } })),
+    database: database ? { name: database.db_name, documents: database.doc_count, deleted: database.doc_del_count, updateSequence: database.update_seq, diskSize: database.sizes?.file ?? null, activeSize: database.sizes?.active ?? null } : null,
+    changes: (changeFeed?.results ?? []).map((change) => ({
+      sequence: typeof change.seq === 'string' || typeof change.seq === 'number' ? String(change.seq) : JSON.stringify(change.seq),
+      id: change.id,
+      type: change.doc?.type ?? 'documento',
+      revision: change.changes?.[0]?.rev ?? change.doc?._rev ?? null,
+      revisions: (change.changes ?? []).map((item) => item.rev),
+      deleted: Boolean(change.deleted ?? change.doc?._deleted),
+      updatedAt: change.doc?.updatedAt ?? change.doc?.fechaActualizacion ?? change.doc?.createdAt ?? null,
+    })),
+    audit: [...resolutions, ...fileResolutions].sort((a, b) => String(b.completedAt ?? b.createdAt).localeCompare(String(a.completedAt ?? a.createdAt))).slice(0, 50).map((item) => ({
+      id: item._id,
+      kind: item._id.startsWith('file-resolution:') ? 'file' : 'document',
+      target: item.documentId ?? item.key ?? item.conflictId,
+      state: item.state,
+      actorId: item.actorId,
+      selected: item.selected,
+      createdAt: item.createdAt,
+      completedAt: item.completedAt,
+    })),
+  };
 }

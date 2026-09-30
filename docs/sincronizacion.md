@@ -49,15 +49,15 @@ El supervisor se integra en `pnpm worker:reportes`, junto al worker existente de
 
 El supervisor crea dos replicaciones continuas nativas, `tesis-raspberry-01-push` y `tesis-raspberry-01-pull`, de toda la base de aplicación, incluidos adjuntos. CouchDB conserva checkpoints y reintenta; sigue replicando aunque el panel o worker estén cerrados. Las cuentas, archivos externos, órdenes y reportes de estado necesitan el supervisor activo. Las órdenes y auditorías se guardan en una base separada para evitar bucles de replicación.
 
-El panel consulta cada cinco segundos mientras está visible. Los contadores documentales provienen del scheduler; si faltan se muestra “No disponible”. Archivos y cuentas tienen indicadores separados. Una orden pendiente de conexión nunca se presenta como ejecutada. Pausar elimina solamente los dos trabajos administrados; reanudar los recrea y conserva checkpoints. **Pausar antes de desactivar `SYNC_ENABLED`**: apagar la aplicación o cambiar esa variable no elimina trabajos nativos ya instalados. Devolver primero cualquier viaje asignado antes de retirar la configuración de sincronización.
+El panel consulta cada cinco segundos mientras está visible. Los contadores documentales provienen del scheduler; si faltan se muestra “No disponible”. Archivos y cuentas tienen indicadores separados. Una orden pendiente de conexión nunca se presenta como ejecutada. Pausar elimina solamente los dos trabajos administrados; reanudar los recrea y conserva checkpoints. **Pausar antes de desactivar `SYNC_ENABLED`**: apagar la aplicación o cambiar esa variable no elimina trabajos nativos ya instalados.
 
 Los archivos se transmiten por streams con tamaño y SHA-256, se publican después de verificar y se reintentan en ciclos posteriores. Una interrupción reinicia la transferencia del archivo completo. Dos contenidos bajo la misma clave se conservan para revisión; no se borran archivos físicos al desaparecer referencias. Resolver conflictos de archivos desde la nube. No se transfieren cachés ni índices RAG.
 
-## Viajes y conflictos
+## Edición y conflictos
 
-Desde la nube, seleccionar el viaje y preparar su control en la Raspberry. El servidor bloquea las escrituras clínicas, de inventario y de pacientes relacionados en la nube durante la preparación. La Raspberry solo escribe viajes asignados a su nodo. El estado pasa a listo después de verificar datos, cuentas necesarias, archivos y ausencia de conflictos en ciclos consecutivos. No salir mientras aparezca preparación pendiente.
+Ambos entornos pueden editar con sus permisos habituales. No existe asignación, preparación ni devolución de control del viaje. Las órdenes antiguas de ese mecanismo se cancelan y los registros históricos se conservan, sin bloquear escrituras.
 
-Para devolver, solicitar la devolución desde la nube conectada; la Raspberry recoge el bloqueo antes de completar el cierre. Hasta recibir la confirmación, la nube permanece en consulta. Una desconexión deja la devolución pendiente. Las semillas se rechazan con sincronización habilitada para impedir que evadan estos controles.
+Los cambios concurrentes pueden crear revisiones diferentes: el panel permite compararlas y decidir cuál conservar. Los permisos de rol y las reglas clínicas normales siguen vigentes.
 
 Los conflictos documentales muestran revisiones completas, sin inventar el servidor de origen. El administrador elige una versión y confirma; el servidor comprueba de nuevo las revisiones y guarda una copia auditable antes de resolver. Decisiones obsoletas se rechazan. Los conflictos de archivos permiten elegir el contenido actual o el candidato conservado, verificando hashes otra vez. Conservar copias de seguridad de ambas bases y del almacenamiento, incluida la base de control que contiene auditorías clínicas.
 
@@ -71,7 +71,7 @@ Para la prueba de replicación real, proporcionar dos servidores CouchDB **desec
 SYNC_TEST_COUCH_A=http://admin:clave@host-a:5984 SYNC_TEST_COUCH_B=http://admin:clave@host-b:5984 pnpm test:sync:integration
 ```
 
-La prueba crea bases con nombres propios, prueba cambios bidireccionales, adjuntos, eliminaciones, conflictos y recreación de replicaciones, y limpia sus recursos. Sin esas variables se omite; no utiliza `COUCHDB_URL`. La implementación no activa servicios ni replicación real durante su desarrollo. Antes de usarla en campo, validar también inicio de sesión offline real, corte físico de red, reinicio del worker/CouchDB y preparación/devolución interrumpidas en esos entornos de ensayo. Las pruebas unitarias no sustituyen esa validación de despliegue.
+La prueba crea bases con nombres propios, prueba cambios bidireccionales, adjuntos, eliminaciones, conflictos y recreación de replicaciones, y limpia sus recursos. Sin esas variables se omite; no utiliza `COUCHDB_URL`. La implementación no activa servicios ni replicación real durante su desarrollo. Antes de usarla en campo, validar también inicio de sesión offline real, corte físico de red, reinicio del worker/CouchDB y pausa/reanudación interrumpidas en esos entornos de ensayo. Las pruebas unitarias no sustituyen esa validación de despliegue.
 
 Referencias: [replicación nativa](https://docs.couchdb.org/en/stable/replication/replicator.html) y [conflictos CouchDB](https://docs.couchdb.org/en/stable/replication/conflicts.html).
 
@@ -121,3 +121,92 @@ docker run -d --name tesis-worker --restart unless-stopped \
 Estos comandos presuponen CouchDB y Redis ya configurados y accesibles; no los crean. Configurar la URL pública de Better Auth y los orígenes permitidos para el acceso web. No publicar credenciales como argumentos de build. El volumen `/data` debe respaldarse y compartirse entre web y worker del mismo nodo, nunca entre nube y Raspberry.
 
 Si un build anterior agotó el disco, las nuevas exclusiones evitan copiar esos archivos otra vez, pero no eliminan capas anteriores. Revisar `docker system df` y el espacio disponible antes de decidir qué cachés eliminar; no borrar volúmenes con datos para liberar espacio.
+
+## Raspberry: levantar todo con Compose
+
+El archivo `compose.raspberry.yml` usa las imágenes publicadas **`elkks/tesis:latest`** y **`elkks/tesis-ds:latest`**. Incluye web, worker, CouchDB, Redis, data-science y una tarea de preparación. No construye imágenes. Necesitas Docker con el plugin Compose, este repositorio (incluido `deploy/raspberry/`) y un sistema ARM64 con imágenes publicadas para ARM64; las imágenes construidas anteriormente en AMD64 no bastan por sí solas.
+
+Preparación única:
+
+1. Copiar `.env.raspberry.example` a `.env.raspberry` y completar los valores vacíos. Generar independientemente `BETTER_AUTH_SECRET`, `COUCHDB_PASSWORD` y `DS_INTERNAL_TOKEN`, por ejemplo con `openssl rand -hex 32`. Usar contraseña CouchDB hexadecimal para que sea segura dentro de la URL interna.
+2. Configurar `BETTER_AUTH_URL` con la IP/hostname real y el puerto de acceso; si cambia `WEB_PORT`, cambiar también esa URL. Todos los usuarios deben poder resolver ese nombre. El Compose no incluye terminación HTTPS; usar una URL HTTPS y proxy externo cuando el despliegue lo requiera.
+3. Preparar la nube según esta guía: sincronización habilitada, mismo nodo y secreto de intercambio, credenciales CouchDB y administrador con contraseña. Completar las variables remotas en `.env.raspberry` y cambiar `SYNC_ENABLED=true` cuando ambos entornos estén listos. El primer arranque requiere acceso a la nube; no genera usuarios ni contraseñas locales alternativos.
+4. Configurar Groq y/o Carbone si se usarán chat y PDF. Son servicios externos: no se instalan con este Compose. Para chat offline hace falta Ollama y su modelo por separado; configurar su URL accesible desde Docker.
+
+Después, un solo comando desde la raíz:
+
+```sh
+docker compose --env-file .env.raspberry -f compose.raspberry.yml up -d
+```
+
+Compose descarga las imágenes que falten. La tarea `prepare` espera a CouchDB, crea las bases necesarias sin borrar documentos, restringe la base de aplicación nueva y ejecuta la descarga inicial de cuentas. Web y worker esperan a que termine correctamente, mediante [dependencias de Compose](https://docs.docker.com/compose/how-tos/startup-order/). Un primer arranque fallido deja la aplicación detenida; consultar el log de `prepare`, corregir la configuración y repetir `up -d`. La preparación de cuentas no significa que el viaje ya esté listo: comprobar datos, archivos y cuentas desde `/admin/sincronizacion` antes de salir.
+
+En arranques siguientes, las cuentas ya importadas se conservan y no se exige conectividad a la nube. No usar `--pull always` para arrancar fuera de línea. Los contenedores tienen política de reinicio y se recuperan al volver Docker; el supervisor reintenta las conexiones. Mantener un solo worker de sincronización.
+
+```sh
+# Estado y diagnóstico (prepare con Exit 0 es normal)
+docker compose --env-file .env.raspberry -f compose.raspberry.yml ps -a
+docker compose --env-file .env.raspberry -f compose.raspberry.yml logs --tail=100 prepare web worker
+
+# Detener manteniendo los datos
+docker compose --env-file .env.raspberry -f compose.raspberry.yml down
+
+# Actualizar únicamente cuando haya conexión y sea oportuno
+docker compose --env-file .env.raspberry -f compose.raspberry.yml pull
+docker compose --env-file .env.raspberry -f compose.raspberry.yml up -d
+```
+
+Solo la web publica un puerto (3000 por defecto). CouchDB, Redis y Python se comunican por la red privada de Compose. Los volúmenes separados conservan CouchDB, Redis, cuentas/archivos y RAG/modelos. **No usar `down -v` para detenerlo: borraría esos volúmenes.** No cambiar las credenciales CouchDB de un despliegue existente sin planificar su rotación. Para producción se pueden fijar tags inmutables o digests mediante `TESIS_IMAGE` y `TESIS_DS_IMAGE`.
+
+Para preparar la caché de embeddings antes de salir, con el stack disponible y conexión:
+
+```sh
+docker compose --env-file .env.raspberry -f compose.raspberry.yml exec data-science \
+  python -c 'from app.core.config import get_settings; from app.rag.embeddings import load_embedding_model; load_embedding_model(get_settings().embedding_model)'
+```
+
+Esto descarga solo el modelo de embeddings. Groq y Carbone remotos seguirán requiriendo conexión; la operación clínica local y la cola son servicios separados de ellos.
+
+
+## Paquete privado preparado para rsync (configuración actual)
+
+El despliegue actual incluye Carbone local y un perfil opcional de Ollama. Sustituye las instrucciones anteriores que trataban Carbone exclusivamente como servicio externo. La configuración consolidada está en `.env.raspberry`, fuera de Git, con las variables existentes de web y Python y las rutas adaptadas a contenedores. Las variables Google/S3 se conservan en ese archivo, pero no se pasan a los contenedores Raspberry: se usan contraseñas sincronizadas y almacenamiento FS.
+
+`node scripts/package-raspberry.mjs` genera `raspberry-deploy/`, también privado e ignorado por Git/Docker. Copia la configuración como `.env` para que Compose la cargue automáticamente, el Compose, los inicializadores y las plantillas presentes en `carbone/template/`. No copia bases, entornos virtuales ni datos clínicos. Regenerar el paquete después de cambiar `.env.raspberry` o las plantillas; editar `.env.raspberry` dentro del paquete no cambia por sí solo el `.env` que Compose utiliza.
+
+```sh
+node scripts/package-raspberry.mjs
+rsync -av --chmod=D700,F600 raspberry-deploy/ USUARIO@RASPBERRY:~/tesis/
+# En la Raspberry, dentro de ~/tesis:
+docker compose up -d
+```
+
+Ajustar el usuario/host del comando. El directorio contiene credenciales: enviarlo por SSH y no publicarlo. No se realiza rsync automáticamente. Solo la web se publica en el host; Carbone permanece en la red privada, sin Studio ni autenticación de API. No publicar su puerto con esta configuración. La [configuración oficial de Carbone](https://carbone.io/documentation/developer/self-hosted-deployment/deploy-with-docker.html) permite conservar las plantillas en `/app/template`; aquí se monta `carbone/template/`. Una licencia Enterprise, si la funcionalidad usada la requiere, se configura mediante `CARBONE_LICENSE`.
+
+**No basta copiar los IDs de plantilla:** copiar el directorio de plantillas de la instancia original conservando archivos y estructura. El paquete incluye `LEEME.txt` con pendientes detectados. Sin las plantillas de historia/viaje correspondientes, los reportes fallarán aunque el contenedor esté iniciado.
+
+La configuración de nube local conserva CouchDB y Better Auth existentes, añade la identidad del nodo y el secreto de intercambio compartido y coordina el token interno con Python. Reiniciar los procesos web/Python de ese entorno cuando se quiera aplicar el token actualizado. `SYNC_ENABLED` permanece desactivado mientras falten endpoints HTTPS accesibles desde la Raspberry. `localhost` del equipo de desarrollo no es un endpoint remoto válido. Completar ambos endpoints, verificar certificados y credenciales, habilitar la nube y después la Raspberry. No considerar el viaje preparado hasta que el panel confirme datos, cuentas y archivos.
+
+Para Ollama local, cambiar `DS_LLM_PROVIDER=ollama`, elegir `DS_CHAT_MODEL`, añadir `COMPOSE_PROFILES=ollama` en `.env.raspberry`, regenerar el paquete y descargar ese modelo mientras haya internet mediante `docker compose exec ollama ollama pull NOMBRE_MODELO`. Groq seguirá necesitando internet mientras sea el proveedor seleccionado. El catálogo AGEMED llega por replicación desde la nube; no necesita otro servicio local. Los embeddings requieren preparar la caché según las instrucciones anteriores.
+
+
+### Configuración NetBird de este despliegue
+
+La nube es `laptop`: aplicación `http://laptop:5173`, CouchDB `http://laptop:5984/tesis-2`. La Raspberry sirve `http://raspberry:3000`. Ambos dispositivos deben estar conectados a NetBird y resolver estos nombres; CouchDB y Next deben escuchar en interfaces accesibles desde la red privada y sus reglas deben permitir esos puertos.
+
+`SYNC_TRUSTED_HTTP_HOST=laptop` permite HTTP exclusivamente hacia ese hostname, confiando en el transporte privado de NetBird. El valor vacío sigue exigiendo HTTPS. No se desactiva TLS ni se permite HTTP a cualquier servidor. No publicar estos endpoints HTTP en internet.
+
+Se configuró `SYNC_ENABLED=true` en ambos archivos privados. Los procesos existentes deben recargar su entorno. Se copiaron los 11 archivos originales de `/home/esnupi/Documents/tesis/docs/plantillas-reportes/template` a `carbone/template` y al paquete, sin modificar el origen; los renders anteriores no son necesarios. Carbone mantiene la gestión de plantillas habilitada y su API solo dentro de Docker.
+
+**La imagen de aplicación debe reconstruirse y publicarse con este cambio antes de desplegar**: la anterior exige HTTPS y no interpreta `SYNC_TRUSTED_HTTP_HOST`. Usar ARM64 o imagen multi-arquitectura como se describe arriba. Regenerar `raspberry-deploy/` después de cualquier cambio. La validación de configuración no sustituye la prueba de conectividad, acceso offline y generación real de PDF.
+
+
+## Panel y recuperación de errores
+
+El panel distingue la conexión confirmada, el reporte desactualizado y los fallos de cada etapa (datos, archivos, cuentas, solicitudes). Un fallo al importar cuentas no impide revisar archivos ni consultar CouchDB. Pausa/reanudación se confirman cuando se aplican; una solicitud de sincronización procesada no significa que todos los datos estén al día. Los acuses perdidos se reintentan sin volver a aplicar una orden antigua.
+
+Si no hay reportes, revisar primero `docker compose logs --tail=100 worker` en Raspberry y la conectividad NetBird dentro de sus contenedores. La nube no puede arrancar el worker remoto. El botón registra una solicitud para el siguiente ciclo. El estado se consulta cada cinco segundos y los datos inexistentes se muestran como desconocidos, nunca como cero.
+
+Los POST administrativos aceptan únicamente `BETTER_AUTH_URL` y los orígenes exactos de `BETTER_AUTH_TRUSTED_ORIGINS`, además de exigir sesión de administrador. Incluir en esa lista el origen real utilizado por el navegador (protocolo, hostname y puerto). No se confía en cabeceras de proxy para ampliar permisos.
+
+Al actualizar este cambio, reconstruir/publicar la imagen de aplicación y actualizar **web y worker** en Raspberry; reiniciar los procesos de la nube. No hace falta borrar volúmenes, bases ni cuentas. El control de viaje queda retirado únicamente cuando ambos entornos usan la versión nueva.

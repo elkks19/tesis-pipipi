@@ -1,0 +1,165 @@
+name: tesis-raspberry
+
+x-app-environment: &app-environment
+  APP_ENVIRONMENT: raspberry
+  COUCHDB_URL: http://${COUCHDB_USER:-tesis}:${COUCHDB_PASSWORD:?Configura COUCHDB_PASSWORD}@couchdb:5984/tesis
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Configura BETTER_AUTH_SECRET}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Configura la URL publica de la Raspberry}
+  BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_URL}
+  BETTER_AUTH_SQLITE_PATH: /data/auth.sqlite
+  FILE_STORAGE_ROOT: /data/uploads
+  REDIS_URL: redis://redis:6379
+  DATA_SCIENCE_API_URL: http://data-science:8000
+  DATA_SCIENCE_INTERNAL_TOKEN: ${DS_INTERNAL_TOKEN:?Configura DS_INTERNAL_TOKEN}
+  SYNC_TRUSTED_HTTP_HOST: ${SYNC_TRUSTED_HTTP_HOST:-}
+  SYNC_ENABLED: ${SYNC_ENABLED:-false}
+  SYNC_NODE_ID: ${SYNC_NODE_ID:-raspberry-01}
+  SYNC_CONTROL_DB: tesis_sync_control
+  SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-60}
+  SYNC_CLOUD_APP_URL: ${SYNC_CLOUD_APP_URL:-}
+  SYNC_CLOUD_COUCHDB_URL: ${SYNC_CLOUD_COUCHDB_URL:-}
+  SYNC_CLOUD_COUCHDB_USERNAME: ${SYNC_CLOUD_COUCHDB_USERNAME:-}
+  SYNC_CLOUD_COUCHDB_PASSWORD: ${SYNC_CLOUD_COUCHDB_PASSWORD:-}
+  SYNC_SHARED_SECRET: ${SYNC_SHARED_SECRET:-}
+  CARBONE_URL: http://carbone:4000/
+  CARBONE_TLS_INSECURE: "false"
+  CARBONE_HISTORIA_TEMPLATE_PATH: ${CARBONE_HISTORIA_TEMPLATE_PATH:-}
+  CARBONE_HISTORIA_TEMPLATE_URL: ${CARBONE_HISTORIA_TEMPLATE_URL:-}
+  CARBONE_API_KEY: ${CARBONE_API_KEY:-}
+  CARBONE_HISTORIA_TEMPLATE_ID: ${CARBONE_HISTORIA_TEMPLATE_ID:-}
+  CARBONE_VIAJE_TEMPLATE_ID: ${CARBONE_VIAJE_TEMPLATE_ID:-}
+
+services:
+  carbone:
+    image: ${CARBONE_IMAGE:-carbone/carbone-ee:latest}
+    restart: unless-stopped
+    environment:
+      CARBONE_LICENSE: ${CARBONE_LICENSE:-}
+      CARBONE_AUTHENTICATION: "false"
+      CARBONE_STUDIO: "false"
+      CARBONE_TEMPLATE_MANAGEMENT: "true"
+      CARBONE_FACTORIES: "1"
+      CARBONE_USE_S3_PLUGIN: "false"
+    volumes:
+      - ./carbone/template:/app/template
+      - carbone-render:/app/render
+    # API accessible only on the private Compose network.
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [ollama]
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+
+  couchdb:
+    image: couchdb:3.5
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:-tesis}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?Configura COUCHDB_PASSWORD}
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+      - ./deploy/raspberry/couchdb.ini:/opt/couchdb/etc/local.d/raspberry.ini:rw
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://127.0.0.1:5984/_up]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Completes before web/worker; existing accounts allow subsequent offline boots.
+  prepare:
+    image: ${TESIS_IMAGE:-elkks/tesis:latest}
+    init: true
+    restart: "no"
+    entrypoint: [node, /app/scripts/raspberry-init.mjs]
+    environment:
+      <<: *app-environment
+    volumes:
+      - app-data:/data
+      - ./deploy/raspberry/init.mjs:/app/scripts/raspberry-init.mjs:ro
+    depends_on:
+      couchdb:
+        condition: service_healthy
+
+  web:
+    image: ${TESIS_IMAGE:-elkks/tesis:latest}
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+    ports:
+      - "${WEB_BIND_ADDRESS:-0.0.0.0}:${WEB_PORT:-3000}:3000"
+    volumes:
+      - app-data:/data
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ${TESIS_IMAGE:-elkks/tesis:latest}
+    init: true
+    restart: unless-stopped
+    command: [pnpm, worker:reportes]
+    stop_grace_period: 60s
+    environment:
+      <<: *app-environment
+    volumes:
+      - app-data:/data
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  data-science:
+    image: ${TESIS_DS_IMAGE:-elkks/tesis-ds:latest}
+    init: true
+    restart: unless-stopped
+    environment:
+      COUCHDB_URL: http://${COUCHDB_USER:-tesis}:${COUCHDB_PASSWORD:?Configura COUCHDB_PASSWORD}@couchdb:5984/tesis
+      DS_INTERNAL_TOKEN: ${DS_INTERNAL_TOKEN:?Configura DS_INTERNAL_TOKEN}
+      DS_STORAGE_DIR: /data/storage
+      HF_HOME: /data/huggingface
+      DS_CORS_ORIGINS: ${BETTER_AUTH_URL}
+      DS_LLM_PROVIDER: ${DS_LLM_PROVIDER:-groq}
+      DS_CHAT_MODEL: ${DS_CHAT_MODEL:-openai/gpt-oss-20b}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      DS_OLLAMA_URL: ${DS_OLLAMA_URL:-http://host.docker.internal:11434}
+      DS_GROQ_BASE_URL: ${DS_GROQ_BASE_URL:-https://api.groq.com/openai/v1}
+      DS_MAX_COMPLETION_TOKENS: ${DS_MAX_COMPLETION_TOKENS:-900}
+      DS_TEMPERATURE: ${DS_TEMPERATURE:-0.2}
+      DS_REASONING_FORMAT: ${DS_REASONING_FORMAT:-hidden}
+      DS_REASONING_EFFORT: ${DS_REASONING_EFFORT:-low}
+      DS_EMBEDDING_MODEL: ${DS_EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ds-data:/data
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+
+volumes:
+  carbone-render:
+  ollama-data:
+  couchdb-data:
+  redis-data:
+  app-data:
+  ds-data:

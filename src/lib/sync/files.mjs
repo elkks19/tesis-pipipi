@@ -92,6 +92,8 @@ export async function synchronizeFiles() {
       await verifiedReceive(key, Readable.fromWeb(response.body), b, disk, a.sha256);
       transferred++; continue;
     }
+    // A file may arrive before its document. Wait for replication instead of aborting the entire batch on 404.
+    if (!a || !b) { pending++; continue; }
     if (a?.sha256 && b?.sha256) { conflicts++; }
     if (a?.sha256) {
       const response = await remote(`file?key=${encodeURIComponent(key)}`, { method: 'PUT', body: await disk.getStream(key), stream: true, headers: { 'X-File-Sha256': a.sha256, 'X-File-Size': String(a.size) } });

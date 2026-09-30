@@ -9,8 +9,15 @@ LABEL fly_launch_runtime="Next.js"
 # Next.js app lives here
 WORKDIR /app
 
+# Node runs with --use-system-ca in production. Keep the operating-system CA
+# bundle in the final image as well as in the temporary build stage.
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set production environment
-ENV NODE_ENV="production"
+ENV NODE_ENV="production" \
+    NODE_OPTIONS="--use-system-ca"
 
 # Install pnpm
 ARG PNPM_VERSION=10.33.0

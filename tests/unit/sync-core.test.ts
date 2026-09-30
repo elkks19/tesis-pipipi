@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { syncConfig, validSharedSecret, validateSyncConfig } from "@/lib/sync/config.mjs";
 import { replicationDefinitions } from "@/lib/sync/replication.mjs";
-import { canWriteOwnedTrip } from "@/lib/sync/ownership.mjs";
 import { isCaughtUp } from "@/lib/sync/engine.mjs";
 import { referencedFiles, validFileKey } from "@/lib/sync/files.mjs";
 import { authRoles } from "@/lib/auth-roles";
@@ -16,6 +15,11 @@ describe("configuración y replicación", () => {
   it("exige HTTPS, secreto y destinos distintos", () => {
     expect(() => validateSyncConfig(config())).not.toThrow();
     for (const change of [{ cloudUrl: "http://app.example.com" }, { secret: "short" }, { remoteUrl: "https://user:pass@db.example.com/tesis" }]) expect(() => validateSyncConfig({ ...config(), ...change })).toThrow();
+  });
+  it("permite HTTP solo para el host privado autorizado", () => {
+    const privateConfig = { ...config(), trustedHttpHost: "laptop", cloudUrl: "http://laptop:5173", remoteUrl: "http://laptop:5984/tesis" };
+    expect(() => validateSyncConfig(privateConfig)).not.toThrow();
+    for (const change of [{ trustedHttpHost: "" }, { cloudUrl: "http://otro:5173" }, { remoteUrl: "http://laptop.ejemplo.com/tesis" }, { cloudUrl: "http://user:password@laptop:5173" }]) expect(() => validateSyncConfig({ ...privateConfig, ...change })).toThrow();
   });
   it("usa dos replicaciones continuas estables sin crear ni copiar otras bases", () => {
     const [push, pull] = replicationDefinitions(config());
@@ -35,13 +39,6 @@ it("mantiene los permisos diferentes de los roles", () => {
   expect(authRoles.admin.authorize({ estacion: ["review"] }).success).toBe(true);
   expect(authRoles.estudiante.authorize({ estacion: ["review"] }).success).toBe(false);
   expect(authRoles["docente-investigador"].authorize({ estacion: ["write"] }).success).toBe(false);
-});
-it("frena escrituras durante preparación y devolución en ambos entornos", () => {
-  for (const phase of ["preparing", "returning"]) for (const environment of ["cloud", "raspberry"]) expect(canWriteOwnedTrip(environment, { phase, nodeId: "pi" }, "pi")).toBe(false);
-  expect(canWriteOwnedTrip("cloud", null, "pi")).toBe(true);
-  expect(canWriteOwnedTrip("raspberry", null, "pi")).toBe(false);
-  expect(canWriteOwnedTrip("raspberry", { phase: "raspberry", nodeId: "other" }, "pi")).toBe(false);
-  expect(canWriteOwnedTrip("raspberry", { phase: "raspberry", nodeId: "pi" }, "pi")).toBe(true);
 });
 it("no confunde documentos completos con sincronización completa", () => {
   const snapshot = { paused: false, replication: [{ state: "running", pending: 0, failures: 0 }, { state: "running", pending: 0, failures: 0 }], files: { pending: 0, conflicts: 0 }, accounts: { ok: true }, conflicts: 0, error: null };

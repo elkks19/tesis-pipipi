@@ -10,7 +10,7 @@ export function syncConfig(env = process.env) {
   const interval = Number(env.SYNC_INTERVAL_SECONDS || 60);
   if (!/^[a-z][a-z0-9_-]{0,63}$/.test(nodeId) || !/^[a-z][a-z0-9_-]{0,63}$/.test(controlDb)) throw new Error('Identificación de sincronización inválida.');
   if (!Number.isInteger(interval) || interval < 10 || interval > 3600) throw new Error('Intervalo de sincronización inválido.');
-  return { environment, enabled, nodeId, controlDb, interval, localUrl: env.COUCHDB_URL || '', cloudUrl: env.SYNC_CLOUD_APP_URL || '', remoteUrl: env.SYNC_CLOUD_COUCHDB_URL || '', username: env.SYNC_CLOUD_COUCHDB_USERNAME || '', password: env.SYNC_CLOUD_COUCHDB_PASSWORD || '', secret: env.SYNC_SHARED_SECRET || '' };
+  return { trustedHttpHost: env.SYNC_TRUSTED_HTTP_HOST || '', environment, enabled, nodeId, controlDb, interval, localUrl: env.COUCHDB_URL || '', cloudUrl: env.SYNC_CLOUD_APP_URL || '', remoteUrl: env.SYNC_CLOUD_COUCHDB_URL || '', username: env.SYNC_CLOUD_COUCHDB_USERNAME || '', password: env.SYNC_CLOUD_COUCHDB_PASSWORD || '', secret: env.SYNC_SHARED_SECRET || '' };
 }
 
 export function validateSyncConfig(config) {
@@ -23,7 +23,8 @@ export function validateSyncConfig(config) {
   if (config.environment === 'raspberry') {
     for (const value of [config.cloudUrl, config.remoteUrl]) {
       const url = new URL(value);
-      if (url.protocol !== 'https:' || url.search || url.hash || url.username || url.password) throw new Error('Las URL de nube deben usar HTTPS sin credenciales ni parámetros.');
+      const trustedHttp = url.protocol === 'http:' && config.trustedHttpHost && url.hostname === config.trustedHttpHost;
+      if ((!trustedHttp && url.protocol !== 'https:') || url.search || url.hash || url.username || url.password) throw new Error('Las URL deben usar HTTPS o el host HTTP privado autorizado, sin credenciales ni parámetros.');
     }
     const remote = new URL(config.remoteUrl);
     const name = decodeURIComponent(remote.pathname.replace(/^\//, '').replace(/\/$/, ''));

@@ -1,5 +1,4 @@
 import "server-only";
-import { attachWriteGuard } from "@/lib/sync/ownership.mjs";
 import "./pouchdb-server-shim";
 
 import PouchDB from "pouchdb/dist/pouchdb";
@@ -40,4 +39,4 @@ if (!couchDbUrl) {
   throw new Error("COUCHDB_URL debe estar configurado para usar CouchDB.");
 }
 
-export const db = attachWriteGuard(new PouchDB<TesisDocument>(couchDbUrl)) as PouchDB.Database<TesisDocument>;
+export const db = new PouchDB<TesisDocument>(couchDbUrl);

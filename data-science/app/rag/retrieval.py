@@ -18,4 +18,4 @@ class RagRetriever:
         limit: int,
     ) -> list[RetrievedChunk]:
         query_embedding = self.embeddings.encode([query])[0]
-        return self.store.search(query_embedding, filters=filters, limit=limit)
+        return self.store.search(query_embedding, filters=filters, limit=limit, query_text=query)

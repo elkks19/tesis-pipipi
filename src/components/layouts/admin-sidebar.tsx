@@ -8,6 +8,7 @@ import {
   LogOutIcon,
   ShieldIcon,
   RefreshCwIcon,
+  ScrollTextIcon,
   UsersRoundIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -64,6 +65,11 @@ const navItems = [
     href: "/admin/sincronizacion",
     icon: RefreshCwIcon,
     label: "Sincronización",
+  },
+  {
+    href: "/admin/auditoria",
+    icon: ScrollTextIcon,
+    label: "Auditoría",
   },
 ];
 

@@ -52,4 +52,5 @@ async def generate_report(
         intent="report",
         artifacts=report.artifacts,
         sources=[],
+        tools=[{"name": f"report:{request.report_type}", "status": "succeeded"}],
     )

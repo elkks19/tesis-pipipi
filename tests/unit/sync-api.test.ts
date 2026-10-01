@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), status: vi.fn(), command: vi.fn(), versions: vi.fn(), resolve: vi.fn(), file: vi.fn() }));
 vi.mock("@/lib/auth-session", () => ({ getAuthenticatedUser: mocks.user }));
+vi.mock("@/lib/audit-log", () => ({
+  logAuditEvent: vi.fn(async () => undefined),
+  sanitizeTechnicalMessage: (value: unknown) => value instanceof Error ? value.message : String(value),
+}));
 vi.mock("@/lib/sync/control.mjs", () => ({ syncStatus: mocks.status, queueCommand: mocks.command, conflictVersions: mocks.versions, resolveConflict: mocks.resolve }));
 vi.mock("@/lib/sync/files.mjs", () => ({ resolveFileConflict: mocks.file }));
 import { GET, POST } from "@/app/api/admin/sync/[...path]/route";

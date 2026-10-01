@@ -111,6 +111,7 @@ class ChatRepository:
                 "content": question,
                 "createdAt": now,
                 "role": "user",
+                "scope": scope,
                 "sources": [],
             }
         )
@@ -121,6 +122,7 @@ class ChatRepository:
                 "createdAt": now,
                 "intent": intent,
                 "role": "assistant",
+                "scope": scope,
                 "sources": sources,
             }
         )

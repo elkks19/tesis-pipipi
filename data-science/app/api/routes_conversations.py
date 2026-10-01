@@ -44,6 +44,7 @@ async def get_chat(
                 messageIndex=index,
                 intent=message.get("intent"),
                 role=str(message.get("role") or ""),
+                scope=message.get("scope"),
                 sources=message.get("sources") or [],
             )
             for index, message in enumerate(chat.get("messages") or [])

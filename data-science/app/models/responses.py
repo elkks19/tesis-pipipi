@@ -24,8 +24,11 @@ class ChatResponse(BaseModel):
     assistant_message_index: int | None = None
     conversation_id: str | None = None
     intent: str
+    model: str | None = None
+    provider: str | None = None
     artifacts: list[Artifact]
     sources: list[Source]
+    tools: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ChatMessageResponse(BaseModel):
@@ -35,6 +38,7 @@ class ChatMessageResponse(BaseModel):
     messageIndex: int
     intent: str | None = None
     role: str
+    scope: dict[str, Any] | None = None
     sources: list[Source] = Field(default_factory=list)
 
 

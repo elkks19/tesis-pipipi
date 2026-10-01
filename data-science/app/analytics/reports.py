@@ -4,6 +4,7 @@ from statistics import mean, median
 from typing import Any
 
 from app.analytics.charts import chart_artifact, count_chart_artifact, table_artifact
+from app.analytics.numbers import parse_clinical_number
 from app.models.responses import Artifact
 
 
@@ -310,12 +311,9 @@ def build_population_diagnosis_report(rows: list[dict[str, Any]]) -> ResearchRep
 def numeric_values(rows: list[dict[str, Any]], key: str) -> list[float]:
     values: list[float] = []
     for row in rows:
-        try:
-            value = row.get(key)
-            if value is not None and value != "":
-                values.append(float(value))
-        except (TypeError, ValueError):
-            continue
+        number = parse_clinical_number(row.get(key))
+        if number is not None:
+            values.append(number)
     return values
 
 

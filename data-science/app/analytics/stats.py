@@ -2,8 +2,10 @@ from collections import Counter
 from dataclasses import dataclass
 from statistics import mean, median
 from typing import Any
+import unicodedata
 
 from app.analytics.charts import chart_artifact, count_chart_artifact, table_artifact
+from app.analytics.numbers import parse_clinical_number
 from app.models.responses import Artifact
 
 NUMERIC_FIELD_PATTERNS = [
@@ -50,7 +52,7 @@ def answer_with_statistics(
     intent: str,
     chart_type: str = "auto",
 ) -> AnalyticsAnswer:
-    text = message.lower()
+    text = normalize_text(message)
     total = len(rows)
 
     if not rows:
@@ -85,7 +87,7 @@ def answer_with_statistics(
     numeric_field = detect_numeric_field(text)
     if numeric_field:
         field, label = numeric_field
-        values = [float(row[field]) for row in rows if is_number(row.get(field))]
+        values = [number for row in rows if (number := parse_clinical_number(row.get(field))) is not None]
         if not values:
             return AnalyticsAnswer(
                 f"No encontre valores de {label} en las historias filtradas.",
@@ -175,7 +177,24 @@ def answer_with_statistics(
             [artifact],
         )
 
-    if any(word in text for word in ["diagnost", "enfermedad", "patologia", "patología"]):
+    group_field = detect_group_field(text)
+    if group_field and group_field[0] not in {"diagnosticos", "genero"}:
+        field, label = group_field
+        counts = Counter(str(row.get(field) or "Sin dato") for row in rows)
+        artifact = artifact_for_counts(
+            f"Distribucion por {label}",
+            label,
+            "historias",
+            counts,
+            chart_type,
+            text,
+        )
+        return AnalyticsAnswer(
+            f"Encontre {total} historias. La distribucion por {label} esta en el resultado.",
+            [artifact],
+        )
+
+    if any(word in text for word in ["diagnost", "enfermedad", "patologia"]):
         counts = Counter(
             diagnosis
             for row in rows
@@ -238,12 +257,13 @@ def answer_with_statistics(
     )
 
 
+def normalize_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    return "".join(character for character in normalized if not unicodedata.combining(character))
+
+
 def is_number(value: Any) -> bool:
-    try:
-        float(value)
-        return True
-    except (TypeError, ValueError):
-        return False
+    return parse_clinical_number(value) is not None
 
 
 def detect_numeric_field(text: str) -> tuple[str, str] | None:
@@ -441,7 +461,9 @@ def numeric_by_group_rows(
         else:
             groups = [raw_group or "Sin dato"]
         for group in groups:
-            grouped.setdefault(str(group), []).append(float(row[numeric_field]))
+            number = parse_clinical_number(row.get(numeric_field))
+            if number is not None:
+                grouped.setdefault(str(group), []).append(number)
 
     result = []
     for group, values in grouped.items():

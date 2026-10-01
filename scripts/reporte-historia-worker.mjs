@@ -877,6 +877,8 @@ async function renderHistoriaReport({ historia, paciente, requestedBy }) {
 // Comparte proceso y Redis con reportes, manteniendo las colas independientes.
 const { startCatalogWorker } = await import("./catalogo-agemed-worker.mjs");
 const catalogWorker = process.env.APP_ENVIRONMENT === "raspberry" ? { close: async () => {} } : await startCatalogWorker();
+const { startMaintenanceWorker } = await import("./maintenance-worker.mjs");
+const maintenanceWorker = await startMaintenanceWorker();
 const { startSyncSupervisor } = await import("../src/lib/sync/engine.mjs");
 const syncSupervisor = await startSyncSupervisor();
 
@@ -1023,7 +1025,12 @@ async function shutdown(signal) {
   if (closing) return;
   closing = true;
   log(`${signal} received, closing workers`);
-  await Promise.all([worker.close(), catalogWorker.close(), syncSupervisor.close()]);
+  await Promise.all([
+    worker.close(),
+    catalogWorker.close(),
+    maintenanceWorker.close(),
+    syncSupervisor.close(),
+  ]);
   process.exit(0);
 }
 process.on("SIGINT", () => shutdown("SIGINT"));

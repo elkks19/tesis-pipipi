@@ -1,5 +1,7 @@
 import json
 import sqlite3
+import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +50,7 @@ class SQLiteVectorStore:
         *,
         filters: dict[str, Any],
         limit: int,
+        query_text: str = "",
     ) -> list[RetrievedChunk]:
         candidates = self._load_candidates(filters)
         if not candidates:
@@ -56,7 +59,8 @@ class SQLiteVectorStore:
         query = np.asarray(query_embedding, dtype=np.float32).reshape(-1)
         results: list[RetrievedChunk] = []
         for chunk, embedding in candidates:
-            score = float(np.dot(query, embedding))
+            semantic_score = float(np.dot(query, embedding))
+            score = semantic_score + hybrid_rerank_bonus(query_text, chunk.text, chunk.metadata)
             results.append(RetrievedChunk(**chunk.__dict__, score=score))
 
         results.sort(key=lambda item: item.score, reverse=True)
@@ -115,3 +119,70 @@ class SQLiteVectorStore:
                 )
                 """
             )
+
+
+_STOPWORDS = {
+    "a", "al", "con", "de", "del", "e", "el", "en", "la", "las", "lo", "los",
+    "para", "por", "que", "se", "un", "una", "y",
+}
+_NUMBER_PATTERN = re.compile(r"(?<![\w])[-+]?\d+(?:[.,]\d+)?(?![\w])")
+_TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:[.,][0-9]+)?")
+
+
+def normalized_search_text(value: str) -> str:
+    value = re.sub(r"(?<=[a-záéíóúñ])(?=[A-ZÁÉÍÓÚÑ])", " ", value)
+    value = unicodedata.normalize("NFKD", value.lower())
+    return "".join(character for character in value if not unicodedata.combining(character))
+
+
+def number_tokens(value: str) -> set[str]:
+    result: set[str] = set()
+    for match in _NUMBER_PATTERN.findall(normalized_search_text(value)):
+        try:
+            number = float(match.replace(",", "."))
+        except ValueError:
+            continue
+        result.add(format(number, ".12g"))
+    return result
+
+
+def word_tokens(value: str) -> set[str]:
+    return {
+        token
+        for token in _TOKEN_PATTERN.findall(normalized_search_text(value))
+        if token not in _STOPWORDS and len(token) > 1 and not token[0].isdigit()
+    }
+
+
+def expected_section(query_text: str) -> str | None:
+    query = normalized_search_text(query_text)
+    if any(term in query for term in ("fev1", "fvc", "espirometr", "gli 2012")):
+        return "espirometria"
+    if any(term in query for term in ("glicemia", "glucemia", "hemoglobina", "creatinina", "grupo sanguineo")):
+        return "laboratorios"
+    return None
+
+
+def hybrid_rerank_bonus(query_text: str, chunk_text: str, metadata: dict[str, Any]) -> float:
+    if not query_text:
+        return 0.0
+
+    query_numbers = number_tokens(query_text)
+    chunk_numbers = number_tokens(chunk_text)
+    numeric_overlap = (
+        len(query_numbers & chunk_numbers) / len(query_numbers)
+        if query_numbers
+        else 0.0
+    )
+
+    query_words = word_tokens(query_text)
+    chunk_words = word_tokens(chunk_text)
+    lexical_overlap = (
+        len(query_words & chunk_words) / len(query_words)
+        if query_words
+        else 0.0
+    )
+
+    section = expected_section(query_text)
+    section_match = 1.0 if section and metadata.get("section") == section else 0.0
+    return 0.12 * numeric_overlap + 0.025 * lexical_overlap + 0.015 * section_match

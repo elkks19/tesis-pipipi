@@ -6,6 +6,8 @@ import PouchDBFind from "pouchdb-find";
 
 import type {
   Actividad,
+  AgentUsage,
+  AuditEvent,
   Historia,
   ImportacionCatalogo,
   InventarioMovimiento,
@@ -22,6 +24,8 @@ PouchDB.plugin(PouchDBFind);
 
 export type TesisDocument =
   | Actividad
+  | AgentUsage
+  | AuditEvent
   | Viaje
   | Historia
   | ImportacionCatalogo

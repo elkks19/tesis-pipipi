@@ -1,6 +1,8 @@
+import asyncio
 import unittest
 
 from app.db.chat_repository import (
+    ChatRepository,
     build_memory_message,
     extract_explicit_memory_facts,
     merge_memory_facts,
@@ -62,6 +64,42 @@ class ChatMemoryTests(unittest.TestCase):
 
         self.assertEqual(len(facts), 16)
         self.assertEqual(facts[-1], "dato 19")
+
+    def test_append_exchange_keeps_scope_on_each_message(self):
+        class FakeCouch:
+            def __init__(self):
+                self.document = None
+
+            async def get(self, _document_id):
+                return None
+
+            async def put(self, document):
+                self.document = document
+                return {"rev": "1-test"}
+
+        couch = FakeCouch()
+        scope = {
+            "role": "docente-investigador",
+            "stationKey": "anamnesis",
+            "userId": "investigador-1",
+            "viajeIds": ["viaje-1"],
+        }
+        saved = asyncio.run(
+            ChatRepository(couch).append_exchange(
+                answer="Respuesta",
+                artifacts=[],
+                conversation_id=None,
+                intent="agent",
+                owner_id="investigador-1",
+                question="Pregunta",
+                role="docente-investigador",
+                scope=scope,
+                sources=[],
+            )
+        )
+
+        self.assertEqual(saved["messages"][0]["scope"], scope)
+        self.assertEqual(saved["messages"][1]["scope"], scope)
 
     def test_build_rag_messages_includes_history_before_current_question(self):
         context = RetrievedChunk(

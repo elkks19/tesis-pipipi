@@ -1,3 +1,5 @@
+export * from './agent-usage'
+export * from './audit-log'
 export * from './anamnesis'
 export * from './actividad'
 export * from './diagnostico'

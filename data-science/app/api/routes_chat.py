@@ -23,6 +23,11 @@ router = APIRouter(tags=["chat"])
 logger = get_logger(__name__)
 
 
+def requested_report(message: str) -> bool:
+    normalized = message.casefold()
+    return any(term in normalized for term in ("reporte", "informe", "pdf"))
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
@@ -52,11 +57,12 @@ async def chat(
             intent,
             request.chart_type,
         )
+        response_intent = "report" if requested_report(request.message) else intent
         saved_chat = await chat_repository.append_exchange(
             answer=deterministic.answer,
             artifacts=[artifact.model_dump() for artifact in deterministic.artifacts],
             conversation_id=request.conversation_id,
-            intent=intent,
+            intent=response_intent,
             owner_id=owner_id,
             question=request.message,
             role=request.scope.role,
@@ -68,9 +74,12 @@ async def chat(
             answer=deterministic.answer,
             assistant_message_index=saved_chat.get("_assistantMessageIndex"),
             conversation_id=saved_chat.get("_id"),
-            intent=intent,
+            intent=response_intent,
             artifacts=deterministic.artifacts,
             sources=[],
+            model=settings.chat_model,
+            provider=settings.llm_provider,
+            tools=[{"name": "answer_with_statistics", "status": "succeeded"}],
         )
 
     def build_retriever() -> RagRetriever:
@@ -89,11 +98,12 @@ async def chat(
 
     agent_response = await agent.answer(request.message, history=history)
 
+    response_intent = "report" if requested_report(request.message) else "agent"
     saved_chat = await chat_repository.append_exchange(
         answer=agent_response.answer,
         artifacts=[artifact.model_dump() for artifact in agent_response.artifacts],
         conversation_id=request.conversation_id,
-        intent="agent",
+        intent=response_intent,
         owner_id=owner_id,
         question=request.message,
         role=request.scope.role,
@@ -105,9 +115,12 @@ async def chat(
         answer=agent_response.answer,
         assistant_message_index=saved_chat.get("_assistantMessageIndex"),
         conversation_id=saved_chat.get("_id"),
-        intent="agent",
+        intent=response_intent,
         artifacts=agent_response.artifacts,
         sources=agent_response.sources,
+        model=settings.chat_model,
+        provider=settings.llm_provider,
+        tools=agent_response.tool_runs,
     )
 
 
@@ -167,6 +180,7 @@ async def chat_stream(
                     intent,
                     request.chart_type,
                 )
+                response_intent = "report" if requested_report(request.message) else intent
                 if deterministic.artifacts:
                     yield f"data: {_json.dumps({'type': 'artifacts', 'data': [a.model_dump() for a in deterministic.artifacts]}, ensure_ascii=False)}\n\n"
                 yield f"data: {_json.dumps({'type': 'token', 'data': deterministic.answer}, ensure_ascii=False)}\n\n"
@@ -174,14 +188,14 @@ async def chat_stream(
                     answer=deterministic.answer,
                     artifacts=[a.model_dump() for a in deterministic.artifacts],
                     conversation_id=request.conversation_id,
-                    intent=intent,
+                    intent=response_intent,
                     owner_id=owner_id,
                     question=request.message,
                     role=request.scope.role,
                     scope=request.scope.model_dump(by_alias=True),
                     sources=[],
                 )
-                yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': intent}}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': response_intent, 'model': settings.chat_model, 'provider': settings.llm_provider, 'tools': [{'name': 'answer_with_statistics', 'status': 'succeeded'}]}}, ensure_ascii=False)}\n\n"
                 return
 
             preamble = await streamer.prepare(request.message, history=history)
@@ -215,11 +229,12 @@ async def chat_stream(
                 yield f"data: {_json.dumps({'type': 'token', 'data': full_answer}, ensure_ascii=False)}\n\n"
 
             # Save to chat history
+            response_intent = "report" if requested_report(request.message) else "agent"
             saved_chat = await chat_repository.append_exchange(
                 answer=full_answer,
                 artifacts=[a.model_dump() for a in preamble.artifacts],
                 conversation_id=request.conversation_id,
-                intent="agent",
+                intent=response_intent,
                 owner_id=owner_id,
                 question=request.message,
                 role=request.scope.role,
@@ -228,7 +243,7 @@ async def chat_stream(
             )
 
             # Send final metadata
-            yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': 'agent'}}, ensure_ascii=False)}\n\n"
+            yield f"data: {_json.dumps({'type': 'done', 'data': {'conversation_id': saved_chat.get('_id'), 'assistant_message_index': saved_chat.get('_assistantMessageIndex'), 'intent': response_intent, 'model': settings.chat_model, 'provider': settings.llm_provider, 'tools': preamble.tool_runs}}, ensure_ascii=False)}\n\n"
 
         except Exception as exc:
             import logging

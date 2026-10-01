@@ -80,6 +80,46 @@ const indexes: IndexDefinition[] = [
     name: "idx_importacion_catalogo_created",
   },
   {
+    ddoc: "idx_audit_retention",
+    fields: ["type", "createdAt"],
+    name: "idx_audit_retention",
+  },
+  {
+    ddoc: "idx_audit_category_created",
+    fields: ["type", "category", "createdAt"],
+    name: "idx_audit_category_created",
+  },
+  ...["actorId", "action", "component", "nodeId", "severity", "status"].map((field) => ({
+    ddoc: `idx_audit_${field === "actorId" ? "actor" : field}_created`,
+    fields: ["type", "category", field, "createdAt"],
+    name: `idx_audit_${field === "actorId" ? "actor" : field}_created`,
+  })),
+  {
+    ddoc: "idx_agent_usage_created",
+    fields: ["type", "createdAt"],
+    name: "idx_agent_usage_created",
+  },
+  {
+    ddoc: "idx_agent_usage_actor_created",
+    fields: ["type", "actorId", "createdAt"],
+    name: "idx_agent_usage_actor_created",
+  },
+  {
+    ddoc: "idx_agent_usage_action_created",
+    fields: ["type", "action", "createdAt"],
+    name: "idx_agent_usage_action_created",
+  },
+  {
+    ddoc: "idx_agent_usage_status_created",
+    fields: ["type", "status", "createdAt"],
+    name: "idx_agent_usage_status_created",
+  },
+  {
+    ddoc: "idx_agent_usage_model_created",
+    fields: ["type", "model", "createdAt"],
+    name: "idx_agent_usage_model_created",
+  },
+  {
     ddoc: "idx_actividades_station_actor",
     fields: ["type", "stationKey", "actorId"],
     name: "idx_actividades_station_actor",

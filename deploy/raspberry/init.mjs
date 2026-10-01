@@ -23,8 +23,8 @@ async function prepare() {
   // Compose interpolates these credentials into a URL; reject ambiguous values.
   const username = decodeURIComponent(url.username);
   const password = decodeURIComponent(url.password);
-  if (!/^[a-zA-Z0-9_-]+$/.test(username) || !/^[a-zA-Z0-9_-]{32,}$/.test(password)) {
-    throw new Error('Usa usuario alfanumérico y contraseña CouchDB de al menos 32 caracteres alfanuméricos (hexadecimal recomendado).');
+  if (!/^[a-zA-Z0-9_-]+$/.test(username) || !/^[a-zA-Z0-9_-]{8,}$/.test(password)) {
+    throw new Error('Usa usuario alfanumérico y contraseña CouchDB de al menos 8 caracteres alfanuméricos (32 o más recomendado).');
   }
   const headers = { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`, 'Content-Type': 'application/json' };
   url.username = ''; url.password = '';

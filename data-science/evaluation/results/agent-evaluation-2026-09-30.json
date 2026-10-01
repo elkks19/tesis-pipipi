@@ -1,0 +1,476 @@
+{
+  "executed_at": "2026-09-30T19:26:07-04:00",
+  "configuration": {
+    "provider": "groq",
+    "model": "openai/gpt-oss-120b",
+    "embedding_model": "intfloat/multilingual-e5-small",
+    "top_k": 6,
+    "model_available": false,
+    "model_detail": "Client error '401 Unauthorized' for url 'https://api.groq.com/openai/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+  },
+  "dataset": {
+    "trip_id": "viaje:seed:historias:01",
+    "historias": 202,
+    "pacientes_vinculados": 200,
+    "historias_totales": 1004,
+    "fragmentos_indexados": 5366
+  },
+  "factual": [
+    {
+      "case": "F1",
+      "query": "¿Cuántas historias clínicas hay en este viaje?",
+      "expected": 202,
+      "observed": 202,
+      "agent_answer": "Encontre 202 historias. La distribucion por viaje esta en el resultado.",
+      "intent": "semantic_search",
+      "correct": true
+    },
+    {
+      "case": "F2",
+      "query": "Muéstrame la distribución de historias por género.",
+      "expected": {
+        "Femenino": 96,
+        "Masculino": 106
+      },
+      "observed": {
+        "Masculino": 106,
+        "Femenino": 96
+      },
+      "agent_answer": "Encontre 202 historias. La distribucion por genero esta en la grafica y agregue el cruce por viaje cuando hay datos disponibles.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F3",
+      "query": "¿Cuál es el promedio de IMC?",
+      "expected": {
+        "registros": 202,
+        "promedio": 25.13
+      },
+      "observed": {
+        "registros": 202,
+        "promedio": 25.13
+      },
+      "agent_answer": "El promedio de IMC es 25.13 sobre 202 historias con dato disponible.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F4",
+      "query": "¿Cuál es el promedio de frecuencia cardíaca?",
+      "expected": {
+        "registros": 202,
+        "promedio": 81.82
+      },
+      "observed": {
+        "registros": 202,
+        "promedio": 81.82
+      },
+      "agent_answer": "El promedio de frecuencia cardiaca es 81.82 sobre 202 historias con dato disponible.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F5",
+      "query": "¿Cuál es el promedio de presión arterial media?",
+      "expected": {
+        "registros": 202,
+        "promedio": 94.54
+      },
+      "observed": {
+        "registros": 202,
+        "promedio": 94.54
+      },
+      "agent_answer": "El promedio de presion arterial media es 94.54 sobre 202 historias con dato disponible.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F6",
+      "query": "¿Cuántos diagnósticos hay registrados en total?",
+      "expected": 504,
+      "observed": 504,
+      "agent_answer": "Encontre 202 historias. Los diagnosticos mas frecuentes estan en el resultado, con cruces por genero y grupo de edad si hay datos disponibles.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F7",
+      "query": "Muéstrame la distribución por grupo de edad.",
+      "expected": {
+        "45-59": 50,
+        "30-44": 54,
+        "60+": 64,
+        "18-29": 34
+      },
+      "observed": {
+        "60+": 64,
+        "30-44": 54,
+        "45-59": 50,
+        "18-29": 34
+      },
+      "agent_answer": "Encontre 202 historias. La distribucion por grupoEdad esta en el resultado.",
+      "intent": "statistic",
+      "correct": true
+    },
+    {
+      "case": "F8",
+      "query": "¿Cuál es el promedio de glicemia capilar?",
+      "expected": {
+        "registros": 37,
+        "promedio": 120.41
+      },
+      "observed": {
+        "registros": 37,
+        "promedio": 120.41
+      },
+      "agent_answer": "El promedio de glicemia capilar es 120.41 sobre 37 historias con dato disponible.",
+      "intent": "statistic",
+      "correct": true
+    }
+  ],
+  "retrieval": [
+    {
+      "case": "R1",
+      "query": "Dolor epigástrico, acidez después de las comidas, ardor posprandial y náusea ocasional.",
+      "expected_chunks": [
+        "historia:demo-primeros-pacientes:1:1:anamnesis"
+      ],
+      "recovered_chunks": [
+        "historia:demo-primeros-pacientes:1:1:anamnesis [anamnesis; score=0.9021]",
+        "historia:seed:92:diagnostico [diagnostico; score=0.8767]",
+        "historia:seed:51:diagnostico [diagnostico; score=0.8721]",
+        "historia:seed:46:diagnostico [diagnostico; score=0.8720]",
+        "historia:seed:195:diagnostico [diagnostico; score=0.8719]",
+        "historia:seed:49:diagnostico [diagnostico; score=0.8700]"
+      ],
+      "recovered_ids": [
+        "historia:demo-primeros-pacientes:1:1:anamnesis",
+        "historia:seed:92:diagnostico",
+        "historia:seed:51:diagnostico",
+        "historia:seed:46:diagnostico",
+        "historia:seed:195:diagnostico",
+        "historia:seed:49:diagnostico"
+      ],
+      "relevant_recovered": [
+        "historia:demo-primeros-pacientes:1:1:anamnesis"
+      ],
+      "precision_at_k": 0.1667,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R2",
+      "query": "Glicemia capilar 91 mg/dL, grupo sanguíneo O positivo, hemoglobina 14.2 g/dL y creatinina 0.9 mg/dL.",
+      "expected_chunks": [
+        "historia:demo-primeros-pacientes:1:1:laboratorios"
+      ],
+      "recovered_chunks": [
+        "historia:demo-primeros-pacientes:1:1:laboratorios [laboratorios; score=1.0667]",
+        "historia:demo-primeros-pacientes:2:1:laboratorios [laboratorios; score=1.0249]",
+        "historia:seed:80:laboratorios [laboratorios; score=0.9896]",
+        "historia:seed:3:laboratorios [laboratorios; score=0.9846]",
+        "historia:seed:194:laboratorios [laboratorios; score=0.9828]",
+        "historia:seed:105:laboratorios [laboratorios; score=0.9753]"
+      ],
+      "recovered_ids": [
+        "historia:demo-primeros-pacientes:1:1:laboratorios",
+        "historia:demo-primeros-pacientes:2:1:laboratorios",
+        "historia:seed:80:laboratorios",
+        "historia:seed:3:laboratorios",
+        "historia:seed:194:laboratorios",
+        "historia:seed:105:laboratorios"
+      ],
+      "relevant_recovered": [
+        "historia:demo-primeros-pacientes:1:1:laboratorios"
+      ],
+      "precision_at_k": 0.1667,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R3",
+      "query": "Reducir sodio, registrar presión dos veces al día y acudir a control médico en siete días.",
+      "expected_chunks": [
+        "historia:demo-primeros-pacientes:2:1:diagnostico",
+        "historia:demo-primeros-pacientes:2:1:resumen"
+      ],
+      "recovered_chunks": [
+        "historia:demo-primeros-pacientes:2:1:diagnostico [diagnostico; score=0.9267]",
+        "historia:demo-primeros-pacientes:2:1:resumen [resumen; score=0.9014]",
+        "historia:seed:118:diagnostico [diagnostico; score=0.8817]",
+        "historia:seed:124:diagnostico [diagnostico; score=0.8782]",
+        "historia:seed:86:diagnostico [diagnostico; score=0.8777]",
+        "historia:seed:141:diagnostico [diagnostico; score=0.8764]"
+      ],
+      "recovered_ids": [
+        "historia:demo-primeros-pacientes:2:1:diagnostico",
+        "historia:demo-primeros-pacientes:2:1:resumen",
+        "historia:seed:118:diagnostico",
+        "historia:seed:124:diagnostico",
+        "historia:seed:86:diagnostico",
+        "historia:seed:141:diagnostico"
+      ],
+      "relevant_recovered": [
+        "historia:demo-primeros-pacientes:2:1:diagnostico",
+        "historia:demo-primeros-pacientes:2:1:resumen"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R4",
+      "query": "FEV1 3.07, FVC 4.21, FEV1/FVC 0.88 y probable patrón obstructivo leve.",
+      "expected_chunks": [
+        "historia:seed:102:espirometria"
+      ],
+      "recovered_chunks": [
+        "historia:seed:102:espirometria [espirometria; score=1.0325]",
+        "historia:seed:123:espirometria [espirometria; score=0.9176]",
+        "historia:seed:144:espirometria [espirometria; score=0.9169]",
+        "historia:seed:176:espirometria [espirometria; score=0.9164]",
+        "historia:seed:62:espirometria [espirometria; score=0.9156]",
+        "historia:seed:124:espirometria [espirometria; score=0.9138]"
+      ],
+      "recovered_ids": [
+        "historia:seed:102:espirometria",
+        "historia:seed:123:espirometria",
+        "historia:seed:144:espirometria",
+        "historia:seed:176:espirometria",
+        "historia:seed:62:espirometria",
+        "historia:seed:124:espirometria"
+      ],
+      "relevant_recovered": [
+        "historia:seed:102:espirometria"
+      ],
+      "precision_at_k": 0.1667,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R5",
+      "query": "Glicemia capilar 175 mg/dL, grupo sanguíneo A negativo y creatinina 0.62 mg/dL.",
+      "expected_chunks": [
+        "historia:seed:102:laboratorios"
+      ],
+      "recovered_chunks": [
+        "historia:seed:102:laboratorios [laboratorios; score=1.0616]",
+        "historia:seed:30:laboratorios [laboratorios; score=1.0035]",
+        "historia:seed:62:laboratorios [laboratorios; score=0.9462]",
+        "historia:seed:176:laboratorios [laboratorios; score=0.9459]",
+        "historia:seed:115:laboratorios [laboratorios; score=0.9457]",
+        "historia:seed:195:laboratorios [laboratorios; score=0.9442]"
+      ],
+      "recovered_ids": [
+        "historia:seed:102:laboratorios",
+        "historia:seed:30:laboratorios",
+        "historia:seed:62:laboratorios",
+        "historia:seed:176:laboratorios",
+        "historia:seed:115:laboratorios",
+        "historia:seed:195:laboratorios"
+      ],
+      "relevant_recovered": [
+        "historia:seed:102:laboratorios"
+      ],
+      "precision_at_k": 0.1667,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R6",
+      "query": "FEV1 2.77, FVC 4.51, referencia GLI 2012 y calidad aceptable de maniobra.",
+      "expected_chunks": [
+        "historia:seed:105:espirometria"
+      ],
+      "recovered_chunks": [
+        "historia:seed:105:espirometria [espirometria; score=1.0264]",
+        "historia:seed:115:espirometria [espirometria; score=0.9534]",
+        "historia:seed:2:espirometria [espirometria; score=0.9434]",
+        "historia:seed:124:espirometria [espirometria; score=0.9404]",
+        "historia:seed:144:espirometria [espirometria; score=0.9377]",
+        "historia:seed:97:espirometria [espirometria; score=0.8963]"
+      ],
+      "recovered_ids": [
+        "historia:seed:105:espirometria",
+        "historia:seed:115:espirometria",
+        "historia:seed:2:espirometria",
+        "historia:seed:124:espirometria",
+        "historia:seed:144:espirometria",
+        "historia:seed:97:espirometria"
+      ],
+      "relevant_recovered": [
+        "historia:seed:105:espirometria"
+      ],
+      "precision_at_k": 0.1667,
+      "recall_at_k": 1.0,
+      "correct": true
+    },
+    {
+      "case": "R7",
+      "query": "Control prenatal normal junto con enfermedad hepática grasa no alcohólica.",
+      "expected_chunks": [
+        "historia:seed:106:diagnostico",
+        "historia:seed:106:resumen"
+      ],
+      "recovered_chunks": [
+        "historia:seed:59:diagnostico [diagnostico; score=0.9255]",
+        "historia:seed:106:resumen [resumen; score=0.9247]",
+        "historia:seed:106:diagnostico [diagnostico; score=0.9213]",
+        "historia:seed:94:diagnostico [diagnostico; score=0.9188]",
+        "historia:seed:94:resumen [resumen; score=0.9130]",
+        "historia:seed:59:resumen [resumen; score=0.9119]"
+      ],
+      "recovered_ids": [
+        "historia:seed:59:diagnostico",
+        "historia:seed:106:resumen",
+        "historia:seed:106:diagnostico",
+        "historia:seed:94:diagnostico",
+        "historia:seed:94:resumen",
+        "historia:seed:59:resumen"
+      ],
+      "relevant_recovered": [
+        "historia:seed:106:diagnostico",
+        "historia:seed:106:resumen"
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "correct": true
+    }
+  ],
+  "tools": [
+    {
+      "case": "T1",
+      "query": "Indica el total exacto de historias clínicas disponibles en este viaje.",
+      "expected_tool": "count_histories",
+      "actual_tools": [],
+      "expected": {
+        "historias": 202
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T2",
+      "query": "Agrupa las historias por género y presenta los conteos.",
+      "expected_tool": "group_histories_by",
+      "actual_tools": [],
+      "expected": {
+        "Femenino": 96,
+        "Masculino": 106
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T3",
+      "query": "Resume el IMC con cantidad de registros, promedio, mínimo y máximo.",
+      "expected_tool": "summarize_numeric_field",
+      "actual_tools": [],
+      "expected": {
+        "registros": 202,
+        "promedio": 25.13,
+        "minimo": 14.1,
+        "maximo": 41.7
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T4",
+      "query": "Indica qué campos clínicos están disponibles para el análisis.",
+      "expected_tool": "list_available_fields",
+      "actual_tools": [],
+      "expected": {
+        "campos": [
+          "genero",
+          "edad",
+          "grupoEdad",
+          "diagnosticos",
+          "imc",
+          "frecuenciaCardiaca",
+          "presionArterialMedia",
+          "glicemiaCapilar"
+        ]
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T5",
+      "query": "Detecta valores atípicos de IMC mediante el método IQR.",
+      "expected_tool": "detect_numeric_outliers",
+      "actual_tools": [],
+      "expected": {
+        "registros": 202,
+        "atipicos": 8,
+        "limiteInferior": 10.13,
+        "limiteSuperior": 38.72
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T6",
+      "query": "Calcula la correlación de Pearson entre frecuencia cardíaca y presión arterial media.",
+      "expected_tool": "correlate_numeric_fields",
+      "actual_tools": [],
+      "expected": {
+        "paresValidos": 202,
+        "correlacion": 0.001
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    },
+    {
+      "case": "T7",
+      "query": "Busca evidencia clínica sobre ardor epigástrico posprandial y náusea ocasional.",
+      "expected_tool": "search_clinical_context",
+      "actual_tools": [],
+      "expected": {
+        "fragmentoEsperado": "historia:demo-primeros-pacientes:1:1:anamnesis"
+      },
+      "observed": null,
+      "error": "RuntimeError: Groq HTTP 401: {'error': {'message': 'Invalid API Key', 'type': 'invalid_request_error', 'code': 'invalid_api_key'}}",
+      "correct": false
+    }
+  ],
+  "summary": {
+    "factual": {
+      "executed": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "result": 100.0
+    },
+    "retrieval": {
+      "executed": 7,
+      "correct": 7,
+      "incorrect": 0,
+      "result": 100.0
+    },
+    "tools": {
+      "executed": 7,
+      "correct": 0,
+      "incorrect": 7,
+      "result": 0.0
+    },
+    "overall": {
+      "executed": 22,
+      "correct": 15,
+      "incorrect": 7,
+      "result": 68.18,
+      "mean_precision_at_k": 0.2143,
+      "mean_recall_at_k": 1.0
+    }
+  },
+  "errors": [
+    "El proveedor LLM configurado no estuvo disponible: Client error '401 Unauthorized' for url 'https://api.groq.com/openai/v1/models' For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401",
+    "Ninguna prueba de tools llegó a ejecutar una herramienta porque Groq rechazó la autenticación antes de la selección de tool."
+  ]
+}

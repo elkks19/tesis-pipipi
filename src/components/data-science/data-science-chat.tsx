@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -15,11 +16,15 @@ import {
   FileDownIcon,
   HistoryIcon,
   LoaderCircleIcon,
+  LogOutIcon,
   MessageSquareTextIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PlusIcon,
   SearchIcon,
   SendIcon,
   SlidersHorizontalIcon,
+  UserRoundIcon,
   XIcon,
 } from "lucide-react";
 import {
@@ -39,6 +44,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
@@ -46,6 +52,16 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -98,11 +114,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SidebarThemeMenuItems } from "@/components/layouts/sidebar-theme-menu-items";
+import { authClient } from "@/lib/auth-client";
 import type {
   DataScienceTripOption,
   DataScienceTripSearchResponse,
 } from "@/lib/data-science-types";
 import { cn } from "@/lib/utils";
+import { useHydratedSession } from "@/lib/use-hydrated-session";
 
 type Artifact = {
   data: unknown;
@@ -230,10 +249,21 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function DataScienceChat() {
+export type DataScienceChatProps = {
+  workspace?: "admin" | "researcher";
+};
+
+export function DataScienceChat({
+  workspace = "admin",
+}: DataScienceChatProps) {
+  const router = useRouter();
+  const { data: session, isPending: isSessionPending } = useHydratedSession();
   const [chats, setChats] = useState<StoredChatSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isChatsPending, setIsChatsPending] = useState(true);
+  const [historySearch, setHistorySearch] = useState("");
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
+  const [researcherSidebarOpen, setResearcherSidebarOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
   const [selectedTripOptions, setSelectedTripOptions] = useState<
@@ -274,6 +304,18 @@ export function DataScienceChat() {
         ? `${selectedTrips[0]?.secondaryLabel} · ${selectedTrips[0]?.dateLabel}`
         : selectedTrips.map((trip) => trip.label).join(", ");
   const hiddenSelectedTrips = Math.max(0, selectedTrips.length - 3);
+  const filteredChats = useMemo(() => {
+    const query = historySearch.trim().toLocaleLowerCase("es");
+    if (!query) return chats;
+    return chats.filter((chat) =>
+      `${chat.title} ${chat.summary}`.toLocaleLowerCase("es").includes(query),
+    );
+  }, [chats, historySearch]);
+  const userName = session?.user.name ?? "Investigador";
+  const userEmail = session?.user.email ?? "Sin sesión activa";
+  const userImage = session?.user.image ?? undefined;
+  const userInitials = getInitials(userName);
+  const activeChat = chats.find((chat) => chat.id === conversationId);
 
   function renderTripPickerContent({
     onDone,
@@ -937,7 +979,7 @@ export function DataScienceChat() {
         body: JSON.stringify({
           conversationId,
           reportType,
-          saveToConversation: false,
+          saveToConversation: true,
           scope: {
             stationKey: stationKey === "all" ? undefined : stationKey,
             viajeIds:
@@ -953,16 +995,27 @@ export function DataScienceChat() {
       }
 
       const result = data as ChatResponse;
+      if (!result.conversation_id || result.assistant_message_index == null) {
+        throw new Error("El reporte no pudo vincularse a una conversación.");
+      }
+      const reportOption = reportTypeOptions.find((item) => item.value === reportType);
       const reportMessage: Message = {
         answer: result.answer,
-        assistantMessageIndex: result.assistant_message_index ?? undefined,
+        assistantMessageIndex: result.assistant_message_index,
         artifacts: result.artifacts,
         id: createClientId(),
         intent: result.intent,
-        question: "",
+        question: reportOption?.label ?? "Reporte estadístico",
         sources: result.sources,
       };
-      await downloadReport(reportMessage, `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      setConversationId(result.conversation_id);
+      setMessages((current) => [...current, reportMessage]);
+      await downloadReport(
+        result.conversation_id,
+        result.assistant_message_index,
+        `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      );
+      void loadChats();
       toast.success("Reporte descargado.");
     } catch (error) {
       toast.error(
@@ -996,6 +1049,144 @@ export function DataScienceChat() {
     } finally {
       setReportPending(null);
     }
+  }
+
+  function renderResearcherHistory({ mobile = false }: { mobile?: boolean } = {}) {
+    return (
+      <>
+        <div className="flex flex-col gap-3 border-b p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <MessageSquareTextIcon aria-hidden="true" className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-heading text-sm font-semibold">
+                Investigación clínica
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                Asistente y análisis
+              </p>
+            </div>
+          </div>
+          <Button
+            className="w-full justify-start"
+            onClick={() => {
+              startNewChat();
+              if (mobile) setMobileHistoryOpen(false);
+            }}
+          >
+            <PlusIcon aria-hidden="true" data-icon="inline-start" />
+            Nueva conversación
+          </Button>
+          <div className="relative">
+            <SearchIcon
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              aria-label="Buscar conversaciones"
+              className="pl-9"
+              onChange={(event) => setHistorySearch(event.target.value)}
+              placeholder="Buscar en el historial"
+              value={historySearch}
+            />
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
+          <div className="px-2 pb-2 pt-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Conversaciones
+          </div>
+          {isChatsPending && chats.length === 0 ? (
+            <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+              <LoaderCircleIcon className="animate-spin" />
+              Cargando historial
+            </div>
+          ) : filteredChats.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {filteredChats.map((chat) => (
+                <button
+                  className={cn(
+                    "group flex min-w-0 flex-col gap-1 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent",
+                    conversationId === chat.id && "bg-sidebar-accent text-sidebar-accent-foreground",
+                  )}
+                  key={chat.id}
+                  onClick={() => {
+                    void openChat(chat.id);
+                    if (mobile) setMobileHistoryOpen(false);
+                  }}
+                  type="button"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                    <MessageSquareTextIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{chat.title}</span>
+                  </span>
+                  <span className="line-clamp-2 pl-6 text-xs leading-4 text-muted-foreground">
+                    {chat.summary}
+                  </span>
+                  <span className="pl-6 text-[0.68rem] text-muted-foreground/80">
+                    {formatConversationDate(chat.updatedAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="m-2 rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+              {historySearch
+                ? "No hay conversaciones que coincidan."
+                : "Tus conversaciones aparecerán aquí."}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="h-auto w-full justify-start gap-3 px-2 py-2"
+                variant="ghost"
+              >
+                <Avatar size="sm">
+                  <AvatarImage alt={userName} src={userImage} />
+                  <AvatarFallback>
+                    {isSessionPending ? <UserRoundIcon /> : userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex min-w-0 flex-1 flex-col items-start">
+                  <span className="w-full truncate text-sm font-medium">{userName}</span>
+                  <span className="w-full truncate text-xs text-muted-foreground">{userEmail}</span>
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64" side="right">
+              <DropdownMenuLabel>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="truncate text-sm font-medium">{userName}</span>
+                  <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <SidebarThemeMenuItems />
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  disabled={!session}
+                  onClick={async () => {
+                    await authClient.signOut();
+                    router.push("/login");
+                    router.refresh();
+                  }}
+                  variant="destructive"
+                >
+                  <LogOutIcon />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </>
+    );
   }
 
   async function updateArtifact(
@@ -1045,17 +1236,55 @@ export function DataScienceChat() {
     }
   }
 
-  return (
+  const chatContent = (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <header className="shrink-0 border-b px-3 py-2 sm:px-5">
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 items-center gap-2">
+            {workspace === "researcher" ? (
+              <>
+                <Button
+                  aria-label={researcherSidebarOpen ? "Ocultar conversaciones" : "Mostrar conversaciones"}
+                  className="hidden md:inline-flex"
+                  onClick={() => setResearcherSidebarOpen((current) => !current)}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  {researcherSidebarOpen ? (
+                    <PanelLeftCloseIcon aria-hidden="true" />
+                  ) : (
+                    <PanelLeftOpenIcon aria-hidden="true" />
+                  )}
+                </Button>
+                <Sheet onOpenChange={setMobileHistoryOpen} open={mobileHistoryOpen}>
+                  <SheetTrigger asChild>
+                    <Button
+                      aria-label="Mostrar conversaciones"
+                      className="md:hidden"
+                      size="icon-sm"
+                      variant="ghost"
+                    >
+                      <HistoryIcon aria-hidden="true" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-[min(90vw,20rem)] gap-0 p-0" side="left">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Conversaciones</SheetTitle>
+                      <SheetDescription>Historial del asistente de investigación.</SheetDescription>
+                    </SheetHeader>
+                    {renderResearcherHistory({ mobile: true })}
+                  </SheetContent>
+                </Sheet>
+              </>
+            ) : null}
+            <div className="flex min-w-0 flex-col">
             <h2 className="truncate text-sm font-semibold sm:text-base">
-              Asistente de investigacion
+              {activeChat?.title ?? (conversationId ? "Conversación" : "Nueva consulta")}
             </h2>
             <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
               {tripScopeLabel} · {selectedStation?.label ?? "Todas las estaciones"}
             </p>
+            </div>
           </div>
           <TooltipProvider>
             <div className="flex shrink-0 items-center gap-1">
@@ -1087,6 +1316,7 @@ export function DataScienceChat() {
                 </div>
               </SheetContent>
               </Sheet>
+              {workspace === "admin" ? (
               <Sheet>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1145,6 +1375,7 @@ export function DataScienceChat() {
                 </div>
               </SheetContent>
               </Sheet>
+              ) : null}
               <Sheet>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1160,7 +1391,7 @@ export function DataScienceChat() {
                   <SheetHeader className="border-b px-5 py-4 text-left">
                     <SheetTitle>Reportes</SheetTitle>
                     <SheetDescription>
-                      Configura el alcance y descarga el PDF sin agregarlo al chat.
+                      Configura el alcance, guarda el resultado en el chat y descarga el PDF.
                     </SheetDescription>
                   </SheetHeader>
                   <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1224,11 +1455,23 @@ export function DataScienceChat() {
         ) : (
           messages.map((item, messageIndex) => (
             <ConversationMessage
+              canDownload={
+                Boolean(conversationId) &&
+                item.assistantMessageIndex !== undefined
+              }
               key={item.id}
               message={item}
               onChangeArtifact={(artifactIndex, nextType) =>
                 void updateArtifact(messageIndex, artifactIndex, nextType)
               }
+              onDownload={() => {
+                if (conversationId && item.assistantMessageIndex !== undefined) {
+                  void downloadReportWithToast(
+                    conversationId,
+                    item.assistantMessageIndex,
+                  );
+                }
+              }}
             />
           ))
         )}
@@ -1274,6 +1517,30 @@ export function DataScienceChat() {
       </footer>
     </section>
   );
+
+  if (workspace === "admin") {
+    return chatContent;
+  }
+
+  return (
+    <div className="flex h-svh min-h-0 w-full overflow-hidden bg-background">
+      <aside
+        className={cn(
+          "hidden h-svh shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width,border-color] duration-200 md:flex",
+          researcherSidebarOpen
+            ? "w-72 border-r border-sidebar-border"
+            : "w-0 border-r border-transparent",
+        )}
+      >
+        <div className="flex h-full w-72 min-w-72 flex-col">
+          {renderResearcherHistory()}
+        </div>
+      </aside>
+      <div className="flex min-h-0 min-w-0 flex-1">
+        {chatContent}
+      </div>
+    </div>
+  );
 }
 
 function mergeTripOptions(
@@ -1286,6 +1553,31 @@ function mergeTripOptions(
   }
 
   return Array.from(byId.values());
+}
+
+function getInitials(name: string) {
+  return (
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "I"
+  );
+}
+
+function formatConversationDate(value?: string | null) {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sin fecha";
+
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+  return new Intl.DateTimeFormat("es-BO", {
+    ...(sameDay ? { hour: "2-digit", minute: "2-digit" } : { day: "2-digit", month: "short" }),
+    timeZone: "America/La_Paz",
+  }).format(date);
 }
 
 function createClientId() {
@@ -1322,14 +1614,18 @@ function EmptyConversation({
 }
 
 function ConversationMessage({
+  canDownload,
   message,
   onChangeArtifact,
+  onDownload,
 }: {
+  canDownload: boolean;
   message: Message;
   onChangeArtifact: (
     artifactIndex: number,
     chartType: Exclude<ChartType, "auto">,
   ) => void;
+  onDownload: () => void;
 }) {
   const primaryArtifactIndex = message.artifacts.findIndex(
     (artifact) => artifact.spec?.role === "primary",
@@ -1371,15 +1667,18 @@ function ConversationMessage({
       </div>
       <div className="flex min-w-0 max-w-full flex-col gap-3 border-l-2 border-primary/50 pl-3 sm:pl-4">
           <p className="max-w-prose whitespace-pre-wrap wrap-break-word text-sm leading-6">{message.answer}</p>
-          {message.intent === "report" && message.artifacts.length > 0 ? (
+          {canDownload ? (
             <Button
-              className="w-fit"
-              onClick={() => void downloadReportWithToast(message)}
+              className={cn(
+                "w-fit",
+                message.intent === "report" && "shadow-sm ring-1 ring-primary/20",
+              )}
+              onClick={onDownload}
               size="sm"
-              variant="outline"
+              variant={message.intent === "report" ? "default" : "outline"}
             >
               <FileDownIcon aria-hidden="true" data-icon="inline-start" />
-              Descargar reporte
+              Descargar reporte PDF
             </Button>
           ) : null}
           {message.sources.length > 0 ? (
@@ -1827,11 +2126,15 @@ function ReportDownloadItem({
   );
 }
 
-async function downloadReport(message: Message, fileName?: string) {
+async function downloadReport(
+  conversationId: string,
+  assistantMessageIndex: number,
+  fileName?: string,
+) {
   const response = await fetch("/api/investigacion/reporte", {
     body: JSON.stringify({
-      answer: message.answer,
-      artifacts: message.artifacts,
+      assistantMessageIndex,
+      conversationId,
     }),
     headers: {
       "Content-Type": "application/json",
@@ -1840,7 +2143,8 @@ async function downloadReport(message: Message, fileName?: string) {
   });
 
   if (!response.ok) {
-    throw new Error("No se pudo descargar el PDF.");
+    const data = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(data?.message ?? "No se pudo descargar el PDF.");
   }
 
   await downloadResponse(
@@ -1866,9 +2170,12 @@ function getDownloadFileName(contentDisposition: string | null) {
   return match?.[1];
 }
 
-async function downloadReportWithToast(message: Message) {
+async function downloadReportWithToast(
+  conversationId: string,
+  assistantMessageIndex: number,
+) {
   try {
-    await downloadReport(message);
+    await downloadReport(conversationId, assistantMessageIndex);
     toast.success("PDF descargado.");
   } catch (error) {
     toast.error(

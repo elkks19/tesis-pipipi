@@ -5,6 +5,7 @@ import { conflictList } from './control.mjs';
 import { importAccounts } from './accounts.mjs';
 import { synchronizeFiles } from './files.mjs';
 import { syncFailure } from './diagnostics.mjs';
+import { writeSyncAudit } from './audit.mjs';
 
 export function isCaughtUp(snapshot) {
   return !snapshot.paused && !snapshot.running && snapshot.replication?.length === 2 && snapshot.replication.every((r) => r.state === 'running' && r.pending === 0 && r.failures === 0) && snapshot.files?.pending === 0 && snapshot.files?.conflicts === 0 && snapshot.accounts?.ok === true && snapshot.conflicts === 0 && !snapshot.error && !snapshot.errors?.length;
@@ -47,6 +48,13 @@ export async function syncCycle() {
       }
       if (fromCloud) await remote('ack', { method: 'POST', body: { id: command._id, state: supported ? 'completed' : 'cancelled' } });
       else await controlPut({ ...command, state: supported ? 'completed' : 'cancelled', completedAt: new Date().toISOString() });
+      await writeSyncAudit({
+        action: supported ? `command_${command.action}_applied` : 'command_cancelled',
+        actorId: command.actorId,
+        details: { commandId: command._id, source: fromCloud ? 'cloud' : 'local' },
+        message: supported ? `Se aplicó la orden ${command.action}.` : 'Se descartó una orden no soportada.',
+        status: supported ? 'succeeded' : 'warning',
+      });
     }
     await attempt('commands', async () => {
       for (const command of (await controlList('command:')).filter((c) => c.state === 'pending').sort((a, b) => a.createdAt.localeCompare(b.createdAt))) await apply(command, false);
@@ -78,6 +86,21 @@ export async function syncCycle() {
   snapshot.running = false; snapshot.stage = 'idle';
   snapshot.error = snapshot.errors.length ? 'Hay operaciones pendientes de reintento. Revisa el detalle de cada servicio.' : null;
   await attempt('heartbeat', publish);
+  if (snapshot.errors.length) {
+    await writeSyncAudit({
+      action: 'sync_cycle_failed',
+      details: { stages: snapshot.errors.map((item) => item.stage).join(',') },
+      message: snapshot.errors.map((item) => `${item.stage}: ${item.message}`).join(' | '),
+      status: 'failed',
+    });
+  } else if ((snapshot.files?.transferred ?? 0) > 0 || (snapshot.files?.conflicts ?? 0) > 0) {
+    await writeSyncAudit({
+      action: 'files_synchronized',
+      details: { conflicts: snapshot.files.conflicts, pending: snapshot.files.pending, transferred: snapshot.files.transferred },
+      message: `Archivos transferidos: ${snapshot.files.transferred}; pendientes: ${snapshot.files.pending}.`,
+      status: snapshot.files.conflicts ? 'warning' : 'succeeded',
+    });
+  }
   return { snapshot, updatedAt: new Date().toISOString() };
 }
 export async function startSyncSupervisor() {
@@ -86,7 +109,10 @@ export async function startSyncSupervisor() {
   let stopped = false; let timer; let running;
   const tick = () => {
     if (stopped) return;
-    running = syncCycle().catch(() => console.error('[sync] No se pudo acceder al control local; se reintentará.')).finally(() => { if (!stopped) timer = setTimeout(tick, config.interval * 1000); });
+    running = syncCycle().catch(async (error) => {
+      console.error('[sync] No se pudo acceder al control local; se reintentará.');
+      await writeSyncAudit({ action: 'sync_supervisor_error', details: { error: error?.name ?? 'unknown' }, message: error?.message ?? 'No se pudo ejecutar el ciclo.', status: 'failed' });
+    }).finally(() => { if (!stopped) timer = setTimeout(tick, config.interval * 1000); });
   };
   tick();
   return { close: async () => { stopped = true; clearTimeout(timer); await running; } };

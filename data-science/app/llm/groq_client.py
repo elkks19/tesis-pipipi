@@ -36,14 +36,12 @@ class GroqClient:
         base_url: str,
         model: str,
         *,
-        max_completion_tokens: int,
         reasoning_effort: str,
         reasoning_format: str,
         temperature: float,
     ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
-        self.max_completion_tokens = max_completion_tokens
         self.model = model
         self.reasoning_effort = reasoning_effort.strip()
         self.reasoning_format = reasoning_format.strip()
@@ -81,7 +79,6 @@ class GroqClient:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": self._normalize_messages(messages),
-            "max_completion_tokens": self.max_completion_tokens,
             "temperature": self.temperature,
         }
         self._add_reasoning_options(payload)
@@ -125,7 +122,6 @@ class GroqClient:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": self._normalize_messages(messages),
-            "max_completion_tokens": self.max_completion_tokens,
             "temperature": self.temperature,
             "stream": True,
         }

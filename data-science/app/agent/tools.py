@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.analytics.advanced import cluster_rows, numeric_correlations, numeric_outliers
 from app.analytics.charts import chart_artifact, count_chart_artifact, table_artifact
 from app.analytics.dataframe_builder import build_story_rows
+from app.analytics.numbers import parse_clinical_number
 from app.db.repositories import TesisRepository
 from app.models.documents import RetrievedChunk
 from app.models.responses import Artifact, Source
@@ -709,12 +710,9 @@ def normalize_arguments(raw_arguments: Any) -> dict[str, Any]:
 def numeric_values(rows: list[dict[str, Any]], field: NumericField) -> list[float]:
     values: list[float] = []
     for row in rows:
-        try:
-            value = row.get(field)
-            if value is not None and value != "":
-                values.append(float(value))
-        except (TypeError, ValueError):
-            continue
+        number = parse_clinical_number(row.get(field))
+        if number is not None:
+            values.append(number)
     return values
 
 
@@ -776,12 +774,8 @@ def numeric_by_group_rows(
     _, group_key = GROUP_LABELS[group_field]
     grouped: dict[str, list[float]] = {}
     for row in rows:
-        value = row.get(numeric_field)
-        if value is None or value == "":
-            continue
-        try:
-            number = float(value)
-        except (TypeError, ValueError):
+        number = parse_clinical_number(row.get(numeric_field))
+        if number is None:
             continue
 
         for group in row_values(row, group_field):

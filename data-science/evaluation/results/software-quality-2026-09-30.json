@@ -1,0 +1,102 @@
+{
+  "executed_at": "2026-09-30T19:44:39-04:00",
+  "configuration": {
+    "runs_per_operation": 10,
+    "trip_id": "viaje:seed:historias:01",
+    "external_llm_included": false
+  },
+  "dataset": {
+    "historias": 202,
+    "pacientes": 600,
+    "viajes": 6
+  },
+  "operations": [
+    {
+      "operation": "Consulta de historias del viaje",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.051182,
+      "maximum_seconds": 0.057372,
+      "average_seconds": 0.054385,
+      "accepted": true
+    },
+    {
+      "operation": "Consulta de pacientes",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.086698,
+      "maximum_seconds": 0.100775,
+      "average_seconds": 0.091966,
+      "accepted": true
+    },
+    {
+      "operation": "Consulta de viajes",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.021921,
+      "maximum_seconds": 0.024347,
+      "average_seconds": 0.023098,
+      "accepted": true
+    },
+    {
+      "operation": "Consulta de actividades del viaje",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.174582,
+      "maximum_seconds": 0.206421,
+      "average_seconds": 0.187661,
+      "accepted": true
+    },
+    {
+      "operation": "Construccion de filas clinicas",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.001562,
+      "maximum_seconds": 0.002764,
+      "average_seconds": 0.001947,
+      "accepted": true
+    },
+    {
+      "operation": "Indicador de distribucion por genero",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 8.9e-05,
+      "maximum_seconds": 0.000435,
+      "average_seconds": 0.000127,
+      "accepted": true
+    },
+    {
+      "operation": "Indicador promedio de glicemia",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 9.4e-05,
+      "maximum_seconds": 0.000172,
+      "average_seconds": 0.000105,
+      "accepted": true
+    },
+    {
+      "operation": "Recuperacion RAG local",
+      "executions": 10,
+      "successful": 10,
+      "errors": [],
+      "minimum_seconds": 0.370082,
+      "maximum_seconds": 0.382788,
+      "average_seconds": 0.376303,
+      "accepted": true
+    }
+  ],
+  "reliability": {
+    "executions": 80,
+    "successful": 80,
+    "errors": 0,
+    "percentage": 100.0,
+    "accepted": true
+  }
+}

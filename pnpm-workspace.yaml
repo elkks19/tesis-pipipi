@@ -3,5 +3,5 @@ allowBuilds:
   leveldown: true
   msgpackr-extract: true
   msw: true
-  sharp: true
+  sharp: false
   unrs-resolver: true

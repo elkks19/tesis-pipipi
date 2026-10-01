@@ -1,4 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/auth-session";
+import { logAuditEvent, sanitizeTechnicalMessage } from "@/lib/audit-log";
 import { conflictVersions, queueCommand, resolveConflict, syncStatus } from "@/lib/sync/control.mjs";
 import { resolveFileConflict } from "@/lib/sync/files.mjs";
 import { syncConfig } from "@/lib/sync/config.mjs";
@@ -78,15 +79,26 @@ async function handle(request: Request, context: { params: Promise<{ path: strin
       // Browser mutations require an explicitly trusted origin and an admin session.
       if (!hasTrustedOrigin(request)) return Response.json({ error: "Origen inválido." }, { status: 403 });
       const data = await request.json();
-      if (path === "files") return Response.json(await resolveFileConflict(data.id, data.selected, data.expected, user.id));
-      if (path === "commands") return Response.json(await queueCommand(data.action, user.id), { status: 202 });
+      if (path === "files") {
+        const result = await resolveFileConflict(data.id, data.selected, data.expected, user.id);
+        await logAuditEvent({ action: "file_conflict_resolved", actorEmail: user.email, actorId: user.id, category: "sync", component: "sync-admin", details: { conflictId: data.id }, message: "El administrador resolvió un conflicto de archivo.", status: "succeeded" });
+        return Response.json(result);
+      }
+      if (path === "commands") {
+        const result = await queueCommand(data.action, user.id);
+        await logAuditEvent({ action: `command_${String(data.action)}_queued`, actorEmail: user.email, actorId: user.id, category: "sync", component: "sync-admin", details: { commandId: result.id }, message: "La orden quedó en espera de ser recogida por la Raspberry.", status: "pending" });
+        return Response.json(result, { status: 202 });
+      }
       if (path === "conflicts") {
         if (typeof data.id !== "string" || typeof data.selected !== "string" || !Array.isArray(data.expected) || !data.expected.every((r: unknown) => typeof r === "string")) return Response.json({ error: "Selección inválida." }, { status: 400 });
-        return Response.json(await resolveConflict(data.id, data.selected, data.expected, user.id));
+        const result = await resolveConflict(data.id, data.selected, data.expected, user.id);
+        await logAuditEvent({ action: "document_conflict_resolved", actorEmail: user.email, actorId: user.id, category: "sync", component: "sync-admin", details: { documentId: data.id }, message: "El administrador resolvió un conflicto documental.", status: "succeeded" });
+        return Response.json(result);
       }
     }
     return Response.json({ error: "Operación no disponible." }, { status: 404 });
-  } catch {
+  } catch (error) {
+    await logAuditEvent({ action: "sync_operation_failed", actorEmail: user.email, actorId: user.id, category: "error", component: "sync-admin", details: { method: request.method, path }, errorCode: error instanceof Error ? error.name : "sync_error", message: sanitizeTechnicalMessage(error), severity: "error", status: "failed" });
     return Response.json({ error: "No se pudo completar la operación. Actualiza el estado y revisa la configuración o las revisiones seleccionadas." }, { status: 409 });
   }
 }

@@ -124,7 +124,7 @@ Si un build anterior agotó el disco, las nuevas exclusiones evitan copiar esos 
 
 ## Raspberry: levantar todo con Compose
 
-El archivo `compose.raspberry.yml` usa las imágenes publicadas **`elkks/tesis:latest`** y **`elkks/tesis-ds:latest`**. Incluye web, worker, CouchDB, Redis, data-science y una tarea de preparación. No construye imágenes. Necesitas Docker con el plugin Compose, este repositorio (incluido `deploy/raspberry/`) y un sistema ARM64 con imágenes publicadas para ARM64; las imágenes construidas anteriormente en AMD64 no bastan por sí solas.
+El archivo `docker-compose.yml` usa las imágenes publicadas **`elkks/tesis:latest`** y **`elkks/tesis-ds:latest`**. Incluye web, worker, CouchDB, Redis, data-science y una tarea de preparación. No construye imágenes. Necesitas Docker con el plugin Compose, este repositorio (incluido `deploy/raspberry/`) y un sistema ARM64 con imágenes publicadas para ARM64; las imágenes construidas anteriormente en AMD64 no bastan por sí solas.
 
 Preparación única:
 
@@ -136,7 +136,7 @@ Preparación única:
 Después, un solo comando desde la raíz:
 
 ```sh
-docker compose --env-file .env.raspberry -f compose.raspberry.yml up -d
+docker compose --env-file .env.raspberry -f docker-compose.yml up -d
 ```
 
 Compose descarga las imágenes que falten. La tarea `prepare` espera a CouchDB, crea las bases necesarias sin borrar documentos, restringe la base de aplicación nueva y ejecuta la descarga inicial de cuentas. Web y worker esperan a que termine correctamente, mediante [dependencias de Compose](https://docs.docker.com/compose/how-tos/startup-order/). Un primer arranque fallido deja la aplicación detenida; consultar el log de `prepare`, corregir la configuración y repetir `up -d`. La preparación de cuentas no significa que el viaje ya esté listo: comprobar datos, archivos y cuentas desde `/admin/sincronizacion` antes de salir.
@@ -145,23 +145,34 @@ En arranques siguientes, las cuentas ya importadas se conservan y no se exige co
 
 ```sh
 # Estado y diagnóstico (prepare con Exit 0 es normal)
-docker compose --env-file .env.raspberry -f compose.raspberry.yml ps -a
-docker compose --env-file .env.raspberry -f compose.raspberry.yml logs --tail=100 prepare web worker
+docker compose --env-file .env.raspberry -f docker-compose.yml ps -a
+docker compose --env-file .env.raspberry -f docker-compose.yml logs --tail=100 prepare web worker
 
 # Detener manteniendo los datos
-docker compose --env-file .env.raspberry -f compose.raspberry.yml down
+docker compose --env-file .env.raspberry -f docker-compose.yml down
 
 # Actualizar únicamente cuando haya conexión y sea oportuno
-docker compose --env-file .env.raspberry -f compose.raspberry.yml pull
-docker compose --env-file .env.raspberry -f compose.raspberry.yml up -d
+docker compose --env-file .env.raspberry -f docker-compose.yml pull
+docker compose --env-file .env.raspberry -f docker-compose.yml up -d
 ```
 
-Solo la web publica un puerto (3000 por defecto). CouchDB, Redis y Python se comunican por la red privada de Compose. Los volúmenes separados conservan CouchDB, Redis, cuentas/archivos y RAG/modelos. **No usar `down -v` para detenerlo: borraría esos volúmenes.** No cambiar las credenciales CouchDB de un despliegue existente sin planificar su rotación. Para producción se pueden fijar tags inmutables o digests mediante `TESIS_IMAGE` y `TESIS_DS_IMAGE`.
+Todos los servicios con API publican un puerto configurable en el host. `SERVICE_BIND_ADDRESS` vale `0.0.0.0` y publica los servicios en todas las interfaces de la Raspberry. La web conserva su propio `WEB_BIND_ADDRESS`.
+
+| Servicio | Puerto predeterminado | Variable |
+| --- | ---: | --- |
+| Web | 3000 | `WEB_PORT` |
+| CouchDB | 5984 | `COUCHDB_PORT` |
+| Redis | 6379 | `REDIS_PORT` |
+| Carbone | 4000 | `CARBONE_PORT` |
+| Data Science | 8000 | `DATA_SCIENCE_PORT` |
+| Ollama (perfil opcional) | 11434 | `OLLAMA_PORT` |
+
+Los servicios auxiliares quedan publicados en todas las interfaces; Redis y Carbone no tienen autenticación de acceso habilitada en este Compose. Los volúmenes separados conservan CouchDB, Redis, cuentas/archivos y RAG/modelos. **No usar `down -v` para detenerlo: borraría esos volúmenes.** No cambiar las credenciales CouchDB de un despliegue existente sin planificar su rotación. Para producción se pueden fijar tags inmutables o digests mediante `TESIS_IMAGE` y `TESIS_DS_IMAGE`.
 
 Para preparar la caché de embeddings antes de salir, con el stack disponible y conexión:
 
 ```sh
-docker compose --env-file .env.raspberry -f compose.raspberry.yml exec data-science \
+docker compose --env-file .env.raspberry -f docker-compose.yml exec data-science \
   python -c 'from app.core.config import get_settings; from app.rag.embeddings import load_embedding_model; load_embedding_model(get_settings().embedding_model)'
 ```
 
@@ -181,7 +192,7 @@ rsync -av --chmod=D700,F600 raspberry-deploy/ USUARIO@RASPBERRY:~/tesis/
 docker compose up -d
 ```
 
-Ajustar el usuario/host del comando. El directorio contiene credenciales: enviarlo por SSH y no publicarlo. No se realiza rsync automáticamente. Solo la web se publica en el host; Carbone permanece en la red privada, sin Studio ni autenticación de API. No publicar su puerto con esta configuración. La [configuración oficial de Carbone](https://carbone.io/documentation/developer/self-hosted-deployment/deploy-with-docker.html) permite conservar las plantillas en `/app/template`; aquí se monta `carbone/template/`. Una licencia Enterprise, si la funcionalidad usada la requiere, se configura mediante `CARBONE_LICENSE`.
+Ajustar el usuario/host del comando. El directorio contiene credenciales: enviarlo por SSH y no publicarlo. No se realiza rsync automáticamente. Web y los servicios auxiliares publican sus puertos según las variables anteriores. Carbone permanece sin Studio ni autenticación de API y su puerto queda publicado según `SERVICE_BIND_ADDRESS`. La [configuración oficial de Carbone](https://carbone.io/documentation/developer/self-hosted-deployment/deploy-with-docker.html) permite conservar las plantillas en `/app/template`; aquí se monta `carbone/template/`. Una licencia Enterprise, si la funcionalidad usada la requiere, se configura mediante `CARBONE_LICENSE`.
 
 **No basta copiar los IDs de plantilla:** copiar el directorio de plantillas de la instancia original conservando archivos y estructura. El paquete incluye `LEEME.txt` con pendientes detectados. Sin las plantillas de historia/viaje correspondientes, los reportes fallarán aunque el contenedor esté iniciado.
 
@@ -205,7 +216,7 @@ Se configuró `SYNC_ENABLED=true` en ambos archivos privados. Los procesos exist
 
 El panel distingue la conexión confirmada, el reporte desactualizado y los fallos de cada etapa (datos, archivos, cuentas, solicitudes). Un fallo al importar cuentas no impide revisar archivos ni consultar CouchDB. Pausa/reanudación se confirman cuando se aplican; una solicitud de sincronización procesada no significa que todos los datos estén al día. Los acuses perdidos se reintentan sin volver a aplicar una orden antigua.
 
-Si no hay reportes, revisar primero `docker compose logs --tail=100 worker` en Raspberry y la conectividad NetBird dentro de sus contenedores. La nube no puede arrancar el worker remoto. El botón registra una solicitud para el siguiente ciclo. El estado se consulta cada cinco segundos y los datos inexistentes se muestran como desconocidos, nunca como cero.
+Si no hay reportes, revisar primero `docker compose logs --tail=100 worker` en Raspberry y la conectividad NetBird dentro de sus contenedores. La nube no puede arrancar el worker remoto. El botón registra una solicitud para el siguiente ciclo. El navegador mantiene un stream SSE autenticado; el servidor emite estado y cambios recientes cada cinco segundos. Los datos inexistentes se muestran como desconocidos, nunca como cero.
 
 Los POST administrativos aceptan únicamente `BETTER_AUTH_URL` y los orígenes exactos de `BETTER_AUTH_TRUSTED_ORIGINS`, además de exigir sesión de administrador. Incluir en esa lista el origen real utilizado por el navegador (protocolo, hostname y puerto). No se confía en cabeceras de proxy para ampliar permisos.
 

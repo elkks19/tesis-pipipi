@@ -5,13 +5,12 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
+from app.analytics.numbers import parse_clinical_number
+
 
 def finite_number(value: Any) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if np.isfinite(number) else None
+    number = parse_clinical_number(value)
+    return number if number is not None and np.isfinite(number) else None
 
 
 def validate_fields(fields: list[str]) -> None:

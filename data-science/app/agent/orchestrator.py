@@ -60,6 +60,7 @@ class AgentAnswer:
     answer: str
     artifacts: list[Artifact]
     sources: list[Source]
+    tool_runs: list[dict[str, str]]
 
 
 class ResearchAgent:
@@ -80,6 +81,7 @@ class ResearchAgent:
         messages.append({"role": "user", "content": question})
         artifacts: list[Artifact] = []
         sources: dict[str, Source] = {}
+        tool_runs: list[dict[str, str]] = []
 
         for _ in range(MAX_TOOL_ROUNDS):
             assistant = await self.chat_client.chat_message(
@@ -93,11 +95,13 @@ class ResearchAgent:
                     answer=assistant_text(assistant),
                     artifacts=artifacts,
                     sources=list(sources.values()),
+                    tool_runs=tool_runs,
                 )
 
             for tool_call in tool_calls:
                 function = tool_call.get("function") or {}
                 name = str(function.get("name") or "")
+                status = "succeeded"
                 try:
                     execution = await self.tools.execute(name, function.get("arguments"))
                     content = execution.content
@@ -105,6 +109,7 @@ class ResearchAgent:
                     for source in execution.sources:
                         sources[source.chunk_id] = source
                 except Exception as exc:
+                    status = "failed"
                     content = json.dumps(
                         {
                             "error": str(exc),
@@ -112,6 +117,8 @@ class ResearchAgent:
                         },
                         ensure_ascii=False,
                     )
+                if name:
+                    tool_runs.append({"name": name, "status": status})
 
                 tool_message = {
                     "role": "tool",
@@ -135,6 +142,7 @@ class ResearchAgent:
             answer=assistant_text(assistant),
             artifacts=artifacts,
             sources=list(sources.values()),
+            tool_runs=tool_runs,
         )
 
 
@@ -150,6 +158,7 @@ class StreamPreamble:
     artifacts: list[Artifact]
     sources: list[Source]
     messages: list[dict[str, Any]]
+    tool_runs: list[dict[str, str]]
 
 
 class ResearchAgentStreamer:
@@ -173,6 +182,7 @@ class ResearchAgentStreamer:
         messages.append({"role": "user", "content": question})
         artifacts: list[Artifact] = []
         sources: dict[str, Source] = {}
+        tool_runs: list[dict[str, str]] = []
 
         for _ in range(MAX_TOOL_ROUNDS):
             assistant = await self.chat_client.chat_message(
@@ -187,11 +197,13 @@ class ResearchAgentStreamer:
                     artifacts=artifacts,
                     sources=list(sources.values()),
                     messages=messages,
+                    tool_runs=tool_runs,
                 )
 
             for tool_call in tool_calls:
                 function = tool_call.get("function") or {}
                 name = str(function.get("name") or "")
+                status = "succeeded"
                 try:
                     execution = await self.tools.execute(name, function.get("arguments"))
                     content = execution.content
@@ -199,10 +211,13 @@ class ResearchAgentStreamer:
                     for source in execution.sources:
                         sources[source.chunk_id] = source
                 except Exception as exc:
+                    status = "failed"
                     content = json.dumps(
                         {"error": str(exc), "nota": "Corrige los argumentos o usa otra herramienta."},
                         ensure_ascii=False,
                     )
+                if name:
+                    tool_runs.append({"name": name, "status": status})
 
                 tool_message: dict[str, Any] = {
                     "role": "tool",
@@ -226,6 +241,7 @@ class ResearchAgentStreamer:
             artifacts=artifacts,
             sources=list(sources.values()),
             messages=messages,
+            tool_runs=tool_runs,
         )
 
     async def stream_answer(self, preamble: StreamPreamble) -> AsyncIterator[str]:

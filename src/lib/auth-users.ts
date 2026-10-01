@@ -50,6 +50,28 @@ export function listAuthUsers(): AuthUserListItem[] {
   }
 }
 
+export function findAuthUserByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return undefined;
+  const database = new Database(databasePath, { readonly: true });
+  try {
+    const row = database
+      .prepare('SELECT id, name, email, role, createdAt FROM "user" WHERE lower(email) = ? LIMIT 1')
+      .get(normalized) as AuthUserRow | undefined;
+    return row
+      ? {
+          createdAt: row.createdAt,
+          email: row.email,
+          id: row.id,
+          name: row.name,
+          role: row.role as AuthRole | null,
+        }
+      : undefined;
+  } finally {
+    database.close();
+  }
+}
+
 export function getAuthUsersByIds(ids: string[]) {
   const uniqueIds = [...new Set(ids.filter(Boolean))];
   const users = new Map<string, AuthUserListItem>();

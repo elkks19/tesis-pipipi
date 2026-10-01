@@ -16,7 +16,6 @@ class Settings(BaseSettings):
         default="https://api.groq.com/openai/v1",
         alias="DS_GROQ_BASE_URL",
     )
-    max_completion_tokens: int = Field(default=900, alias="DS_MAX_COMPLETION_TOKENS")
     temperature: float = Field(default=0.2, alias="DS_TEMPERATURE")
     reasoning_format: str = Field(default="hidden", alias="DS_REASONING_FORMAT")
     reasoning_effort: str = Field(default="low", alias="DS_REASONING_EFFORT")

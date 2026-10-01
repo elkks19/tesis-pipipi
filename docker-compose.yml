@@ -11,6 +11,10 @@ x-app-environment: &app-environment
   REDIS_URL: redis://redis:6379
   DATA_SCIENCE_API_URL: http://data-science:8000
   DATA_SCIENCE_INTERNAL_TOKEN: ${DS_INTERNAL_TOKEN:?Configura DS_INTERNAL_TOKEN}
+  RAG_INDEX_CRON: ${RAG_INDEX_CRON:-15 */6 * * *}
+  SESSION_CLEANUP_CRON: ${SESSION_CLEANUP_CRON:-15 * * * *}
+  AUDIT_CLEANUP_CRON: ${AUDIT_CLEANUP_CRON:-30 2 * * *}
+  AUDIT_RETENTION_YEARS: ${AUDIT_RETENTION_YEARS:-5}
   SYNC_TRUSTED_HTTP_HOST: ${SYNC_TRUSTED_HTTP_HOST:-}
   SYNC_ENABLED: ${SYNC_ENABLED:-false}
   SYNC_NODE_ID: ${SYNC_NODE_ID:-raspberry-01}
@@ -40,15 +44,18 @@ services:
       CARBONE_TEMPLATE_MANAGEMENT: "true"
       CARBONE_FACTORIES: "1"
       CARBONE_USE_S3_PLUGIN: "false"
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-0.0.0.0}:${CARBONE_PORT:-4000}:4000"
     volumes:
       - ./carbone/template:/app/template
       - carbone-render:/app/render
-    # API accessible only on the private Compose network.
 
   ollama:
     image: ollama/ollama:latest
     profiles: [ollama]
     restart: unless-stopped
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-0.0.0.0}:${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollama-data:/root/.ollama
 
@@ -58,6 +65,8 @@ services:
     environment:
       COUCHDB_USER: ${COUCHDB_USER:-tesis}
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?Configura COUCHDB_PASSWORD}
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-0.0.0.0}:${COUCHDB_PORT:-5984}:5984"
     volumes:
       - couchdb-data:/opt/couchdb/data
       - ./deploy/raspberry/couchdb.ini:/opt/couchdb/etc/local.d/raspberry.ini:rw
@@ -72,6 +81,8 @@ services:
     image: redis:7.4-alpine
     restart: unless-stopped
     command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-0.0.0.0}:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -126,6 +137,8 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+      data-science:
+        condition: service_started
 
   data-science:
     image: ${TESIS_DS_IMAGE:-elkks/tesis-ds:latest}
@@ -142,7 +155,6 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       DS_OLLAMA_URL: ${DS_OLLAMA_URL:-http://host.docker.internal:11434}
       DS_GROQ_BASE_URL: ${DS_GROQ_BASE_URL:-https://api.groq.com/openai/v1}
-      DS_MAX_COMPLETION_TOKENS: ${DS_MAX_COMPLETION_TOKENS:-900}
       DS_TEMPERATURE: ${DS_TEMPERATURE:-0.2}
       DS_REASONING_FORMAT: ${DS_REASONING_FORMAT:-hidden}
       DS_REASONING_EFFORT: ${DS_REASONING_EFFORT:-low}
@@ -150,6 +162,8 @@ services:
       HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
     extra_hosts:
       - host.docker.internal:host-gateway
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-0.0.0.0}:${DATA_SCIENCE_PORT:-8000}:8000"
     volumes:
       - ds-data:/data
     depends_on:

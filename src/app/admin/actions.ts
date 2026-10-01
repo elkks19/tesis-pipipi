@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import Database from "better-sqlite3";
 
 import { auth } from "@/lib/auth";
+import { logAuditEvent, sanitizeTechnicalMessage } from "@/lib/audit-log";
 import { hasAuthPermission } from "@/lib/auth-permissions";
 import {
   authRoleNames,
@@ -100,7 +101,7 @@ export async function inviteUser(formData: FormData) {
   const temporaryPassword = generateTemporaryPassword();
 
   try {
-    await auth.api.createUser({
+    const created = await auth.api.createUser({
       body: {
         email,
         name: getNameFromEmail(email),
@@ -108,6 +109,16 @@ export async function inviteUser(formData: FormData) {
         role,
       },
       headers: requestHeaders,
+    });
+    await logAuditEvent({
+      action: "registration_succeeded",
+      actorEmail: created.user.email,
+      actorId: created.user.id,
+      category: "access",
+      component: "admin-invite",
+      details: { invitedBy: (await auth.api.getSession({ headers: requestHeaders }))?.user.id ?? null, role },
+      message: "Cuenta creada mediante invitación administrativa.",
+      status: "succeeded",
     });
 
     revalidatePath("/admin");
@@ -119,6 +130,16 @@ export async function inviteUser(formData: FormData) {
       temporaryPassword,
     };
   } catch (error) {
+    await logAuditEvent({
+      action: "registration_failed",
+      actorEmail: email,
+      category: "access",
+      component: "admin-invite",
+      errorCode: error instanceof Error ? error.name : "invite_error",
+      message: sanitizeTechnicalMessage(error),
+      severity: "warning",
+      status: "failed",
+    });
     return {
       message:
         error instanceof Error
